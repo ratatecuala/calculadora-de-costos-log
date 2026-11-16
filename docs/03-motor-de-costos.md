@@ -45,8 +45,8 @@ Cada partida lleva tres atributos, y las medidas se calculan filtrando por ellos
     P_bruto = P_neto · (1 + IVA)   solo si corresponde (reglas pendientes: #16)
 
 (5) Resultado sobre el precio cobrado P
-    Te queda en efectivo         = P − D
-    Ingreso real del dueño       = P − D − W − CF
+    Saldo tras desembolsos       = P − D
+    Ingreso estimado del dueño   = P − D − W − CF
     Diferencia frente a tu meta  = (P − D − W − CF) − R    → "por encima / por debajo de tu meta"
 ```
 
@@ -61,7 +61,7 @@ Cada partida lleva tres atributos, y las medidas se calculan filtrando por ellos
 
 | Línea | Qué es | ¿Se pagó en este viaje? |
 |---|---|---|
-| 1. Dinero que sale de tu bolsillo (D) | Combustible, peajes, ayudantes, conductor pagado, otros | **Sí** |
+| 1. Desembolsos estimados del viaje (D) | Combustible, peajes, ayudantes, conductor pagado, otros | **Sí** |
 | 2. Desgaste del vehículo (W) | Lo que conviene reservar para neumáticos, aceite y mantención | No, se pagará después |
 | 3. Parte de tus gastos fijos (CF) | Seguro, permiso de circulación y depreciación asignados a este viaje | No, se pagan aunque no viajes |
 | 4. Tu sueldo objetivo (R) | Lo que quieres ganar por tus horas | **No es un pago: es tu meta** |
@@ -99,8 +99,8 @@ Cada partida lleva tres atributos, y las medidas se calculan filtrando por ellos
 
 - **Precio sugerido** con m = 10 %: 55.980 / 0,9 = 62.200, redondeado hacia arriba a **63.000 neto**.
 - **Si cobra 60.000:**
-  - te quedan en efectivo **29.000**;
-  - ingreso real del dueño **22.020** (7.340/h);
+  - saldo estimado tras desembolsos **29.000**;
+  - ingreso estimado atribuible al dueño **22.020** (7.340/h);
   - quedas **4.020 por encima de tu meta** de 18.000.
 
 **Prueba de invariante:** (P − D) − W − CF − R = P − (D + W + CF + R), es decir 29.000 − 2.480 − 4.500 − 18.000 = 4.020 ✓.
@@ -118,8 +118,8 @@ Mismo viaje. El dueño no maneja: coordina durante 0,5 h.
 | **D + W + CF + R** | **65.980** |
 
 - **Precio sugerido** con m = 10 %: 73.311, redondeado a **74.000 neto**.
-- **Si cobra 60.000:** te quedan en efectivo 4.000 y quedas 5.980 por debajo de cubrir desgaste, fijos y tu meta.
-- **Mensaje que muestra la app:** "Mínimo para no perder: 65.980."
+- **Si cobra 60.000:** el saldo estimado tras desembolsos es 4.000 y faltan 5.980 para cubrir desgaste, fijos y la remuneración objetivo.
+- **Mensaje que muestra la app:** "Para cubrir costos y remuneración objetivo: 65.980."
 
 **Prueba:** si el conductor tiene **sueldo fijo mensual**, su costo sale de D, entra en CF y **no** entra en A al comparar con una cotización.
 
