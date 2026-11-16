@@ -1,6 +1,6 @@
 # 01 · Alcance funcional — primer lanzamiento gratuito
 
-**Estado:** dirección funcional actualizada por el propietario el 16-11-2026. Los detalles de interfaz, arquitectura y límites de uso están pendientes de la aprobación del diseño consolidado. El nombre comercial **sigue pendiente**.
+**Estado:** dirección funcional actualizada el 16-11-2026. El propietario aprobó **la identidad blanca/azul/grafito y las pantallas inicial y calculadora de v4**; la extensión del prototipo fue entregada por Claude y revisada por ChatGPT, **pendiente de aprobación final del propietario**. Arquitectura y cuotas, también pendientes. Nombre comercial **PENDIENTE**. Ver [guía UX v4](10-diseno-ux.md).
 
 ## 1. Qué se construye primero
 
@@ -26,16 +26,16 @@ El transportista puede introducir y revisar:
 
 1. Vehículo, origen A, destino B, base y regreso opcionales, fecha/hora de salida.
 2. Ruta usual o rápida y ruta evitando peajes, **cuando el proveedor devuelva opciones válidas**.
-3. Distancia y duración estimadas por tramo, referencia al tráfico, y enlace para verificar en Google Maps.
+3. Distancia y duración estimadas por tramo, y enlace para verificar en Google Maps. **Tráfico actualizado bajo consulta explícita** es el criterio técnico recomendado para ahorrar cuota; su integración, precio y campos se verificarán antes de activarla.
 4. Precio de combustible de fuente oficial con fecha **o declarado por el usuario**, editable; rendimiento propio o referencia correctamente identificada, si existe y puede usarse.
 5. Peajes/TAG por ruta y horario cuando haya datos confiables; siempre con entrada manual y opción «no sé» distinta de «0».
 6. Tiempo de trabajo, carga/descarga, pisos como minutos declarados, ayudantes, estacionamiento, materiales, urgencia como recargo y otros costos.
 7. Desgaste, gastos fijos asignables, remuneración objetivo y margen deseado, sin doble contabilización.
-8. Precio sugerido y precio propio, con resultado económico estimado y **estado de completitud**.
+8. Precio sugerido cuando exista base suficiente, precio propio definido por el transportista y resultado económico estimado con **estado de completitud**. Si faltan datos, permitir **cotización manual/indicativa bajo advertencia explícita**, sin fingir una ganancia comprobada.
 
 **Dos rutas, dos cálculos comparables:** si un componente relevante falta, la interfaz muestra «Costo parcial» y no asegura cuál ruta es más barata. El tráfico afecta la duración; **no implica inventar litros adicionales** por congestión. El rendimiento urbano/carretera/mixto se elige o valida con datos suficientes.
 
-El mapa debe ser interactivo, agradable y técnicamente realizable. La superposición simultánea de ambas rutas es una **opción de diseño, no una capacidad aprobada de Maps Embed**. Se permite alternar el mapa de una ruta y otra si resulta más viable/económico.
+El diseño v4 **muestra un camino a la vez** y compara los importes de las dos alternativas debajo; no necesita dos polilíneas superpuestas. **Maps Embed** es candidato para esa visualización, y **Routes** lo es para km/duración estructurados. La coherencia de ambos resultados y condiciones de Google se verificará antes de programar. La alternancia queda como criterio de UX revisado pendiente de validación final.
 
 El modo manual funciona cuando fallan APIs o se agotan cuotas. No usar scraping de Google Maps.
 
@@ -67,9 +67,11 @@ Incluye obligatoriamente: calculadora, mapas/rutas según viabilidad y cuotas, c
 ## 7. Reglas transversales
 
 1. Datos **MEDIDOS, DECLARADOS, OFICIALES con fecha, ESTIMADOS o FALTANTES** deben distinguirse; un dato desconocido nunca equivale a cero.
-2. «Costo estimado» si hay cobertura suficiente; **«Costo parcial»** si falta algún componente importante.
+2. «Costo estimado» si hay cobertura suficiente; **«Costo parcial»** si falta algún componente importante. La falta de gastos fijos no bloqueará por sí sola el avance: se puede cotizar bajo advertencia, con resultado parcial, sin precio recomendado como plenamente fundamentado.
 3. La remuneración del propietario es una **meta**, no desembolso realizado.
-4. Las rutas y el tráfico son estimaciones externas; el resultado matemático debe ser auditable y su versión reproducible.
+4. Las rutas y el tráfico son estimaciones externas; el resultado matemático debe ser auditable y su versión reproducible. **No prometer hora concreta de reinicio de cuota** hasta verificarla en el proveedor y los controles propios.
 5. Reducir campos de ingreso con progresividad, **sin sacrificar transparencia**.
-6. La versión gratuita debe ser utilizable cotidianamente; Pro es futuro, no condición para calcular.
+6. La interfaz usa **lenguaje sencillo en primer nivel**, con definición formal en ayudas («Qué es») y documentos: por ejemplo, «Lo que pagas en el viaje» = gastos desembolsados, «Lo que quieres ganar» = remuneración objetivo. No llamar «ganancia real» a una estimación.
+7. El IVA es **condicional a situación tributaria validada** (#16); no se suma 19 % a todos los transportistas por defecto.
+8. La versión gratuita debe ser utilizable cotidianamente; Pro es futuro, no condición para calcular.
 7. Facturación técnica en Google Cloud **es aceptable como posibilidad**, pero habilitar APIs con riesgo de cobro necesita autorización y controles; inicialmente **$0 de cargos variables autorizados**.
