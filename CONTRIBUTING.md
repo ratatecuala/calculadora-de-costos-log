@@ -1,5 +1,7 @@
 # Convenciones de desarrollo y contribución
 
+**Las reglas obligatorias para todos los agentes están en [AGENTS.md](AGENTS.md).**
+
 ## Ramas
 
 - `main`: rama estable. **Nada se integra sin autorización del propietario.**
@@ -22,7 +24,7 @@ Tipos: `feat`, `fix`, `docs`, `data`, `test`, `refactor`, `chore`, `ci`.
 ## Pull requests
 
 Cada PR debe:
-1. Enlazar su issue (`Cierra #N`).
+1. Enlazar su issue (`Refs #N`), sin cerrar automáticamente el issue antes de verificar y autorizar su cierre.
 2. Completar la plantilla, incluida la sección **"Cómo probar"** con pasos que el propietario pueda seguir sin comandos.
 3. Pasar la CI (desde E1).
 4. Si cambia el motor: actualizar los casos dorados o justificar por qué no cambian, subir `engineVersion` y registrar el cambio en el CHANGELOG.
