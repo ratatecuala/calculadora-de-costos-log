@@ -32,7 +32,9 @@ Este archivo es la **puerta de entrada operativa** para Claude, ChatGPT, Codex y
 
 - **GitHub:** fuente de verdad de código, documentación, decisiones e issues.
 - **Trello:** seguimiento visual por fases y entregables, **solo cuando el propietario autorice crearlo/configurarlo**. No duplicar cada issue como una tarjeta.
-- No trabajar dos agentes simultáneamente sobre el mismo archivo o rama sin coordinarlo. Los cambios hechos por un agente deben inspeccionarse antes de continuar.
+- **Se permiten issues grandes y varios issues en paralelo.** No hay un tamaño máximo artificial: se elige según cohesión funcional, dependencias, capacidad de probar y claridad del seguimiento.
+- Antes de paralelizar, identificar responsables, archivos afectados, dependencias y posibles conflictos. Si se solapan archivos, fórmulas, migraciones o contratos, coordinar el orden o trabajar secuencialmente sobre esa parte. **No trabajar dos agentes sobre el mismo archivo o rama a la vez sin coordinación expresa.**
+- Los cambios hechos por otro agente deben inspeccionarse antes de continuar. Cada avance debe dejar evidencia y estado actualizado en su issue.
 - No copiar reglas técnicas de VetPo, LIVIO o Voli que no correspondan a este producto.
 
 ## 4. Estados que deben distinguirse
@@ -57,14 +59,16 @@ La aprobación de **documentación no autoriza programación**, y la de un PR no
 
 ## 6. Ciclo de trabajo por tarea
 
-1. Elegir **un issue autorizado**, confirmar dependencias y estado del repositorio.
+1. Elegir **uno o varios issues autorizados**, comprobar dependencias, prioridad y estado del repositorio. Se pueden ejecutar en paralelo si el trabajo es independiente o la coordinación evita conflictos.
 2. Antes de editar, presentar al propietario en lenguaje simple: **tarea, archivos a tocar, cambio exacto, cómo se probará y qué queda fuera**. Esperar autorización cuando no exista.
-3. Trabajar en **rama propia**, con cambios pequeños y limitados. No hacer refactorizaciones ni mejoras «por si acaso»; no agregar dependencias sin justificación.
+3. Trabajar en **rama propia por frente coherente**. Un issue o PR puede abarcar varios archivos o funcionalidades relacionadas, y varios issues pueden avanzar simultáneamente. **Dividir solo cuando el tamaño, el acoplamiento o el riesgo dificulten revisar, probar, revertir o integrar sin confusiones.** No hacer refactorizaciones ni mejoras «por si acaso»; no agregar dependencias sin justificación.
 4. Ejecutar pruebas pertinentes: casos matemáticos resueltos independientemente, pruebas automatizadas y verificación móvil si se cambia la interfaz. Registrar también lo que **no pudo** probarse.
 5. Abrir PR, preferentemente **draft** hasta completar la revisión, con **Refs #N** (no `Closes`/`Cierra` automático), resumen, archivos, riesgos, resultados y 3–6 pasos para probar **sin comandos** desde la web cuando sea posible.
 6. Solicitar revisión técnica de ChatGPT cuando cambie motor, seguridad, privacidad, proveedores, costos o arquitectura. Una revisión de IA no sustituye la aprobación del propietario.
 7. **No integrar a `main` hasta que el propietario escriba una aprobación inequívoca para ese PR**. Si el autor es la misma cuenta GitHub, registrar el OK mediante comentario en el PR.
 8. Después de la integración autorizada, actualizar estado, decisiones, documentación e issues según corresponda. No cerrar un issue por anticipado.
+
+**Criterio de tamaño y simultaneidad:** priorizar entregables funcionales completos, aunque sean grandes. No fragmentar por costumbre; dividir cuando los componentes sean independientes o aumente materialmente el riesgo de fallos, conflictos o pérdida de trazabilidad. Mantener un responsable y un estado claro por issue, con pruebas y puntos de integración definidos.
 
 **Definición de terminado:** resultado comprobado, criterios de aceptación cumplidos, pruebas en verde o limitaciones explicadas, documentación sincronizada, revisión técnica y aprobación del propietario para integrar.
 
