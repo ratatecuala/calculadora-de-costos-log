@@ -5,8 +5,15 @@
 ## Ramas
 
 - `main`: rama estable. **Nada se integra sin autorización del propietario.**
-- Ramas de trabajo cortas, una por tarea: `feat/…`, `fix/…`, `docs/…`, `data/…`, `chore/…`. Las sesiones de Claude pueden usar ramas `claude/…`.
+- Ramas de trabajo por **issue, entregable o conjunto coherente de tareas**: `feat/…`, `fix/…`, `docs/…`, `data/…`, `chore/…`. Las sesiones de Claude pueden usar ramas `claude/…`. Se admiten issues grandes y varias ramas activas en paralelo, con responsables, dependencias y archivos afectados claros. Evitar editar los mismos archivos simultáneamente sin coordinación.
 - Integración por **squash merge**: un commit por PR.
+
+## Tamaño y trabajo en paralelo
+
+- Los issues **pueden ser grandes** y abarcar varios componentes relacionados; no es obligatorio dividirlos en microtareas.
+- **Pueden avanzarse varios issues a la vez** si sus dependencias y puntos de integración están identificados.
+- Los PR pueden agrupar cambios relacionados cuando se puedan **revisar, probar y revertir con seguridad**. Separar cuando mezclar cambios aumente el riesgo de error o confusión.
+- No integrar un cambio si las pruebas fallan, hay conflictos pendientes o el propietario no lo autorizó.
 
 ## Commits
 
