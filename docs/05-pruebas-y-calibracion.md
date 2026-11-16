@@ -1,60 +1,61 @@
-# 05 · Plan de pruebas y calibración
+# 05 · Pruebas, calibración y validación del lanzamiento gratuito
 
-Estado: el **enfoque está aprobado**. Los **criterios numéricos finales están pendientes** de la decisión del propietario (#12).
+**Estado:** estrategia de control propuesta. Las metas numéricas concretas se aprobarán en #12. No hay código ni viajes de validación ejecutados todavía.
 
-## 1. Pruebas automatizadas
+## 1. Motor matemático — primer requisito
 
-| Tipo | Herramienta | Qué verifica | Cuándo |
-|---|---|---|---|
-| Casos dorados | Vitest | 10 viajes resueltos en una planilla independiente (#24). El motor debe coincidir **al peso**. | Cada PR (CI) |
-| Propiedades | fast-check | Monotonía (más km nunca reduce el costo), no negatividad, invariantes de las cinco medidas, Δ = A − Q cuando B = G = S = 0 | Cada PR |
-| Validación | Vitest + Zod | Entradas válidas, inválidas y faltantes. Un faltante nunca se convierte en 0. | Cada PR |
-| Integración del Worker | Vitest con simulaciones | Errores, tiempos de espera y cuota agotada de Google y CNE, y modo degradado | Desde E2 |
-| Extremo a extremo | Playwright | Flujo principal en móvil (360 px) y escritorio | Desde E2 |
-| Accesibilidad | axe-core más revisión manual | Sin violaciones críticas y navegación por teclado | Desde E1 |
+- **Casos dorados calculados independientemente** (#24): al menos 10 casos representativos del **producto gratuito vigente**, no del comparador de tercerización aplazado.
+- Invariantes: la misma entrada/versiones produce el mismo resultado; ningún costo se contabiliza dos veces; `null` ≠ 0; precio y recargos consistentes; impuestos según caso.
+- Casos obligatorios: solo A→B; base→A→B; regreso; opción con autopista; opción evitando peajes; TAG desconocido; combustible/rendimiento faltantes; ayudante; costos fijos incompletos; cotización con precio distinto al sugerido.
+- Precisión del motor **al peso**, sin redondeos intermedios; distinguir valor exacto interno y presentación redondeada.
+- Pruebas de propiedad y de sensibilidad; un cambio incorrecto en fórmula debe hacer fallar pruebas.
+- **No implementar** el comparador de tercerización, matching o marketplace en el primer lanzamiento.
 
-- **Cobertura mínima del motor:** 90 % de líneas y de ramas.
-- **Prueba de sensibilidad:** cada PR que toca el motor demuestra que un cambio deliberado en una fórmula hace fallar al menos un caso dorado.
+## 2. Integraciones y rutas
 
-## 2. Dimensiones que se validan por separado
+- Dirección A/B y base: confirmar que el resultado corresponde al lugar y comuna realmente indicados; casos urbanos/rurales y ambiguos.
+- Distancia y duración para cada tramo, con/sin peajes, cálculo del total sin duplicaciones.
+- El tráfico influye en el **tiempo**, no crea litros por sí mismo.
+- `avoidTolls` no garantiza no pasar por pórticos: probar casos con peajes y sin alternativa.
+- Comparación con TAG o rendimiento desconocido: salida **parcial**, no afirmar alternativa ganadora.
+- Mapas Embed y Routes: verificar y **advertir si difieren visualmente**.
+- Documentar número de llamadas y SKU por flujo, incluidos reintentos y cambios de ruta. Ensayar cuotas agotadas y apagado, siempre conservando entrada manual.
+- **No hacer pruebas facturables reales sin autorización**.
 
-| Dimensión | Cómo se mide | Criterio **propuesto** (pendiente #12) | Vehículos válidos |
-|---|---|---|---|
-| Distancia | Google frente al odómetro, misma ruta | Error ≤ 3 % en el 90 % de los viajes | Cualquiera |
-| Tiempo | Conducción cronometrada, separada de carga y descarga | Error ≤ 15 % o ±10 min | **Solo la categoría medida** |
-| Consumo | Llenado a tope en tramos acumulados de 300 km o más | ≤ 10 % en autos y ≤ 15 % en vehículos de carga | **Solo esa categoría, con 3 o más vehículos** |
-| Peajes | Detección por pórtico y monto | 100 % detectados; monto exacto con banda conocida | Categoría del vehículo usado |
-| Motor matemático | Casos dorados y propiedades | 100 % al peso | No aplica |
-| Comprensión | 5 o más usuarios con tareas guiadas | 4 de 5 distinguen "dinero de bolsillo" de "ganancia" y deciden bien el caso de tercerización | No aplica |
+## 3. Acceso, seguridad y cotización
 
-**Reglas aprobadas:**
-- **Ninguna categoría se declara calibrada con datos de otra.** Los automóviles **no** validan rendimientos de camiones.
-- Una categoría sin calibrar se publica con la etiqueta **"no calibrado"** o no se publica. Lo decide el propietario en #11.
+- Flujo **sin cuenta**: calcular sin cargar historial privado ajeno.
+- Registro con Google: alta y retorno a sesión; guardado de vehículos, costos e historial por usuario; pruebas de aislamiento entre dos cuentas.
+- Borrador, enviada, aceptada, rechazada; distinguir aceptación de **ingreso efectivamente cobrado**.
+- PDF/compartir: verifica precio, fecha, servicio y condiciones; **no** expone costos internos, márgenes, remuneración, direcciones exactas no autorizadas ni datos de otro usuario.
+- Compartir enlace: controles de adivinación/revocación/expiración según diseño autorizado.
+- Compatibilidad y accesibilidad en móvil (teclado, tamaño de controles, contraste, flujo de ida y vuelta sin pérdida de datos).
+- Pruebas de respaldo/restauración, límites de almacenamiento y eliminación de cuenta.
 
-## 3. Protocolo de calibración
+## 4. Registros manuales de viajes y combustible
 
-1. **Preregistro:** la estimación se genera y se congela **antes** del viaje.
-2. **Dos conjuntos de datos:** uno de calibración (se usa para ajustar) y otro de validación (solo para medir).
-3. **Separar errores:** se distingue el error del modelo de la divergencia de ruta (si el conductor tomó otra ruta, se registra aparte).
-4. **Instrumentos:** odómetro, computador de a bordo, track GPS del teléfono, llenado a tope con boleta, cartolas TAG y boletas de peaje, cronómetro de carga y descarga.
-5. **Consentimiento** escrito de cada participante (#17).
+El registro **manual** es gratis; la lectura automática de fotografías y análisis avanzado son futuros.
 
-### Registro por viaje
+- Capturar odómetro inicial/final o km medidos por el usuario, tiempos y litros realmente repostados.
+- Calibración «lleno a lleno»: `rendimiento = km entre llenados completos / litros del llenado final` con ajuste explícito de cargas parciales intermedias.
+- **Dos fotografías de odómetro no determinan el combustible consumido**.
+- No mezclar rutas urbanas y carretera como rendimientos separados sin observaciones suficientes y criterio aprobado.
+- Los valores de homologación **no equivalen** a consumo real.
+- Los datos de calibración privada no deben subirse al repositorio público.
 
-ID · fecha · categoría · carga (kg) · comuna de origen y destino (**sin dirección exacta**) · hora de salida · km estimado y real · duración estimada y real · litros (tramo acumulado) · peajes estimados y cobrados · costo estimado y observado · ¿ruta seguida igual? · observaciones.
+## 5. Validación con transportistas reales
 
-### Almacenamiento
+**Hipótesis a validar:** usuarios que calculan un flete y vuelven a usar la aplicación para cotizaciones reales.
 
-- Los datos de calibración se guardan en **almacenamiento privado del propietario**, **nunca en este repositorio**.
-- Las estimaciones de Google se conservan un máximo de 30 días; después solo quedan métricas agregadas (postura conservadora, #15).
+Métricas recomendadas (datos mínimos y consentidos):
+1. Visita → primer cálculo terminado.
+2. Primer cálculo → registro opcional.
+3. Cálculo → cotización creada y compartida.
+4. Uso repetido por semana/mes, sin atribuir identidad a usuarios anónimos sin necesidad.
+5. Errores, abandono de campos, comprensión de costo parcial y de utilidad estimada.
 
-### Muestra mínima propuesta
+Antes de publicación: pruebas con personas de distinto nivel digital, varios vehículos livianos y casos reales documentados; definir umbrales de aprobación en #12. **No usar altas de usuarios como única prueba de éxito.**
 
-30 viajes en automóvil (urbano, interurbano, en punta y fuera de punta) y 10 viajes por categoría de carga.
+## 6. Herramientas candidatas
 
-## 4. Datos que justificarían introducir factores (hoy prohibidos)
-
-| Factor | Datos necesarios |
-|---|---|
-| Consumo según carga | Por vehículo: pares de viajes vacío/cargado en la misma ruta, en 3 o más niveles de carga, con 5 o más pares por nivel y llenado a tope en tramos de 300 km o más. Por categoría: 3 o más vehículos. |
-| Velocidad de camión frente a auto | 20 o más viajes por categoría con track GPS en rutas estimadas por Google, separando urbano de interurbano |
+Vitest / pruebas de propiedades para motor; pruebas de integración para Workers y permisos; Playwright para rutas completas; accesibilidad automatizada más revisión manual. Elegir la suite definitiva después de aprobar arquitectura.
