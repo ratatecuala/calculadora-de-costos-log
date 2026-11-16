@@ -64,9 +64,9 @@ Una tarea está terminada cuando se cumple todo lo siguiente:
 ## Código (desde E1)
 
 - TypeScript en modo `strict`. No se usa `any` sin justificación escrita.
-- `src/engine` no importa nada de `web`, `worker`, red ni DOM.
+- El motor aislado no importa nada de la web, red, proveedor de identidad, base de datos ni mapas. La ruta final del código se determinará al aprobar arquitectura.
 - Unidades con tipos distinguibles (km, L, CLP neto, CLP bruto).
-- `null` significa "falta el dato", no "cero".
+- `null` significa "falta el dato", no "cero"; aplica también a peajes y rendimiento faltantes.
 - No se agrega ninguna dependencia nueva sin justificarla en el PR.
 
 ## Reportar errores de cálculo
