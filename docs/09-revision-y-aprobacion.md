@@ -2,6 +2,10 @@
 
 No necesitas programar ni ejecutar comandos. Todo se hace desde la web de GitHub, también en el teléfono.
 
+## Estado actual de las aprobaciones
+
+La documentación del **PR #34** refleja el **alcance actualizado**, pero el nombre comercial, la identidad visual, el proveedor de cuentas, los límites de API y el nuevo backlog están **pendientes**. Aprobar un documento no autoriza código, cuentas, despliegues, suscripciones ni cargos. Las etapas/issues anteriores necesitan reconciliación después de aprobar el prototipo de Claude.
+
 ## El ciclo de un cambio
 
 1. **Claude trabaja en una rama** y abre un **pull request (PR)**: una propuesta de cambio que todavía no afecta a `main`.
@@ -27,6 +31,9 @@ No necesitas programar ni ejecutar comandos. Todo se hace desde la web de GitHub
 - ✅ verde en las pruebas.
 - Seguiste los pasos de "Cómo probar" y obtuviste lo esperado.
 - Los textos se entienden sin conocimientos contables.
+- El trayecto A → B y base/regreso opcionales no duplican kilómetros ni costos.
+- La ruta más barata se afirma únicamente cuando se conocen componentes importantes como peajes.
+- Se comprueban acceso anónimo, guardado con Google y PDF sin costos internos, según el alcance del PR.
 
 ## Qué siempre requiere tu autorización
 
