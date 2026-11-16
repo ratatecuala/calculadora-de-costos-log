@@ -39,10 +39,11 @@ Pensada para fleteros independientes, conductores con auto, camioneta, furgón o
 ## Reglas de trabajo
 
 - **Propietario:** aprueba prioridades, gastos, cuentas, cambios de alcance y cualquier integración a `main`.
-- **Claude:** desarrolla únicamente tareas autorizadas, mediante ramas y PR pequeños con pruebas.
+- **Claude:** desarrolla únicamente tareas autorizadas; puede gestionar **issues grandes o varios en paralelo**, con ramas, PR y pruebas adecuados al riesgo.
 - **ChatGPT:** revisa las decisiones técnicas, las fórmulas y los PR relevantes antes de su aprobación.
 - **GitHub:** documentación, código e issues. **Trello:** seguimiento visual una vez autorizado, sin duplicar el backlog.
 - **Costo de APIs:** $0 de cargos variables autorizados; nada se activa que pueda generar cobros sin aprobación.
+- **Tamaño del trabajo:** preferimos entregables completos y bien controlados; solo se dividen cuando su complejidad, dependencias o riesgo dificultan revisarlos o integrarlos.
 - **Cada entrega:** debe explicar qué cambió, qué no tocó, cómo comprobarlo sin conocimientos técnicos y qué queda pendiente.
 - **Sin fusiones automáticas, cambios directos a `main`, secretos, datos privados ni funcionalidades fuera de alcance.**
 
