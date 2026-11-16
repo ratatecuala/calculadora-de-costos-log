@@ -26,6 +26,28 @@
 5. **Publicación:** seguridad, documentos y cumplimiento revisados. El propietario autoriza el lanzamiento.
 6. **Validación real:** medir registro → primer cálculo → primera cotización → retorno y uso repetido.
 
+## Orden de implementación propuesto (requiere autorización de programación)
+
+| Ola | Trabajo | En paralelo | Bloqueantes | Gasto |
+|---|---|---|---|---|
+| **0 · Cierre de E0** | Integrar PR #34 con ratificación de A-21 a A-29; casos dorados (#24); reglas de IVA (#16) | Investigaciones #15, #17 y #18 | OK del propietario | Ninguno |
+| **1 · Motor (E1, #2)** | Un issue grande y cohesivo: #26 → #27 → #28 + #29, y luego #37, #38 y #31 | #30 (pruebas) avanza junto al motor; #39 (textos) en paralelo, sin tocar el motor | Autorización de E1; G1 a G10 calculados | Ninguno: se prueba en local y en CI |
+| **2 · Calculadora manual (E1)** | #32 y #33 sobre el motor ya probado | Puede empezar con el contrato de tipos del motor congelado | Cuenta de Cloudflare (#8) solo para la vista previa | Plan gratuito |
+| **3 · Rutas (E2, #3)** | Worker de Routes, contador, interruptor, mapa Embed, tráfico bajo demanda | E4 puede empezar en paralelo | #9 (cuota elegida), #19 (experimento autorizado), #18 (contador), #15 | Tramo gratuito; riesgo acotado según #9 |
+| **3 · Cuentas y cotización (E4, #5)** | Supabase, RLS, `client_quotes`, PDF, enlace, historial | En paralelo con E2: archivos distintos (`supabase/`, `src/web` de cuentas) | #35 aprobado, #17, #16 | Plan gratuito; Pro solo con aprobación |
+| **4 · Combustible y peajes (E3, #4)** | CNE y peajes | Independiente | #20, #21, #10 | Por definir |
+| **5 · Validación (E5, #6)** | Calibración, comprensión, seguridad, publicación | — | #12, #13, #7, #14 | Por aprobar |
+
+**Puede empezar sin contratar servicios ni gastar**, una vez autorizado:
+- motor, pruebas y casos dorados;
+- textos y glosario;
+- esquemas Zod y `toClientQuote()`;
+- migraciones SQL y pruebas de RLS contra un Postgres **local** (sin crear el proyecto en Supabase);
+- plantilla de solicitudes de Routes con respuestas simuladas;
+- investigaciones de términos, IVA y privacidad.
+
+**Regla de paralelismo:** dos frentes en paralelo no tocan los mismos archivos; el contrato de tipos del motor se congela antes de que la interfaz lo consuma.
+
 ## Backlog actualizado el 16-11-2026
 
 Las etiquetas de etapa (E0–E5) se conservan como identificadores de épica; el orden real lo da la tabla anterior, y varios frentes pueden avanzar en paralelo.
