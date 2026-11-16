@@ -20,7 +20,7 @@ Convención: **[H]** hecho verificado (con fuente y forma de verificación) · *
 - [H] Routes acepta **direcciones en texto** y entrega `geocodingResults` con `partialMatch`. Google recomienda usar place ID por precisión.
 - [S] Que la geocodificación interna de Routes no tenga cargo adicional (#19).
 - [S] Que Google calcule peajes en Chile (#21).
-- [H] Las alertas de presupuesto **no detienen** el cobro. Solo las **cuotas diarias** ponen un tope duro, y se aplican con retraso.
+- [H] Las alertas de presupuesto **no detienen** el cobro. Las **cuotas diarias** ayudan a contener el consumo, pero pueden aplicarse con retraso y no garantizan un gasto de $0. La facturación requiere autorización expresa del propietario.
 
 ### Restricciones de uso (vía buscador; lectura directa en #15)
 
