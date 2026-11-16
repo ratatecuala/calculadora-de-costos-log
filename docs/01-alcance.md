@@ -26,7 +26,7 @@ El transportista puede introducir y revisar:
 
 1. Vehículo, origen A, destino B, base y regreso opcionales, fecha/hora de salida.
 2. Ruta usual o rápida y ruta evitando peajes, **cuando el proveedor devuelva opciones válidas**.
-3. Distancia y duración estimadas por tramo, y enlace para verificar en Google Maps. **Tráfico actualizado bajo demanda (APROBADO, A-23):** botón visible, nunca en cada cambio del formulario; sin él se usa la duración habitual y siempre existe el modo manual. Activa el SKU Pro de Routes (ver [04](04-fuentes-de-datos.md)).
+3. Distancia y duración estimadas por tramo, y enlace para verificar en Google Maps. **Tráfico actualizado bajo demanda (A-23, comunicada por el propietario, pendiente de ratificación en PR #34):** botón visible, nunca en cada cambio del formulario; sin él se usa la duración habitual y siempre existe el modo manual. Activa el SKU Pro de Routes (ver [04](04-fuentes-de-datos.md)).
 4. Precio de combustible de fuente oficial con fecha **o declarado por el usuario**, editable; rendimiento propio o referencia correctamente identificada, si existe y puede usarse.
 5. Peajes/TAG por ruta y horario cuando haya datos confiables; siempre con entrada manual y opción «no sé» distinta de «0».
 6. Tiempo de trabajo, carga/descarga, pisos como minutos declarados, ayudantes, estacionamiento, materiales, urgencia como recargo y otros costos.
@@ -35,7 +35,7 @@ El transportista puede introducir y revisar:
 
 **Dos rutas, dos cálculos comparables:** si un componente relevante falta, la interfaz muestra «Costo parcial» y no asegura cuál ruta es más barata. El tráfico afecta la duración; **no implica inventar litros adicionales** por congestión. El rendimiento urbano/carretera/mixto se elige o valida con datos suficientes.
 
-El diseño v4 **muestra un camino a la vez** y compara los importes de las dos alternativas debajo; no necesita dos polilíneas superpuestas. **Maps Embed** es candidato para esa visualización, y **Routes** lo es para km/duración estructurados. La coherencia de ambos resultados y condiciones de Google se verificará antes de programar. La alternancia está **APROBADA** (A-22).
+El diseño v4 **muestra un camino a la vez** y compara los importes de las dos alternativas debajo; no necesita dos polilíneas superpuestas. **Maps Embed** es candidato para esa visualización, y **Routes** lo es para km/duración estructurados. La coherencia de ambos resultados y condiciones de Google se verificará antes de programar. La alternancia es la decisión A-22 (comunicada por el propietario, pendiente de ratificación en PR #34).
 
 El modo manual funciona cuando fallan APIs o se agotan cuotas. No usar scraping de Google Maps.
 

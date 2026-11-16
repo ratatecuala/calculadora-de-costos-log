@@ -4,7 +4,7 @@ No necesitas programar ni ejecutar comandos. Todo se hace desde la web de GitHub
 
 ## Estado actual de las aprobaciones
 
-La documentación del **PR #34** refleja el **alcance actualizado**. La **dirección visual v4 blanco/azul/grafito y las muestras de inicio/calculadora** están aprobadas por el propietario. El 16-11-2026 el propietario aprobó también la **extensión de las demás pantallas** y los criterios funcionales (A-21 a A-29). El **backlog se actualizó** ese día (ver [08](08-hoja-de-ruta.md)). Siguen pendientes **nombre comercial, aprobación de la arquitectura propuesta (proveedor de cuentas, Supabase #35) y límites de API**. Ver [guía UX v4](10-diseno-ux.md). Aprobar un documento no autoriza código, cuentas, despliegues, suscripciones ni cargos. 
+La documentación del **PR #34** refleja el **alcance actualizado**. La **dirección visual v4 blanco/azul/grafito y las muestras de inicio/calculadora** están aprobadas por el propietario. El 16-11-2026 el propietario comunicó a Claude, por chat, la aprobación de la dirección v4 completa y de los criterios funcionales A-21 a A-29; **falta ratificarlos con un comentario en el PR #34** (ver [07](07-decisiones.md)). El **backlog se actualizó** ese día (ver [08](08-hoja-de-ruta.md)). Siguen pendientes **nombre comercial, aprobación de la arquitectura propuesta (proveedor de cuentas, Supabase #35) y límites de API**. Ver [guía UX v4](10-diseno-ux.md). Aprobar un documento no autoriza código, cuentas, despliegues, suscripciones ni cargos. 
 
 ## El ciclo de un cambio
 

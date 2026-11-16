@@ -75,7 +75,7 @@ Cada partida lleva tres atributos, y las medidas se calculan filtrando por ellos
 - **Gastos fijos asignados (CF):** solo si el usuario indica los gastos anuales **y** sus horas productivas al año. Si falta alguno de los dos, CF queda "sin datos" y el resultado es **"costo económico incompleto"**.
 - **Datos faltantes:** `null` ≠ `0`. Un 0 solo es válido si el usuario lo declara (por ejemplo, "no hay peajes").
 - **Rangos:** solo donde hay base (rendimiento declarado con mínimo y máximo, peaje con hora incierta entre TBFP y TS, precio de combustible entre el mínimo y el máximo regional). En los demás casos, valor único con su procedencia.
-- **Redondeo:** solo al final, a 1.000 CLP. El precio sugerido se redondea hacia arriba.
+- **Redondeo:** sin redondeos intermedios. Los montos se muestran **al peso**; solo el **precio sugerido** se redondea hacia arriba al múltiplo de 1.000. Si el valor es una **cota**, el sentido del redondeo lo fija §3C (corregido el 16-11-2026).
 - **Procedencia** de cada valor: MEDIDO · OFICIAL (fuente y fecha) · DECLARADO · PREDETERMINADO (no calibrado) · CALCULADO.
 
 ## 3A. Alcance vigente del trayecto y comparación de rutas
@@ -107,26 +107,63 @@ El registro gratuito de viaje real y cargas de combustible conserva **lecturas c
 
 ## 3C. Resultados parciales como cotas (A-26)
 
-**Regla aprobada:** si el transportista desconoce un dato (por ejemplo, sus gastos fijos o los peajes), **no se le impide calcular ni cotizar**. El resultado se rotula «Costo parcial» y **nunca** se presenta como rentabilidad segura.
+**Regla:** si el transportista desconoce un dato (por ejemplo, sus gastos fijos o los peajes), **no se le impide calcular ni cotizar**. El resultado se rotula «Costo parcial» y **nunca** se presenta como rentabilidad segura.
 
-**Fundamento:** todas las partidas de costo son ≥ 0. Si faltan algunas, la suma de las conocidas **K** es una **cota inferior** del costo real (costo real ≥ K). Por lo tanto, todo resultado que resta costos de un precio es una **cota superior**.
+### Fundamento
 
-| Medida | Con datos completos | Con datos faltantes |
+Toda partida de costo es ≥ 0. Sea **K** la suma de las partidas conocidas y **U ≥ 0** la de las faltantes; el costo real es C = K + U ≥ K. Entonces:
+
+| Medida | Definición | Con faltantes | Por qué |
+|---|---|---|---|
+| Costo del viaje | C = D + W + CF + R | **Cota inferior** K: «$K o más» | C = K + U ≥ K |
+| Precio sugerido | P_sug = ⌈C/(1 − m) + recargos⌉₁₀₀₀ | **Cota inferior** ⌈K/(1 − m) + recargos⌉₁₀₀₀: «al menos» | ver demostración |
+| Te queda después de pagar el viaje | P − D | Si falta un desembolso: **cota superior** P − D_conocido. Si no falta ninguno: estimado | P − D ≤ P − D_conocido |
+| Te queda después de todos los costos | P − D − W − CF | **Cota superior** «como máximo» | se restan costos ≥ los conocidos |
+| Sobre lo que querías ganar | P − C | **Cota superior** «como máximo» | P − C ≤ P − K |
+
+**Precio mínimo con faltantes (demostración):** con 0 ≤ m ≤ 0,8 se tiene 1 − m > 0, así que K ≤ C implica K/(1 − m) ≤ C/(1 − m). Sumar los mismos recargos (fijos, o un porcentaje sobre el precio) conserva la desigualdad. Además, la función techo a 1.000 es **no decreciente**: x ≤ y implica ⌈x⌉₁₀₀₀ ≤ ⌈y⌉₁₀₀₀. Por lo tanto, ⌈K/(1 − m) + recargos⌉₁₀₀₀ ≤ P_sug. «Al menos $42.000» es una cota inferior válida **del precio sugerido que la app calcularía con datos completos**. No es una cota inferior de C/(1 − m) sin redondear, y no se presenta así.
+
+### Redondeo de cotas (CORRECCIÓN del 16-11-2026)
+
+La versión anterior decía «cotas inferiores hacia arriba; superiores hacia abajo». **Eso es incorrecto** y queda reemplazado:
+
+| Tipo de valor | Redondeo válido | Contraejemplo de la regla incorrecta |
 |---|---|---|
-| Costo del viaje | «Costo estimado: $42.752» | «**Costo parcial: $35.202 o más.** Faltan: peajes, gastos fijos.» |
-| Precio sugerido | «Precio sugerido: $51.000» | «**Al menos $42.000**, con lo que sabemos.» |
-| Te queda después de pagar el viaje (P − D) | Estimado | Igual, **si** lo faltante no es un desembolso; si falta un desembolso (p. ej., peajes), «**como máximo**» |
-| Te queda después de todos los costos | Estimado | «**Como máximo**» |
-| Sobre lo que querías ganar | «+$12.248» | «**Como máximo** +$X»; nunca con color ni ícono de éxito |
+| Cota inferior de un monto (costo «o más») | **Hacia abajo** (piso) | K = 35.202 redondeado hacia arriba a 36.000 afirmaría «costo ≥ 36.000», pero si los peajes faltantes son $298, el costo real es 35.500 < 36.000 |
+| Cota superior (lo que queda «como máximo») | **Hacia arriba** (techo) | Lo que queda ≤ 34.977,6; redondearlo hacia abajo a 34.977 afirmaría «como máximo 34.977», pero el valor real puede ser 34.977,6 |
+| Precio sugerido «al menos» | **Techo a 1.000** | Válido solo porque P_sug se define con techo a 1.000 (monotonía) |
+| Umbral «si los peajes suman menos de $X» | **Hacia abajo** (piso) | Con un umbral exacto de 5.647,4, X = 5.648 diría «conviene» con peajes de 5.648, que superan el umbral |
+| Estimado completo | Al peso más cercano | — |
 
-Reglas:
-1. El motor devuelve cada medida como `{ valor, tipo: "estimado" | "cotaInferior" | "cotaSuperior", faltantes }`, y la interfaz no puede mostrar un valor sin su tipo.
-2. Redondeo final a 1.000 CLP: las cotas inferiores, hacia arriba; las superiores, hacia abajo.
-3. Si un faltante afecta solo a una ruta, la comparación muestra el **umbral** («si los peajes suman menos de $5.647, conviene la autopista») y no declara una ganadora.
-4. La cotización al cliente no cambia ni muestra avisos internos; el trabajo queda marcado «costo parcial» en el historial.
+Regla general: **un redondeo preserva una cota solo si la mueve hacia el lado seguro** (una cota inferior hacia abajo y una superior hacia arriba), salvo que la cantidad acotada esté definida con ese mismo redondeo, como el precio sugerido.
+
+### Presentación
+
+1. El motor devuelve cada medida como `{ valor, tipo: "estimado" | "cotaInferior" | "cotaSuperior", faltantes }`. La interfaz no puede mostrar un valor sin su tipo.
+2. El aviso nombra **qué falta** y ofrece completarlo, sin bloquear.
+3. La cotización al cliente no cambia ni muestra avisos internos. El trabajo queda marcado «costo parcial» en el historial.
+4. Una cota superior nunca usa color ni ícono de éxito, ni palabras como «ganancia real», «rentable» o «seguro».
 5. Propiedad que se prueba: completar un dato faltante **nunca baja** el costo ni **sube** lo que queda.
 
-**Ejemplo (pantalla de estados v4):** faltan peajes y gastos fijos. Conocido: combustible 5.023 + ayudante 15.000 + desgaste 1.779 + remuneración objetivo 13.400 = **35.202**. Con margen de 15 %: 35.202 / 0,85 = 41.414 → **al menos 42.000**.
+**Ejemplo (pantalla de estados v4):** faltan peajes y gastos fijos. Conocido: combustible 5.023 + ayudante 15.000 + desgaste 1.779 + remuneración objetivo 13.400 = **35.202** («$35.202 o más»). Precio: 35.202 / 0,85 = 41.414,1 → **al menos 42.000**. Con P = 55.000:
+- te queda después de pagar el viaje, como máximo 55.000 − 20.023 = **34.977**;
+- te queda después de todos los costos, como máximo 34.977 − 1.779 = **33.198**;
+- sobre lo que querías ganar, como máximo **+19.798**.
+
+## 3E. Cálculo por ruta y comparación con datos faltantes
+
+- Cada alternativa (habitual y evitando peajes) se calcula **por separado**, con sus km y minutos por tramo: D, W, CF y R propios. Carga y descarga, ayudantes por servicio y materiales se cuentan **una vez por ruta**, nunca por tramo.
+- **Doble conteo prohibido:**
+  - la depreciación va solo en CF, no en W;
+  - un conductor con sueldo fijo va en CF, no en D;
+  - R es solo del dueño;
+  - los peajes van solo en D;
+  - el tiempo total H = conducción de los tramos aplicables + carga y descarga, una sola vez.
+- **Una ruta X es «más barata con seguridad» que Y solo si** C_X < C_Y para **todo** valor ≥ 0 de los datos faltantes. En la práctica:
+  1. Si solo Y tiene faltantes y K_X < K_Y: concluyente (X).
+  2. Si X tiene faltantes **propios** (p. ej., peajes de la autopista): no concluyente. Se muestra el umbral `⌊K_Y − K_X⌋` («si los peajes suman menos de $X, conviene…»), siempre que K_Y > K_X. Si K_Y ≤ K_X, Y es más barata con seguridad.
+  3. Si el faltante es una **tarifa común** a ambas rutas (rendimiento, valor de gastos fijos por hora), el costo faltante es proporcional a los km o a las horas de cada ruta. Solo es concluyente si la ruta con menor costo conocido también tiene menos km u horas. Si no, se muestra el umbral en esa tarifa.
+- Nunca se declara una ruta ganadora con faltantes que puedan invertir el resultado.
 
 ## 3D. IVA configurable (A-28)
 
@@ -136,6 +173,25 @@ Reglas:
 - El precio elegido es **siempre neto**; el total con IVA es un cálculo separado, con la regla citada.
 - Si una regla cambia, sube `dataVersion`; una cotización emitida conserva la regla con que se calculó.
 - La app no asesora: la ayuda remite al SII o a un contador.
+
+## 3F. Casos dorados propuestos para v1 (#24)
+
+Todos los montos son ficticios. Una persona distinta de quien programa debe calcularlos en una planilla independiente. Los resultados indicados aquí sirven para contrastar esa planilla.
+
+| # | Caso | Resultado esperado |
+|---|---|---|
+| G1 | Ruta con autopista completa: D 24.223, W 1.779, CF 3.350, R 13.400, m = 15 %, P = 55.000 | C = 42.752; sugerido = ⌈50.296,5⌉ = 51.000; te queda 30.777 / 25.648; +12.248 |
+| G2 | Ruta sin peajes completa: C = 44.199, m = 15 % | Sugerido = ⌈51.998,8⌉ = 52.000 |
+| G3 | Faltan peajes y CF (estado v4), P = 55.000 | «35.202 o más»; «al menos 42.000»; como máximo 34.977 / 33.198 / +19.798 |
+| G4 | Falta solo CF, P = 55.000 | «39.402 o más»; «al menos 47.000»; te queda después de pagar el viaje 30.777 (**estimado**, D completo); como máximo 28.998; como máximo +15.598 |
+| G5 | Comparación sin peajes de la autopista: K_X = 38.552, C_Y = 44.199 | Umbral 5.647. Peajes 4.200 → autopista; 6.000 → sin peajes; 5.647 → empate |
+| G6 | Rendimiento desconocido en ambas rutas (57,4 km frente a 62,3 km) con costos conocidos sin combustible 37.729 frente a 36.931 | **No concluyente**: la autopista conviene solo si el combustible supera 798 / 4,9 ≈ $162,9 por km |
+| G7 | Cota inferior interna 35.201,6 y cota superior interna 34.977,4 | Se muestran «35.201 o más» (piso) y «como máximo 34.978» (techo) |
+| G8 | IVA: sin perfil / con perfil afecto verificado (tasa de la regla) | Sin perfil: neto 55.000, IVA nulo. Con perfil: 55.000 + 10.450 = 65.450 si la regla verificada fija 19 % |
+| G9 | `toClientQuote()` del caso G1 | No contiene 24.223, 1.779, 3.350, 13.400, 42.752, el margen ni las palabras internas |
+| G10 | Solo A → B, sin base ni regreso | Un solo tramo; H = conducción A → B + carga y descarga; nada se cuenta dos veces |
+
+Los escenarios A y B de §4 siguen siendo casos válidos del núcleo.
 
 ## 4. Escenarios resueltos
 

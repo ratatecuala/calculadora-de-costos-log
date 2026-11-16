@@ -2,7 +2,7 @@
 
 **Nombre comercial: PENDIENTE.** Usar `[Marca]` en los prototipos y textos hasta aprobación explícita. **No reutilizar** el nombre de trabajo descartado.
 
-**Estado de aprobación (16-11-2026):** el propietario aprobó expresamente la **dirección visual v4** y las pantallas **inicio** + **calculadora con comparación integrada**. Claude entregó después las demás pantallas en la misma línea visual y ChatGPT las revisó. **El 16-11-2026 el propietario aprobó la extensión completa** (navegación móvil y escritorio de tres columnas) y los criterios funcionales A-22 a A-29. **No se necesitan más rediseños visuales.** Programar sigue sin autorización.
+**Estado de aprobación (16-11-2026):** el propietario aprobó expresamente la **dirección visual v4** y las pantallas **inicio** + **calculadora con comparación integrada**. Claude entregó después las demás pantallas en la misma línea visual y ChatGPT las revisó. El 16-11-2026 el propietario comunicó que la v4 completa (navegación móvil y escritorio de tres columnas) es la **dirección general aprobada**, que las pantallas sirven de referencia y que **no se necesitan más exploraciones visuales**. Los criterios A-21 a A-29 están pendientes de ratificación escrita en el PR #34. Programar sigue sin autorización.
 
 ## 1. Sistema visual
 
@@ -32,14 +32,14 @@
 |---|---|---|
 | Inicio | Propuesta de valor, secuencia de uso, «Calcular un flete», «Continuar con Google», información de gratuidad | **Aprobada** (A-20) |
 | Calculadora y rutas | Vehículo, base opcional, A, B, regreso opcional, hora de salida, ayudantes, tiempos; botón calcular y resultados debajo | **Aprobada** (A-20) |
-| Panel del transportista | Vehículos, pendientes, cotizaciones enviadas, por realizar y por cobrar, alertas por datos faltantes | **Aprobada** (A-21) |
-| Mi vehículo | Tipo, marca, modelo, año, motor, combustible; rendimientos/costos/dimensiones opcionales, editables | **Aprobada** (A-21) |
-| Desglose | Tramos, gastos desembolsados, desgaste, gastos fijos, remuneración objetivo, procedencia de datos | **Aprobada** (A-21) |
-| Mi precio | Margen, sugerido si procede, precio decidido por transportista, comparación con meta | **Aprobada** (A-21) |
-| Cotización para cliente | Datos autorizados, precio, IVA si corresponde, condiciones, vigencia, PDF, WhatsApp, enlace protegido | **Aprobada** (A-21) |
-| Mis trabajos | Borradores/enviadas/aceptadas/realizadas/rechazadas y pagos confirmados por separado | **Aprobada** (A-21) |
-| Errores y datos parciales | Falta rendimiento/TAG/fijos; comparación indeterminada; mapa fallido; límite agotado y modo manual | **Aprobada** (A-21) |
-| Escritorio | Misma experiencia en 3 columnas, sin duplicar cálculos ni reglas | **Aprobada** (A-21) |
+| Panel del transportista | Vehículos, pendientes, cotizaciones enviadas, por realizar y por cobrar, alertas por datos faltantes | Referencia (A-21) |
+| Mi vehículo | Tipo, marca, modelo, año, motor, combustible; rendimientos/costos/dimensiones opcionales, editables | Referencia (A-21) |
+| Desglose | Tramos, gastos desembolsados, desgaste, gastos fijos, remuneración objetivo, procedencia de datos | Referencia (A-21) |
+| Mi precio | Margen, sugerido si procede, precio decidido por transportista, comparación con meta | Referencia (A-21) |
+| Cotización para cliente | Datos autorizados, precio, IVA si corresponde, condiciones, vigencia, PDF, WhatsApp, enlace protegido | Referencia (A-21) |
+| Mis trabajos | Borradores/enviadas/aceptadas/realizadas/rechazadas y pagos confirmados por separado | Referencia (A-21) |
+| Errores y datos parciales | Falta rendimiento/TAG/fijos; comparación indeterminada; mapa fallido; límite agotado y modo manual | Referencia (A-21) |
+| Escritorio | Misma experiencia en 3 columnas, sin duplicar cálculos ni reglas | Referencia (A-21) |
 
 **Importante:** el mockup no es código funcional ni evidencia de que Google admita mapas con varias polilíneas, peajes exactos o cobertura de tráfico en toda ruta.
 
@@ -57,15 +57,15 @@
 ## 4. Comparador y tráfico
 
 - **Cálculo ordinario:** la ruta más rápida/habitual frente a una con preferencia por evitar peajes. El usuario compara km, duración, combustible, TAG, desgaste, tiempo y precio estimado.
-- **Mapa (APROBADO, A-22):** un camino visible a la vez con selector, y enlace «Abrir en Google Maps». Maps Embed está propuesto ([02 §8](02-arquitectura.md)); sus términos se revisan en #15.
-- **Tráfico actualizado (APROBADO, A-23):** botón claramente visible «Actualizar con tráfico»; **nunca** se consulta en cada modificación del formulario. Sin él, la duración se rotula «duración habitual»; con él, «con tráfico de las HH:MM» (hora de la consulta). Activa el SKU Pro de Routes (verificado, ver [04](04-fuentes-de-datos.md)). Se mantiene el modo manual. No confundir `duration - staticDuration` con minutos de congestión observados.
+- **Mapa (A-22, pendiente de ratificación):** un camino visible a la vez con selector, y enlace «Abrir en Google Maps». Maps Embed está propuesto ([02 §8](02-arquitectura.md)); sus términos se revisan en #15.
+- **Tráfico actualizado (A-23, pendiente de ratificación):** botón claramente visible «Actualizar con tráfico»; **nunca** se consulta en cada modificación del formulario. Sin él, la duración se rotula «duración habitual»; con él, «con tráfico de las HH:MM» (hora de la consulta). Activa el SKU Pro de Routes (verificado, ver [04](04-fuentes-de-datos.md)). Se mantiene el modo manual. No confundir `duration - staticDuration` con minutos de congestión observados.
 - **Costo de rutas:** cuando faltan peajes/TAG o consumos comparables, **no** mostrar una ruta como la más barata con certeza; comunicar el dato faltante y, cuando proceda, un umbral matemático condicionado.
 
 ## 5. Copy claro y precisión económica
 
 La presentación al usuario puede usar palabras cotidianas, conservando el concepto técnico completo en ayuda contextual:
 
-| Interfaz de usuario (aprobado, A-25) | Definición técnica |
+| Interfaz de usuario (A-25) | Definición técnica |
 |---|---|
 | «Lo que pagas en el viaje» | Gastos desembolsados estimados (D) |
 | «Desgaste del vehículo» | Costo de desgaste devengado (W) |
@@ -77,14 +77,14 @@ La presentación al usuario puede usar palabras cotidianas, conservando el conce
 | «Costo parcial» | Cota inferior del costo: faltan datos y el costo real puede ser mayor |
 | «Declarado por ti» | Procedencia: DECLARADO |
 
-**APROBADO (A-25):** términos sencillos con una explicación breve en pantalla; los formales quedan en «Qué es», «Cómo calculamos» y la documentación (#39).
+**A-25 (pendiente de ratificación):** términos sencillos con una explicación breve en pantalla; los formales quedan en «Qué es», «Cómo calculamos» y la documentación (#39).
 
 **No llamar «ganancia real», «saldo bancario» ni «dinero cobrado» a valores estimados.**
 
 ### Cuando falta información
 
 - Mostrar importes conocidos, faltantes y procedencia: **«Costo parcial»**.
-- **APROBADO (A-26):** no impedir que el usuario cotice aunque falten datos, especialmente gastos fijos. Se muestran el costo como «$X o más», el precio sugerido como «al menos $X» (marcado como indicativo) y lo que queda como «como máximo». Nunca se presenta como rentabilidad segura. Reglas exactas en [03 §3C](03-motor-de-costos.md).
+- **A-26 (pendiente de ratificación):** no impedir que el usuario cotice aunque falten datos, especialmente gastos fijos. Se muestran el costo como «$X o más», el precio sugerido como «al menos $X» (marcado como indicativo) y lo que queda como «como máximo». Nunca se presenta como rentabilidad segura. Reglas exactas en [03 §3C](03-motor-de-costos.md).
 - Separar la advertencia interna de costos faltantes de los documentos que recibe el cliente; el cliente no ve el cálculo privado.
 
 ### IVA y estado comercial
@@ -107,7 +107,7 @@ Alternativa evitando peajes: **$44.199 estimados** con los supuestos del prototi
 
 ## 8. Antes de programar
 
-- ~~Confirmación del propietario para todas las pantallas extendidas~~ → **aprobadas el 16-11-2026** (A-21). El copy final se ajusta en las pruebas de comprensión sin cambiar el significado.
+- Dirección v4 completa comunicada como aprobada (A-21); **ratificar en el PR #34**. El copy final se ajusta en las pruebas de comprensión sin cambiar el significado.
 - Aprobar la **propuesta de arquitectura** ([02 §8](02-arquitectura.md)) y el proveedor de cuentas (#35).
 - Verificar en el proyecto real Maps Embed/Routes, SKU de tráfico y control de consumo (#19), sin exceder el gasto autorizado.
 - Definir reglas de IVA verificadas (#16) y condiciones jurídicas de la cotización (#17).

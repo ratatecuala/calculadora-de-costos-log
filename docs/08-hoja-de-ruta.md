@@ -1,6 +1,6 @@
 # 08 · Hoja de ruta y backlog
 
-**Estado:** el diseño v4 completo está aprobado (A-21 a A-29). El **16-11-2026** el backlog se actualizó por encargo del propietario (A-30) **sin cerrar ni renumerar issues**: las épicas conservan sus números y su etiqueta de etapa, con el contenido alineado a esta hoja. La arquitectura sigue **propuesta** ([02 §8](02-arquitectura.md)). No autoriza programación.
+**Estado:** la dirección visual v4 está aprobada; los criterios A-21 a A-29 están comunicada por el propietario, pendiente de ratificación en PR #34. El **16-11-2026** el backlog se actualizó por encargo del propietario (A-30) **sin cerrar ni renumerar issues**: las épicas conservan sus números y su etiqueta de etapa, con el contenido alineado a esta hoja. La arquitectura sigue **propuesta** ([02 §8](02-arquitectura.md)). No autoriza programación.
 
 ## Secuencia propuesta
 
@@ -19,7 +19,7 @@
 
 ## Puertas de aprobación
 
-1. **Diseño:** ✅ aprobado el 16-11-2026 (A-20 a A-29). Backlog actualizado.
+1. **Diseño:** dirección v4 aprobada; A-21 a A-29 pendientes de ratificación en el PR #34. Backlog actualizado.
 2. **Arquitectura:** se elige proveedor de autenticación y datos, se verifica costo y respaldo; toda cuenta debe ser del propietario.
 3. **Motor:** se construyen casos dorados antes de depender de resultados visuales.
 4. **Integraciones:** solo servicios autorizados; cuota agotada → modo manual; sin garantía de $0 cuando exista facturación.
