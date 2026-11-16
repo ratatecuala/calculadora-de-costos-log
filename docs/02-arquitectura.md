@@ -260,3 +260,8 @@ Leídos vía buscador sobre la documentación oficial el 16-11-2026; se confirma
 - Embed y Routes pueden trazar caminos distintos; la interfaz no afirma que sean idénticos.
 - Las cuotas de Google se aplican con retraso: por eso el contador propio corta antes.
 
+
+
+## 9. Selección del proveedor de mapas — pendiente tras Deep Research
+
+La configuración Google Maps Embed + Routes descrita arriba es una **propuesta técnica, NO una decisión aprobada**. La [auditoría Google](11-auditoria-google-maps.md) identifica riesgo contractual sin resolver para persistir/exportar distancias, duraciones y quizás el precio de cotizaciones derivado; la [comparación preliminar](12-alternativas-mapas.md) identifica Mapbox y TomTom como alternativas reales para rutas, tráfico y peajes. Antes de autorizar el proveedor: verificar **contrato de almacenamiento/exportación, costo integral de mapas/geocodificación/rutas/tráfico y precisión de tiempos/distancias en Chile**, con investigación profunda por GPT Deep Research tras OK del propietario. No mezclar datos de proveedores hasta confirmar licencias. No activar APIs ni facturación.
