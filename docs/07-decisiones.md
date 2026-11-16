@@ -25,6 +25,7 @@
 | A-17 | El modelo futuro **no está decidido**: marketplace, logística elástica o combinación | 2026-11-16 |
 | A-18 | La remuneración del transportista es **objetivo**, no desembolso; `null` no es 0; los resultados incompletos lo dicen | 2026-11-16 |
 | A-19 | La documentación está autorizada en rama de trabajo, pero **no programación ni publicación** | 2026-11-16 |
+| A-20 | **Aprobada la dirección visual v4**: fondo blanco, azul sobrio, grafito, estética profesional y las pantallas mostradas de **inicio y calculadora con comparación en una pantalla desplazable** | 2026-11-16 |
 
 ## Base técnica conservada para revisar
 
@@ -38,10 +39,13 @@
 | Tema | Propuesta o discusión |
 |---|---|
 | Arquitectura | Supabase Auth + PostgreSQL, Cloudflare Worker; comparar alternativas gratuitas y respaldo |
-| Diseño | Híbrido de Ruta Clara y Tablero; **Claude prepara una nueva propuesta consolidada** |
-| Mapa | Maps Embed + Routes, alternancia de rutas si no pueden superponerse; validar costos y condiciones |
+| Diseño | **Dirección v4 aprobada** para las pantallas inicial/calculadora. **Extensión v4 al resto de pantallas presentada por Claude y revisada por ChatGPT; pendiente de aprobación final expresa del propietario**. Ver [guía UX v4](10-diseno-ux.md). |
+| Mapa | **Una ruta visible a la vez** en el prototipo v4, con fichas para comparar ambas. Maps Embed + Routes son candidatos por verificar, no servicios ya autorizados. |
 | Alternativas de acceso | Correo electrónico además de Google |
-| Límites de uso | Cuotas de Routes, límites por usuario y modo degradado |
+| Tráfico | **Criterio recomendado por ChatGPT, pendiente de confirmación**: actualización bajo demanda en lugar de cada cambio de campo; verificar precio de SKU. |
+| Términos en pantalla | Lenguaje sencillo con definiciones formales en ayuda («Qué es») recomendado; el propietario todavía puede ajustarlo. |
+| Resultados parciales | Recomendado permitir cotizar con precio manual y advertencias incluso sin algunos costos, sin declarar utilidad segura; pendiente de validación funcional final. |
+| Límites de uso | Cuotas de Routes, límites por usuario y modo degradado. **No prometer 05:00** u otra hora fija sin evidencia. |
 | Pro futuro | IA para interpretar datos, lectura de fotos, calibración avanzada, historial/rentabilidad profesional, personalización |
 | Pagos Pro | Modelo de suscripción o prepago, precios y pasarela por validar |
 | Motocicletas/vehículos especiales | Cobertura y método específico de cálculo por verificar |
@@ -63,7 +67,7 @@
 | #12 | Validación/calibración real | Umbrales y método |
 | #14 | Publicación | Solo cuando propietario apruebe |
 
-**El issue #11 (comparador de categorías) y la comparación de tercerización originalmente prevista para E4 quedan aplazados**: no son parte de la primera versión. No se cierran ni eliminan todavía; debe reconciliarse el backlog con el diseño aprobado.
+**El issue #11 (comparador de categorías) y la comparación de tercerización originalmente prevista para E4 quedan aplazados**: no son parte de la primera versión. La comparación de **rutas rápidas/con o sin peajes sí permanece en la versión gratuita**. No se cierran ni eliminan todavía; debe reconciliarse el backlog con el diseño aprobado.
 
 ## Control documental
 
