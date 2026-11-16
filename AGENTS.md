@@ -1,6 +1,6 @@
-# CamiON Costos — Reglas obligatorias para agentes
+# Calculadora de fletes (nombre pendiente) — Reglas obligatorias para agentes
 
-Este archivo es la **puerta de entrada operativa** para Claude, ChatGPT, Codex y cualquier otro agente que trabaje en este repositorio. Se inspira en el flujo de LIVIO 2.0, VetPo y Voli, adaptado exclusivamente a CamiON Costos.
+Este archivo es la **puerta de entrada operativa** para Claude, ChatGPT, Codex y cualquier otro agente que trabaje en este repositorio. Se inspira en el flujo de LIVIO 2.0, VetPo y Voli, adaptado exclusivamente a este proyecto. El nombre comercial aún no ha sido elegido.
 
 ## 1. Antes de trabajar
 
@@ -12,14 +12,14 @@ Este archivo es la **puerta de entrada operativa** para Claude, ChatGPT, Codex y
 
 ## 2. Situación y alcance vigente
 
-- **Producto:** calculadora web gratuita para fleteros independientes y personas que necesitan mover una carga en Chile; dos modos: «Soy fletero» y «Necesito transportar algo».
-- **Fase:** E0, organización e investigación. **La programación de E1 aún no está autorizada.**
-- **Tecnologías acordadas provisionalmente:** TypeScript estricto, React + Vite, Cloudflare Workers, motor matemático aislado en un proyecto único.
+- **Producto inicial:** calculadora y cotizador **gratuitos para transportistas de fletes livianos en Chile**. Permitir cálculo anónimo; registro con Google para vehículos e historial. El modo «Necesito transportar», el marketplace y la logística elástica **no forman parte del primer lanzamiento**.
+- **Fase:** E0, revisión de diseño UX/UI, alcance y arquitectura; Claude prepara el prototipo consolidado. **No hay autorización para programar todavía**. Las etiquetas e hitos originales se reconciliarán después de aprobar el diseño.
+- **Tecnología:** motor puro y aislado; TypeScript + React + Vite + Cloudflare como punto de partida. **Autenticación y almacenamiento son ahora necesarios** para cuentas, vehículos y cotizaciones; Supabase es un candidato, no proveedor aprobado.
 - **No hay aplicación funcional ni despliegue autorizado.** No afirmar lo contrario.
-- **Cargos variables de APIs: $0 autorizados**. No activar facturación ni servicios que puedan generar cargos sin aprobación expresa.
+- **Cargos variables de APIs: $0 autorizados**. El propietario acepta evaluar Google Cloud con cuenta de facturación, pero **no autorizó activar APIs con riesgo de cargos ni consumirlas**. Límites de cuota no garantizan $0.
 - **Repositorio público**; licencia aún pendiente. Ningún documento privado o secreto debe incorporarse.
 - Cuentas técnicas a nombre y bajo control del propietario.
-- El marketplace, cuentas de usuarios, IA, ERP y aplicación nativa están **fuera de v1**.
+- **Dentro de v1:** mapa y rutas A→B (con base/regreso opcionales), combustible, TAG, costos, PDF y registros manuales de viajes/cargas; cuentas Google para guardar. **Fuera:** solicitudes y ofertas a clientes, marketplace/logística elástica, alto tonelaje, IA, pagos y Pro.
 - La fuente de decisiones es [docs/07-decisiones.md](docs/07-decisiones.md); el alcance y fórmulas están en [docs/01-alcance.md](docs/01-alcance.md) y [docs/03-motor-de-costos.md](docs/03-motor-de-costos.md).
 
 ## 3. Responsabilidades y sistema de trabajo
@@ -79,7 +79,7 @@ La aprobación de **documentación no autoriza programación**, y la de un PR no
 - Toda modificación de fórmulas exige **casos dorados**, pruebas y revisión explícita; no confundir costo faltante con costo cero.
 - No introducir coeficientes de rendimiento o velocidad sin fuentes y calibración.
 - Las cuotas y alertas de Google **reducen riesgo, pero no garantizan gasto cero**. Respetar el presupuesto autorizado y el modo manual.
-- No afirmar que una categoría de vehículo es segura o compatible cuando faltan dimensiones, peso, restricciones o datos específicos.
+- El primer producto **no recomienda compatibilidad de vehículos para clientes** ni calcula precios de mercado ajenos. Si se plantea en el futuro, no afirmar compatibilidad sin dimensiones, peso y restricciones verificadas.
 - Consultar [seguridad y privacidad](docs/06-seguridad-y-privacidad.md) y [pruebas](docs/05-pruebas-y-calibracion.md) antes de cambios relacionados.
 
 ## 8. Cómo pedir aprobación
@@ -105,7 +105,7 @@ Antes de finalizar una sesión:
 4. Dejar un resumen copiable:
 
 ```text
-SYNC CAMION COSTOS
+SYNC CALCULADORA DE FLETES
 Repo: ratatecuala/calculadora-de-costos-log
 Issue/PR:
 Hecho:
