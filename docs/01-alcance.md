@@ -1,66 +1,75 @@
-# 01 · Alcance funcional
+# 01 · Alcance funcional — primer lanzamiento gratuito
 
-Estado: **aprobado** en las rondas de planificación técnica, salvo lo marcado como _pendiente_.
+**Estado:** dirección funcional actualizada por el propietario el 16-11-2026. Los detalles de interfaz, arquitectura y límites de uso están pendientes de la aprobación del diseño consolidado. El nombre comercial **sigue pendiente**.
 
-## Qué construimos
+## 1. Qué se construye primero
 
-Una aplicación web gratuita, sin registro, para **Chile**, en **pesos chilenos (CLP)**, con dos modos que comparten el mismo motor de cálculo:
+Una herramienta web **gratuita para cotizar fletes y mudanzas pequeñas o medianas en Chile**, orientada a transportistas que utilizan auto, camioneta, furgón u otro vehículo liviano de trabajo. **Camiones de alto tonelaje quedan fuera del alcance inicial.** La inclusión y reglas específicas de motocicletas y camiones livianos necesitan validación técnica.
 
-| Modo | Pregunta que responde | Salidas principales |
-|---|---|---|
-| **Soy fletero** | ¿Cuánto me cuesta, cuánto cobro y cuánto gano? | Dinero de bolsillo, desgaste, parte de gastos fijos, sueldo objetivo (meta), ganancia adicional, precio sugerido y resultado sobre el precio cobrado |
-| **Necesito transportar algo** | ¿Cuánto cuesta y qué me conviene? | Costo con vehículo propio, comparación de categorías aptas y evaluación de una cotización externa real |
+**No es todavía un marketplace ni una plataforma de logística elástica.** El usuario principal inicial es el transportista que fija precios para sus propios clientes.
 
-**Sin vehículo propio** en el segundo modo, se muestra un _"costo mínimo de operar"_ por categoría, que **no es un precio de mercado**. El texto exacto está pendiente (#11).
+## 2. Acceso y perfiles
 
-### Vocabulario de los fleteros (referencia funcional)
+- **Calcular sin cuenta:** permitir probar la calculadora, con datos temporales y sin historial en nube.
+- **Registro gratuito con Google:** cuenta de transportista para guardar vehículos, parámetros e historial; alternativa por correo **por especificar**.
+- Perfil: datos comerciales necesarios para una cotización y preferencias de presentación; minimizar datos personales.
+- Varios vehículos por cuenta. Registro progresivo, sin exigir información desconocida para comenzar.
+- Vehículo: categoría, marca, modelo, año, motorización y combustible; **km/L urbano y carretera opcionales**, además de capacidad y dimensiones de carga cuando sea pertinente.
+- Para cada costo faltante, mostrar su efecto y permitir completarlo más adelante. No inventar rendimientos.
+- Combustible no expresado en litros (por ejemplo, eléctrico): requiere modelo de cálculo específico y aprobación; no aplicar por defecto fórmulas de gasolina/diésel.
 
-| Término | Cómo entra al cálculo |
-|---|---|
-| Distancia | Ruta calculada o km manual |
-| Tiempo | Conducción más carga y descarga |
-| Ayudantes | Cantidad × tarifa (por servicio, por hora o sueldo fijo) |
-| Pisos | Como **tiempo** de carga y descarga ingresado. Opcionalmente, un recargo por piso definido por el fletero. **Sin factor por defecto.** |
-| Dificultad de carga | Como tiempo y número de ayudantes |
-| Embalaje | Material comprado (caja) y tiempo |
-| Urgencia | **Recargo sobre el precio** definido por el usuario. No es un costo, salvo que genere costos reales. |
+## 3. Crear y cotizar un traslado
 
-## Alcance de la v1.0
+**Recorrido simple:** base opcional → **A (recogida)** → **B (entrega)** → regreso opcional a base. No hay múltiples entregas, optimización de paradas ni rutas de alto tonelaje en la v1.
 
-**Incluye:**
-- Los dos modos, con las cinco medidas del motor (ver [03](03-motor-de-costos.md)).
-- Ruta con origen, **hasta 2 paradas intermedias**, destino y regreso opcional.
-- Botón **"Abrir / verificar ruta en Google Maps"** (obligatorio).
-- **Modo manual** completo cuando falla o se agota una API.
-- Precio de combustible desde la CNE con fecha, editable.
-- Peajes: **ingreso manual siempre** más la automatización que se apruebe (#10).
-- Comparador de categorías con **4 estados de compatibilidad**.
-- Evaluador de cotización externa con la fórmula de tercerización.
-- Estados de completitud ("costo parcial") y etiquetas de procedencia.
-- Perfiles guardados **solo en el navegador**, con exportar e importar.
-- Resultados reproducibles (versiones de fórmulas y datos).
-- Página "Cómo calculamos", vista imprimible y textos legales.
-- Protecciones contra cobros, abuso y fuga de datos.
+El transportista puede introducir y revisar:
 
-**Excluye de la v1.0:**
-- Cuentas de usuario e historial en la nube.
-- Mapa incrustado. Se evalúa después de la v1.
-- Más de 2 paradas y optimización del orden de paradas.
-- Factores de consumo según carga y de velocidad según categoría, hasta tener datos de calibración.
-- PDF con diseño propio. Se usa la impresión del navegador.
-- Ruteo específico para camiones (Google no lo ofrece en Chile).
-- Marketplace, IA, GPS, integración con ERP, app nativa, multi-país.
+1. Vehículo, origen A, destino B, base y regreso opcionales, fecha/hora de salida.
+2. Ruta usual o rápida y ruta evitando peajes, **cuando el proveedor devuelva opciones válidas**.
+3. Distancia y duración estimadas por tramo, referencia al tráfico, y enlace para verificar en Google Maps.
+4. Precio de combustible de fuente oficial con fecha **o declarado por el usuario**, editable; rendimiento propio o referencia correctamente identificada, si existe y puede usarse.
+5. Peajes/TAG por ruta y horario cuando haya datos confiables; siempre con entrada manual y opción «no sé» distinta de «0».
+6. Tiempo de trabajo, carga/descarga, pisos como minutos declarados, ayudantes, estacionamiento, materiales, urgencia como recargo y otros costos.
+7. Desgaste, gastos fijos asignables, remuneración objetivo y margen deseado, sin doble contabilización.
+8. Precio sugerido y precio propio, con resultado económico estimado y **estado de completitud**.
 
-## Preparación para el futuro marketplace (sin construirlo)
+**Dos rutas, dos cálculos comparables:** si un componente relevante falta, la interfaz muestra «Costo parcial» y no asegura cuál ruta es más barata. El tráfico afecta la duración; **no implica inventar litros adicionales** por congestión. El rendimiento urbano/carretera/mixto se elige o valida con datos suficientes.
 
-- Los esquemas de datos (`TripRequest`, `CargoSpec`, `VehicleCapability`, `Quote`) llevan `schemaVersion` y están documentados.
-- No se construye backend, publicación de vehículos, *matching* ni pagos.
-- **No se inventan ofertas ni precios de transportistas.**
+El mapa debe ser interactivo, agradable y técnicamente realizable. La superposición simultánea de ambas rutas es una **opción de diseño, no una capacidad aprobada de Maps Embed**. Se permite alternar el mapa de una ruta y otra si resulta más viable/económico.
 
-## Reglas transversales (aprobadas)
+El modo manual funciona cuando fallan APIs o se agotan cuotas. No usar scraping de Google Maps.
 
-1. **Ninguna estimación se presenta como exacta.** Los rangos se muestran solo donde existe una base. En los demás casos se indica un valor con su procedencia.
-2. **Un dato faltante nunca se reemplaza por 0** sin que el usuario lo declare. Si falta un componente, el resultado se titula **"Costo parcial"**.
-3. **Los valores por defecto** solo se usan con fuente citada y la etiqueta "PREDETERMINADO, no calibrado", y son editables.
-4. **Nunca se usan las palabras "seguro" ni "recomendado"** para una alternativa de vehículo.
-5. La **remuneración del dueño** es una **meta**, no un pago realizado.
+## 4. Cotización para el cliente
+
+Generar **PDF o documento compartible** con precio fijado por el transportista, fecha, descripción del servicio, inclusiones/exclusiones, condiciones y vigencia. Puede enviar por WhatsApp o descargarlo.
+
+- La **vista del cliente** no revela desglose de combustible, peajes internos, desgaste, gastos fijos, sueldo objetivo, márgenes ni información privada innecesaria.
+- Enlaces compartidos: acceso, expiración, revocación y minimización de datos **por diseñar**.
+- IVA y tipo de documento conforme a situación tributaria; **no aplicar 19 % automáticamente a todos** (#16).
+- El historial puede distinguir borrador/enviada/aceptada/rechazada; **aceptada ≠ servicio ejecutado ni dinero recibido**.
+- El cálculo y PDF básicos son gratis. Marca/plantillas personalizadas avanzadas podrían ser Pro posteriormente.
+
+## 5. Funciones gratuitas para validar el mercado
+
+Incluye obligatoriamente: calculadora, mapas/rutas según viabilidad y cuotas, costos editables, guardado de vehículos, cotizador PDF, historial básico, y **registro manual de viajes reales y cargas de combustible**. Rendimiento «lleno a lleno» calculado con información confirmada por el transportista puede ser gratuito.
+
+**Meta del lanzamiento:** saber si los transportistas lo utilizan para cotizaciones reales, regresan, generan documentos y reportan que los cálculos les ayudan. No medir solo registros.
+
+## 6. Fuera del primer lanzamiento
+
+- Marketplace de solicitudes y ofertas, despacho de trabajos o logística elástica.
+- Comparador para quien «necesita transportar» basado en ofertas inexistentes, comparador de categorías y evaluador de cotizaciones externas como producto para particulares.
+- Pagos, cobro por servicio, suscripciones operativas, IA, lectura automática de fotos, calibración avanzada Pro.
+- Flotas empresariales complejas, optimización de entregas, mapa para camiones de alto tonelaje, GPS de seguimiento, ERP y aplicación nativa.
+
+**Evolución futura sin escoger modelo:** (A) marketplace de fletes, (B) logística elástica o (C) combinación. No construir backend de despacho prematuramente.
+
+## 7. Reglas transversales
+
+1. Datos **MEDIDOS, DECLARADOS, OFICIALES con fecha, ESTIMADOS o FALTANTES** deben distinguirse; un dato desconocido nunca equivale a cero.
+2. «Costo estimado» si hay cobertura suficiente; **«Costo parcial»** si falta algún componente importante.
+3. La remuneración del propietario es una **meta**, no desembolso realizado.
+4. Las rutas y el tráfico son estimaciones externas; el resultado matemático debe ser auditable y su versión reproducible.
+5. Reducir campos de ingreso con progresividad, **sin sacrificar transparencia**.
+6. La versión gratuita debe ser utilizable cotidianamente; Pro es futuro, no condición para calcular.
+7. Facturación técnica en Google Cloud **es aceptable como posibilidad**, pero habilitar APIs con riesgo de cobro necesita autorización y controles; inicialmente **$0 de cargos variables autorizados**.
