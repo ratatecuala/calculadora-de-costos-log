@@ -1,6 +1,6 @@
 # 07 · Registro de decisiones — estado actualizado
 
-**Criterio:** lo aprobado por el propietario se distingue de alternativas propuestas. Este archivo se está actualizando en el **PR #34**, todavía sin fusionar. Nombre comercial **PENDIENTE**; no recuperar «CamiON» como marca.
+**Criterio:** lo aprobado por el propietario se distingue de alternativas propuestas. Este archivo se está actualizando en el **PR #34**, todavía sin fusionar. Nombre comercial **PENDIENTE**; no reutilizar el nombre anterior como marca.
 
 ## Aprobado / dirección explícita del propietario
 
