@@ -1,62 +1,70 @@
-# 07 · Registro de decisiones
+# 07 · Registro de decisiones — estado actualizado
 
-Este documento distingue **lo aprobado** de **lo pendiente**. Cada decisión nueva se registra aquí mediante un PR.
+**Criterio:** lo aprobado por el propietario se distingue de alternativas propuestas. Este archivo se está actualizando en el **PR #34**, todavía sin fusionar. Nombre comercial **PENDIENTE**; no recuperar «CamiON» como marca.
 
-## Aprobadas por el propietario
+## Aprobado / dirección explícita del propietario
 
-| # | Decisión | Fecha |
+| ID | Decisión | Fecha |
 |---|---|---|
-| A-01 | Repositorio **público** | 2026-11-16 |
-| A-02 | **Ningún cargo variable** de APIs autorizado inicialmente | 2026-11-16 |
-| A-03 | Las cuentas de servicios quedan bajo **titularidad y control del propietario** | 2026-11-16 |
-| A-04 | Roles: propietario (decide), Claude (desarrollador principal), ChatGPT (contraparte técnica) | 2026-11-16 |
-| A-05 | Arquitectura: TypeScript estricto, React + Vite, Cloudflare Workers, motor independiente, **proyecto único** | 2026-11-16 |
-| A-06 | Etapas **E0–E5** | 2026-11-16 |
-| A-07 | Trello se organiza **después** de GitHub. GitHub es la fuente de verdad técnica. | 2026-11-16 |
-| A-08 | No se integra nada a `main` sin autorización del propietario | 2026-11-16 |
+| A-01 | Repositorio técnico **público**, bajo titularidad del propietario | 2026-11-16 |
+| A-02 | **Ningún cargo variable de APIs autorizado inicialmente**; se puede evaluar una cuenta de Google con facturación, pero activación y cargos requieren aprobación | 2026-11-16 |
+| A-03 | Las cuentas técnicas deben permanecer bajo **titularidad y control del propietario** | 2026-11-16 |
+| A-04 | Claude desarrolla/diseña lo autorizado; ChatGPT revisa; el propietario decide | 2026-11-16 |
+| A-05 | No integrar PR a `main` sin **OK explícito** | 2026-11-16 |
+| A-06 | Se permiten **issues grandes, PR coherentes y varias tareas paralelas**, con control de errores, conflictos y dependencias | 2026-11-16 |
+| A-07 | **El nombre anterior está descartado**; nuevo nombre **por elegir** | 2026-11-16 |
+| A-08 | **Primero lanzar una calculadora gratuita completa** y validar interés, uso recurrente y cotizaciones reales | 2026-11-16 |
+| A-09 | La primera versión se dirige a **transportistas y fletes/mudanzas simples**, no alto tonelaje | 2026-11-16 |
+| A-10 | Permitir **calcular sin cuenta**; registro Google para conservar datos, vehículos y cotizaciones | 2026-11-16 |
+| A-11 | Vehículos con combustible y datos opcionales de rendimiento; ingreso de costos progresivo, con fuente/fecha y corrección manual | 2026-11-16 |
+| A-12 | **Base opcional → A → B → regreso opcional**. Sin múltiples paradas/optimización en el primer lanzamiento | 2026-11-16 |
+| A-13 | Prioridad a mapa visual y comparación con autopista / evitando peajes, kilómetros, duración, tráfico estimado, combustible y costo | 2026-11-16 |
+| A-14 | **Cotizador PDF/compartible** para el cliente; no revelar costos internos | 2026-11-16 |
+| A-15 | Historial básico y **registro manual** de viajes/cargas como función gratuita | 2026-11-16 |
+| A-16 | **No desarrollar Pro, IA, pagos, marketplace ni logística elástica ahora**. Pro y expansión se evalúan tras validar la herramienta gratuita | 2026-11-16 |
+| A-17 | El modelo futuro **no está decidido**: marketplace, logística elástica o combinación | 2026-11-16 |
+| A-18 | La remuneración del transportista es **objetivo**, no desembolso; `null` no es 0; los resultados incompletos lo dicen | 2026-11-16 |
+| A-19 | La documentación está autorizada en rama de trabajo, pero **no programación ni publicación** | 2026-11-16 |
 
-## Acordadas en planificación técnica (se formalizan al aprobar el PR #23)
+## Base técnica conservada para revisar
 
-| # | Decisión | Detalle |
+- Motor puro, determinista y testeado; separación de datos internos y cotización compartida.
+- Fórmulas de costos y escenarios A/B del [motor](03-motor-de-costos.md).
+- TypeScript + React + Vite + Worker como punto de partida, **no stack final aprobado** con autenticación y base de datos.
+- Importancia de reproducibilidad matemática separada de cambios externos de rutas.
+
+## Propuestas técnicas / visuales SIN aprobar
+
+| Tema | Propuesta o discusión |
+|---|---|
+| Arquitectura | Supabase Auth + PostgreSQL, Cloudflare Worker; comparar alternativas gratuitas y respaldo |
+| Diseño | Híbrido de Ruta Clara y Tablero; **Claude prepara una nueva propuesta consolidada** |
+| Mapa | Maps Embed + Routes, alternancia de rutas si no pueden superponerse; validar costos y condiciones |
+| Alternativas de acceso | Correo electrónico además de Google |
+| Límites de uso | Cuotas de Routes, límites por usuario y modo degradado |
+| Pro futuro | IA para interpretar datos, lectura de fotos, calibración avanzada, historial/rentabilidad profesional, personalización |
+| Pagos Pro | Modelo de suscripción o prepago, precios y pasarela por validar |
+| Motocicletas/vehículos especiales | Cobertura y método específico de cálculo por verificar |
+
+## Decisiones y verificaciones pendientes
+
+| Issue | Tema | Alcance |
 |---|---|---|
-| T-01 | Dos modos: "Soy fletero" y "Necesito transportar algo" | [01](01-alcance.md) |
-| T-02 | Las cinco medidas del motor y la clasificación de partidas | [03](03-motor-de-costos.md) |
-| T-03 | Tercerización: Δ = (A + B) − (Q + G + S) | [03](03-motor-de-costos.md) |
-| T-04 | La remuneración del dueño es una **meta**, no un pago | [03](03-motor-de-costos.md) |
-| T-05 | Sin factores de carga ni de velocidad hasta tener datos de calibración. Valores por defecto solo con fuente y etiqueta. | [03](03-motor-de-costos.md), [05](05-pruebas-y-calibracion.md) |
-| T-06 | `null` ≠ `0`; "costo parcial" cuando falta un componente | [03](03-motor-de-costos.md) |
-| T-07 | Hasta 2 paradas intermedias en v1 | [01](01-alcance.md) |
-| T-08 | "Abrir en Google Maps" obligatorio; mapa incrustado fuera de la v1 | [01](01-alcance.md) |
-| T-09 | Peajes manuales siempre disponibles | [01](01-alcance.md) |
-| T-10 | Comparador con 4 estados; una categoría genérica nunca es "compatible" | [01](01-alcance.md) |
-| T-11 | Ingreso de direcciones decidido por experimento (texto frente a Autocomplete), sin adoptar Autocomplete por defecto | #19 |
-| T-12 | Reproducibilidad del motor separada de la reproducción de rutas externas | [03](03-motor-de-costos.md) |
-| T-13 | Inventario de datos personales y minimización | [06](06-seguridad-y-privacidad.md) |
-| T-14 | Flujo de entrega por PR con vista previa; el propietario aprueba sin comandos | [09](09-revision-y-aprobacion.md) |
-| T-15 | Rama `main` creada con un commit vacío para recibir PR (sin contenido integrado) | Este PR |
+| #13 | **Nombre comercial y dominio** | **PENDIENTE**; no bloquear E0 por la marca |
+| #7 | Licencia del repositorio | Antes de publicar |
+| #8 | Servicios, cuentas y titularidad | Elección de proveedor, autorizaciones |
+| #9 | Facturación Google y límites | Sin cargos variables autorizados |
+| #10, #21 | Peajes/TAG | Cobertura, tarifas, manual vs automático |
+| #15, #19 | Términos Google, direcciones y rutas | Validar precios, tráfico, conservación y mapa |
+| #16 | IVA y documentos | Tratamiento según contribuyente |
+| #17 | Privacidad y protección de datos | Cuentas, documentos y enlaces compartidos |
+| #18 | Hosting y capacidades gratuitas | Cloudflare y alternativas |
+| #20, #22 | Combustibles y vehículos | Fuentes oficiales y reutilización |
+| #12 | Validación/calibración real | Umbrales y método |
+| #14 | Publicación | Solo cuando propietario apruebe |
 
-## Pendientes del propietario
+**El issue #11 (comparador de categorías) y la comparación de tercerización originalmente prevista para E4 quedan aplazados**: no son parte de la primera versión. No se cierran ni eliminan todavía; debe reconciliarse el backlog con el diseño aprobado.
 
-| Issue | Decisión | Bloquea a |
-|---|---|---|
-| #7 | Licencia del repositorio público | Publicación (E5) |
-| #8 | Contratación de servicios y titularidad de cuentas | E1 (vista previa), E2, E3 |
-| #9 | Facturación de Google y topes de uso | #19, E2 |
-| #10 | Solución de peajes | E3 |
-| #11 | Políticas del comparador (umbrales, categorías no calibradas, textos) | E4 |
-| #12 | Criterios finales de calibración | E5 |
-| #13 | Dominio y nombre definitivo | Publicación (E5) |
-| #14 | Publicación pública de la aplicación | v1.0 |
+## Control documental
 
-## Investigaciones técnicas pendientes
-
-| Issue | Tema | ¿Genera gasto? |
-|---|---|---|
-| #15 | Términos de Google Maps Platform | No |
-| #16 | Marco tributario y regulatorio | No |
-| #17 | Privacidad: Ley 21.719 | No |
-| #18 | Límites de Cloudflare | No |
-| #19 | Experimento de direcciones y facturación de Routes | Dentro del tramo gratuito; requiere #8 y #9 |
-| #20 | API CNE | No (el registro requiere autorización, #8) |
-| #21 | Automatización de peajes | No, salvo la prueba de Google (requiere #9) |
-| #22 | Catálogo de categorías de vehículo | No |
+El antiguo roadmap E0–E5 y las descripciones de algunas épicas/issues contienen funcionalidades superadas. **No se renumeran ni se cierran** hasta aprobar el diseño final y la nueva arquitectura. La preparación de documentos en PR no autoriza iniciar código.
