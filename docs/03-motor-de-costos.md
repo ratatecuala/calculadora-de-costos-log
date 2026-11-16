@@ -105,6 +105,38 @@ La **cotización para el cliente** tiene un contrato de datos separado del cálc
 
 El registro gratuito de viaje real y cargas de combustible conserva **lecturas confirmadas por el usuario**. El rendimiento «lleno a lleno» se obtiene mediante kilómetros recorridos entre llenados completos divididos por litros repostados en el segundo llenado (o la suma correspondiente si hubo cargas parciales). Dos fotos de odómetro por sí solas **no miden litros consumidos**. Lectura automática de fotos y calibración avanzada quedan para Pro futuro.
 
+## 3C. Resultados parciales como cotas (A-26)
+
+**Regla aprobada:** si el transportista desconoce un dato (por ejemplo, sus gastos fijos o los peajes), **no se le impide calcular ni cotizar**. El resultado se rotula «Costo parcial» y **nunca** se presenta como rentabilidad segura.
+
+**Fundamento:** todas las partidas de costo son ≥ 0. Si faltan algunas, la suma de las conocidas **K** es una **cota inferior** del costo real (costo real ≥ K). Por lo tanto, todo resultado que resta costos de un precio es una **cota superior**.
+
+| Medida | Con datos completos | Con datos faltantes |
+|---|---|---|
+| Costo del viaje | «Costo estimado: $42.752» | «**Costo parcial: $35.202 o más.** Faltan: peajes, gastos fijos.» |
+| Precio sugerido | «Precio sugerido: $51.000» | «**Al menos $42.000**, con lo que sabemos.» |
+| Te queda después de pagar el viaje (P − D) | Estimado | Igual, **si** lo faltante no es un desembolso; si falta un desembolso (p. ej., peajes), «**como máximo**» |
+| Te queda después de todos los costos | Estimado | «**Como máximo**» |
+| Sobre lo que querías ganar | «+$12.248» | «**Como máximo** +$X»; nunca con color ni ícono de éxito |
+
+Reglas:
+1. El motor devuelve cada medida como `{ valor, tipo: "estimado" | "cotaInferior" | "cotaSuperior", faltantes }`, y la interfaz no puede mostrar un valor sin su tipo.
+2. Redondeo final a 1.000 CLP: las cotas inferiores, hacia arriba; las superiores, hacia abajo.
+3. Si un faltante afecta solo a una ruta, la comparación muestra el **umbral** («si los peajes suman menos de $5.647, conviene la autopista») y no declara una ganadora.
+4. La cotización al cliente no cambia ni muestra avisos internos; el trabajo queda marcado «costo parcial» en el historial.
+5. Propiedad que se prueba: completar un dato faltante **nunca baja** el costo ni **sube** lo que queda.
+
+**Ejemplo (pantalla de estados v4):** faltan peajes y gastos fijos. Conocido: combustible 5.023 + ayudante 15.000 + desgaste 1.779 + remuneración objetivo 13.400 = **35.202**. Con margen de 15 %: 35.202 / 0,85 = 41.414 → **al menos 42.000**.
+
+## 3D. IVA configurable (A-28)
+
+- La tasa y las reglas **no se escriben en el código del motor**: vienen de `data/tax-rules.json`, versionado, con fuente y fecha de verificación por regla (#37).
+- El transportista elige su **perfil tributario**; solo se ofrecen opciones cuya regla esté **verificada** en #16.
+- **Sin perfil configurado**, la cotización muestra el **neto** y el transportista ve «Configura cómo emites tus documentos». No se suma IVA por defecto.
+- El precio elegido es **siempre neto**; el total con IVA es un cálculo separado, con la regla citada.
+- Si una regla cambia, sube `dataVersion`; una cotización emitida conserva la regla con que se calculó.
+- La app no asesora: la ayuda remite al SII o a un contador.
+
 ## 4. Escenarios resueltos
 
 **Ruta común:** 40 km de ida con carga más 40 km de regreso vacío, en total 80 km. Conducción 2,0 h, carga y descarga 1,0 h (incluye 2 pisos sin ascensor, como tiempo ingresado). Total H = 3,0 h. Combustible a 1.000 CLP/L.

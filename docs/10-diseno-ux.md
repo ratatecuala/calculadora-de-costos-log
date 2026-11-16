@@ -2,7 +2,7 @@
 
 **Nombre comercial: PENDIENTE.** Usar `[Marca]` en los prototipos y textos hasta aprobación explícita. **No reutilizar** el nombre de trabajo descartado.
 
-**Estado de aprobación (16-11-2026):** el propietario aprobó expresamente la **dirección visual v4** y las pantallas **inicio** + **calculadora con comparación integrada**. Claude entregó posteriormente las demás pantallas en la misma línea visual (documento visual v4 completo, cinco páginas); ChatGPT las revisó y recomendó usarlas como referencia, **pero todavía no consta aprobación expresa del propietario para esa extensión ni autorización para programar**.
+**Estado de aprobación (16-11-2026):** el propietario aprobó expresamente la **dirección visual v4** y las pantallas **inicio** + **calculadora con comparación integrada**. Claude entregó después las demás pantallas en la misma línea visual y ChatGPT las revisó. **El 16-11-2026 el propietario aprobó la extensión completa** (navegación móvil y escritorio de tres columnas) y los criterios funcionales A-22 a A-29. **No se necesitan más rediseños visuales.** Programar sigue sin autorización.
 
 ## 1. Sistema visual
 
@@ -11,23 +11,35 @@
 - Aspecto: herramienta profesional de trabajo, no mensajería. Sin amarillo ni verde como color principal.
 - Tarjetas de borde discreto, esquinas moderadas y espaciado consistente.
 - Tipografía e iconografía claras; si un icono no es inequívoco, acompañarlo con texto.
-- Los tonos exactos, tipografía definitiva y componentes **se fijarán con el diseño final**; no inferir un design system cerrado de capturas ilustrativas.
+- Valores de las maquetas aprobadas, que sirven de punto de partida para los *tokens* de la implementación:
+
+| Uso | Valor |
+|---|---|
+| Fondo / superficies | `#FFFFFF` / `#F7F8FA` |
+| Azul principal / oscuro / suave | `#33507A` / `#253C5E` / `#EEF2F8` |
+| Texto / secundario | `#1F2933` / `#52606D` |
+| Bordes / campos | `#E4E7EC` / `#CBD2D9` |
+| Aviso / error | `#FBF7EE` con `#6B4E16` / `#FDF0EF` con `#7A231C` |
+| Tipografía | Inter; cifras con `tabular-nums` |
+| Radios | Tarjetas 12 px; botones y campos 10 px; botones de 48–52 px de alto |
+
+  Un ajuste de contraste por accesibilidad no cuenta como rediseño.
 - En móvil, una experiencia fluida con **formulario y resultados en una pantalla desplazable** para la calculadora; no exigir una pantalla por pregunta. En escritorio, **formulario + mapa/alternativas + desglose/precio/cotización** en columnas.
 
 ## 2. Pantallas
 
 | Vista | Contenido previsto | Estado |
 |---|---|---|
-| Inicio | Propuesta de valor, secuencia de uso, «Calcular un flete», «Continuar con Google», información de gratuidad | **Dirección y muestra aprobadas** |
-| Calculadora y rutas | Vehículo, base opcional, A, B, regreso opcional, hora de salida, ayudantes, tiempos; botón calcular y resultados debajo | **Dirección y muestra aprobadas** |
-| Panel del transportista | Vehículos, pendientes, cotizaciones enviadas, por realizar y por cobrar, alertas por datos faltantes | Extensión v4 entregada; aprobación final pendiente |
-| Mi vehículo | Tipo, marca, modelo, año, motor, combustible; rendimientos/costos/dimensiones opcionales, editables | Extensión v4 entregada; aprobación final pendiente |
-| Desglose | Tramos, gastos desembolsados, desgaste, gastos fijos, remuneración objetivo, procedencia de datos | Extensión v4 entregada; aprobación final pendiente |
-| Mi precio | Margen, sugerido si procede, precio decidido por transportista, comparación con meta | Extensión v4 entregada; aprobación final pendiente |
-| Cotización para cliente | Datos autorizados, precio, IVA si corresponde, condiciones, vigencia, PDF, WhatsApp, enlace protegido | Extensión v4 entregada; aprobación final pendiente |
-| Mis trabajos | Borradores/enviadas/aceptadas/realizadas/rechazadas y pagos confirmados por separado | Extensión v4 entregada; aprobación final pendiente |
-| Errores y datos parciales | Falta rendimiento/TAG/fijos; comparación indeterminada; mapa fallido; límite agotado y modo manual | Extensión v4 entregada; aprobación final pendiente |
-| Escritorio | Misma experiencia en 3 columnas, sin duplicar cálculos ni reglas | Extensión v4 entregada; aprobación final pendiente |
+| Inicio | Propuesta de valor, secuencia de uso, «Calcular un flete», «Continuar con Google», información de gratuidad | **Aprobada** (A-20) |
+| Calculadora y rutas | Vehículo, base opcional, A, B, regreso opcional, hora de salida, ayudantes, tiempos; botón calcular y resultados debajo | **Aprobada** (A-20) |
+| Panel del transportista | Vehículos, pendientes, cotizaciones enviadas, por realizar y por cobrar, alertas por datos faltantes | **Aprobada** (A-21) |
+| Mi vehículo | Tipo, marca, modelo, año, motor, combustible; rendimientos/costos/dimensiones opcionales, editables | **Aprobada** (A-21) |
+| Desglose | Tramos, gastos desembolsados, desgaste, gastos fijos, remuneración objetivo, procedencia de datos | **Aprobada** (A-21) |
+| Mi precio | Margen, sugerido si procede, precio decidido por transportista, comparación con meta | **Aprobada** (A-21) |
+| Cotización para cliente | Datos autorizados, precio, IVA si corresponde, condiciones, vigencia, PDF, WhatsApp, enlace protegido | **Aprobada** (A-21) |
+| Mis trabajos | Borradores/enviadas/aceptadas/realizadas/rechazadas y pagos confirmados por separado | **Aprobada** (A-21) |
+| Errores y datos parciales | Falta rendimiento/TAG/fijos; comparación indeterminada; mapa fallido; límite agotado y modo manual | **Aprobada** (A-21) |
+| Escritorio | Misma experiencia en 3 columnas, sin duplicar cálculos ni reglas | **Aprobada** (A-21) |
 
 **Importante:** el mockup no es código funcional ni evidencia de que Google admita mapas con varias polilíneas, peajes exactos o cobertura de tráfico en toda ruta.
 
@@ -45,15 +57,15 @@
 ## 4. Comparador y tráfico
 
 - **Cálculo ordinario:** la ruta más rápida/habitual frente a una con preferencia por evitar peajes. El usuario compara km, duración, combustible, TAG, desgaste, tiempo y precio estimado.
-- **Mapa:** alternancia de camino visible y enlace «Abrir en Google Maps»; Maps Embed es candidato pendiente de evaluación técnica/términos.
-- **Tráfico actualizado:** **recomendación técnica pendiente de ratificación**: pedirlo **solo bajo acción expresa** para proteger las cuotas y evitar solicitudes en cada modificación del formulario. Las tarifas/SKU Pro y disponibilidad real deben verificarse. No confundir `duration - staticDuration` con minutos de congestión observados.
+- **Mapa (APROBADO, A-22):** un camino visible a la vez con selector, y enlace «Abrir en Google Maps». Maps Embed está propuesto ([02 §8](02-arquitectura.md)); sus términos se revisan en #15.
+- **Tráfico actualizado (APROBADO, A-23):** botón claramente visible «Actualizar con tráfico»; **nunca** se consulta en cada modificación del formulario. Sin él, la duración se rotula «duración habitual»; con él, «con tráfico de las HH:MM» (hora de la consulta). Activa el SKU Pro de Routes (verificado, ver [04](04-fuentes-de-datos.md)). Se mantiene el modo manual. No confundir `duration - staticDuration` con minutos de congestión observados.
 - **Costo de rutas:** cuando faltan peajes/TAG o consumos comparables, **no** mostrar una ruta como la más barata con certeza; comunicar el dato faltante y, cuando proceda, un umbral matemático condicionado.
 
 ## 5. Copy claro y precisión económica
 
 La presentación al usuario puede usar palabras cotidianas, conservando el concepto técnico completo en ayuda contextual:
 
-| Interfaz de usuario (criterio recomendado) | Definición técnica |
+| Interfaz de usuario (aprobado, A-25) | Definición técnica |
 |---|---|
 | «Lo que pagas en el viaje» | Gastos desembolsados estimados (D) |
 | «Desgaste del vehículo» | Costo de desgaste devengado (W) |
@@ -62,24 +74,28 @@ La presentación al usuario puede usar palabras cotidianas, conservando el conce
 | «Te queda después de pagar el viaje» | Saldo estimado tras desembolsos (P−D) |
 | «Te queda después de todos los costos» | Ingreso estimado después de costos (P−D−W−CF) |
 | «Sobre lo que querías ganar» | Diferencia respecto de R |
+| «Costo parcial» | Cota inferior del costo: faltan datos y el costo real puede ser mayor |
+| «Declarado por ti» | Procedencia: DECLARADO |
+
+**APROBADO (A-25):** términos sencillos con una explicación breve en pantalla; los formales quedan en «Qué es», «Cómo calculamos» y la documentación (#39).
 
 **No llamar «ganancia real», «saldo bancario» ni «dinero cobrado» a valores estimados.**
 
 ### Cuando falta información
 
 - Mostrar importes conocidos, faltantes y procedencia: **«Costo parcial»**.
-- **Recomendación revisada, pendiente de ratificación:** no impedir que el usuario prepare una cotización con **precio manual** aunque falten algunos datos, especialmente gastos fijos; marcarlo como **indicativo** y no inventar precio sugerido o ganancia completa.
+- **APROBADO (A-26):** no impedir que el usuario cotice aunque falten datos, especialmente gastos fijos. Se muestran el costo como «$X o más», el precio sugerido como «al menos $X» (marcado como indicativo) y lo que queda como «como máximo». Nunca se presenta como rentabilidad segura. Reglas exactas en [03 §3C](03-motor-de-costos.md).
 - Separar la advertencia interna de costos faltantes de los documentos que recibe el cliente; el cliente no ve el cálculo privado.
 
 ### IVA y estado comercial
 
-- IVA **según situación tributaria verificada**, nunca 19 % para todos por defecto. Ver investigación #16.
+- IVA **configurable (A-28)** según el perfil tributario y solo con reglas verificadas (#16, #37); nunca 19 % para todos por defecto. Sin perfil, la cotización muestra el neto. Detalle en [03 §3D](03-motor-de-costos.md).
 - Cotización **aceptada ≠ servicio realizado ≠ pagado**. No computar una cotización aceptada como ingreso cobrado.
 
 ## 6. Cuota, errores y modos manuales
 
 - Si falla el mapa, permitir introducir km/minutos **por tramo**, con atribución «declarado por ti» y enlace a Google Maps.
-- Si se agota la cuota, modo manual; **no prometer que volverá a las 05:00 o a una hora fija** sin confirmación del límite aplicado.
+- Si se agota la cuota, modo manual; **no se anuncia ninguna hora de reinicio (A-27)**. Texto: «El cálculo automático de rutas no está disponible por ahora. Puedes seguir ingresando los kilómetros de cada tramo.»
 - El modo de tráfico actualizado se implementaría solo después de aprobar las llamadas, precio y límite efectivo.
 - No afirmar «sin costo para el proyecto» solo porque el servicio tenga un tramo gratuito: el gasto técnico depende de cuota, retrasos y facturación.
 
@@ -91,12 +107,14 @@ Alternativa evitando peajes: **$44.199 estimados** con los supuestos del prototi
 
 ## 8. Antes de programar
 
-- Confirmación del propietario para **todas las pantallas extendidas y el copy final**.
-- Decisión de arquitectura de cuentas, alojamiento, respaldo, URLs compartidas y permisos.
-- Verificar Maps Embed/Routes, SKU de tráfico y control de consumo sin exceder el gasto autorizado.
-- Definir impuestos y condiciones jurídicas de la cotización.
-- Reconciliar los issues y épicas antiguos; **no cerrar ni renumerar todavía sin orden explícita**.
+- ~~Confirmación del propietario para todas las pantallas extendidas~~ → **aprobadas el 16-11-2026** (A-21). El copy final se ajusta en las pruebas de comprensión sin cambiar el significado.
+- Aprobar la **propuesta de arquitectura** ([02 §8](02-arquitectura.md)) y el proveedor de cuentas (#35).
+- Verificar en el proyecto real Maps Embed/Routes, SKU de tráfico y control de consumo (#19), sin exceder el gasto autorizado.
+- Definir reglas de IVA verificadas (#16) y condiciones jurídicas de la cotización (#17).
+- Backlog actualizado el 16-11-2026 sin cerrar ni renumerar (ver [08](08-hoja-de-ruta.md)).
 - **Nombre comercial pendiente**.
 - Programación, despliegue y merge de PR siempre requieren autorización expresa del propietario.
+
+**Nota sobre las maquetas:** algunas usan todavía términos formales («Gastos desembolsados», «Remuneración objetivo»); en la implementación mandan los términos de la §5. La pantalla de estados se corrigió el 16-11-2026 con A-26 y A-27.
 
 La guía es una **especificación documental**, no permiso de crear cuentas, escribir funcionalidades, desplegar, activar facturación o integrar `main`.

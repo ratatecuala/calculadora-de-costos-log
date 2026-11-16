@@ -15,6 +15,17 @@ Convención: **VERIFICADO CON ENLACE** · **PROPUESTO** · **POR VALIDAR**. Fuen
 
 Fuentes oficiales para consulta: [Maps Embed directions](https://developers.google.com/maps/documentation/embed/embedding-map), [Compute Routes](https://developers.google.com/maps/documentation/routes/reference/rest/v2/TopLevel/computeRoutes), [Tráfico](https://developers.google.com/maps/documentation/routes/config_trade_offs), [Precios](https://developers.google.com/maps/billing-and-pricing/pricing).
 
+**Verificado el 16-11-2026** (vía buscador sobre páginas oficiales; confirmar con lectura directa en #19):
+
+| Hecho | Fuente |
+|---|---|
+| `TRAFFIC_UNAWARE` (por defecto) → SKU **Compute Routes Essentials**: 10.000 gratis/mes y luego 5 USD por 1.000; hasta 10 puntos intermedios | "Routes API Usage and Billing"; lista de precios |
+| `TRAFFIC_AWARE` o `TRAFFIC_AWARE_OPTIMAL` → SKU **Compute Routes Pro**: 5.000 gratis/mes y luego 10 USD por 1.000 | Ídem |
+| Se cobra **un solo SKU por solicitud**, el de la función más cara | Ídem |
+| **Maps Embed:** sin cargo, sin límites diarios ni por segundo; requiere clave | "Maps Embed API Usage and Billing" |
+| Cuotas diarias: las páginas de Geocoding y Places Aggregate dicen que se renuevan a medianoche, hora del Pacífico. **No se encontró la misma frase para Routes.** Por eso no se anuncia ninguna hora (A-27). | Páginas de uso de esas APIs |
+| Peajes de Routes: "ciudades seleccionadas" (referencia `TollPass`); **Chile no aparece** en los resultados revisados. Sin precio, Routes indica "peaje con monto desconocido". | "Calculate toll fees" |
+
 **Precisión:** Google puede devolver duraciones distintas según `TRAFFIC_UNAWARE`, `TRAFFIC_AWARE` o `TRAFFIC_AWARE_OPTIMAL`. La diferencia entre `duration` y `staticDuration` **no es una medición directa del tiempo perdido en un taco**. No convertirla automáticamente en litros adicionales. **Decisión UX propuesta:** consulta actualizada de tráfico solo con acción expresa, no en cada recálculo; comprobar por separado si el modo básico elegido genera o no cobros y qué datos de tráfico puede mostrar de forma legítima.
 
 **Costos:** Maps Embed aparece en la tabla oficial como **SKU Embed con uso ilimitado sin cargo por evento**, aunque requiere configuración y facturación en Google Cloud. Routes tiene SKUs y límites gratuitos **diferentes según capacidades**; tráfico y peajes pueden cambiar la clasificación. **No presupuestar solamente dos consultas por cotización**: base→A, A→B y B→base opcional, cada uno con preferencias distintas, pueden requerir múltiples solicitudes.
@@ -56,12 +67,15 @@ Fuentes oficiales para consulta: [Maps Embed directions](https://developers.goog
 
 ## 6. Hosting, identidad y privacidad
 
-- Cloudflare Worker/Pages y Supabase Auth/Postgres son **candidatos**, todavía no aprobados. Investigar límites gratuitos, respaldo, continuidad, reglas de seguridad y responsabilidades del proveedor (#8/#17/#18).
+- **Verificado el 16-11-2026:** plan gratuito de Cloudflare Workers con 100.000 solicitudes/día, 1.000/min y 10 ms de CPU por invocación; reinicio a las 00:00 UTC; al exceder, error (documentación oficial "Workers · Limits"). Por validar: *static assets* fuera del límite y uso comercial (#18).
+- **Verificado el 16-11-2026:** desde 2026, las tablas nuevas de Supabase **no se exponen automáticamente** a la Data API; hacen falta `GRANT` explícitos, y RLS se configura aparte (changelog oficial, 28-04-2026; obligatorio para todos los proyectos desde el 30-10-2026). Por validar en la página oficial: plan gratuito de 50.000 usuarios activos/mes, 500 MB, 2 proyectos y pausa tras 7 días sin actividad (fuentes secundarias coincidentes, #35).
+- Cloudflare Worker/Pages y Supabase Auth/Postgres son la **propuesta de cierre** ([02 §8](02-arquitectura.md)), todavía no aprobada. Investigar límites gratuitos, respaldo, continuidad, reglas de seguridad y responsabilidades del proveedor (#8/#17/#18).
 - Los datos personales/vehiculares y económicos privados deben tener acceso autenticado, con protección por propietario.
 - Las cotizaciones públicas son **vistas minimizadas**; nunca deben revelar costos internos ni direcciones privadas por accidente.
 
 ## 7. Regulación
 
-- Validar IVA, documentos tributarios y tributación del servicio en Chile (#16). **No aplicar IVA a todos los usuarios por defecto**.
+- Validar IVA, documentos tributarios y tributación del servicio en Chile (#16). **No aplicar IVA a todos los usuarios por defecto**; el IVA es configurable (A-28).
+- **Hallazgos del 16-11-2026** (vía buscador; confirmar en #16): según las preguntas frecuentes del SII, la exención de IVA para quienes trabajan solos **no aplica** a quienes exploten vehículos de transporte de carga; en jurisprudencia del SII sobre una empresa de carga, los fletes se facturan afectos a IVA. El transporte de pasajeros está exento, pero no aplica aquí. Falta confirmar el documento que corresponde a cada perfil de persona natural.
 - Revisar Ley 21.719 y cambios de vigencia, obligaciones de privacidad, transferencias internacionales y datos de cuentas (#17).
 - Toda afirmación legal o tarifaria exige fuente oficial actualizada antes de publicación.

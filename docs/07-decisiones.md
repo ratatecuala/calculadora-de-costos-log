@@ -26,6 +26,16 @@
 | A-18 | La remuneración del transportista es **objetivo**, no desembolso; `null` no es 0; los resultados incompletos lo dicen | 2026-11-16 |
 | A-19 | La documentación está autorizada en rama de trabajo, pero **no programación ni publicación** | 2026-11-16 |
 | A-20 | **Aprobada la dirección visual v4**: fondo blanco, azul sobrio, grafito, estética profesional y las pantallas mostradas de **inicio y calculadora con comparación en una pantalla desplazable** | 2026-11-16 |
+| A-21 | **Aprobada la extensión v4 completa**: panel, vehículo, desglose, precio, cotización, mis trabajos, estados especiales, navegación móvil y escritorio de tres columnas. **No se necesitan más rediseños visuales.** | 2026-11-16 |
+| A-22 | Mapa: **un camino a la vez**, con selector | 2026-11-16 |
+| A-23 | Tráfico actualizado **bajo demanda**, con una opción claramente visible; **no se consulta en cada cambio del formulario**. Se mantienen el modo sin tráfico actualizado y la alternativa manual. | 2026-11-16 |
+| A-24 | La **comparación de rutas** es fundamental en la versión gratuita. El **comparador para clientes** y la **evaluación de subcontratación** quedan para etapas futuras (#36) | 2026-11-16 |
+| A-25 | **Términos sencillos** con explicaciones breves; los conceptos formales permanecen en la ayuda y la documentación | 2026-11-16 |
+| A-26 | **Resultados parciales:** no impedir cotizar si se desconocen los gastos fijos u otro dato; advertencias claras y **nunca presentar cifras incompletas como rentabilidad segura** | 2026-11-16 |
+| A-27 | **No anunciar una hora fija** de restablecimiento de las consultas de Google sin conocer el reinicio real | 2026-11-16 |
+| A-28 | **IVA configurable**, condicionado a reglas tributarias verificadas (#16, #37) | 2026-11-16 |
+| A-29 | **Costos internos y cotización al cliente separados** (#38) | 2026-11-16 |
+| A-30 | Siguiente trabajo: **cerrar la arquitectura, verificar integraciones y actualizar el backlog**. No programar ni integrar PR sin autorización. Nombre comercial sigue pendiente. | 2026-11-16 |
 
 ## Base técnica conservada para revisar
 
@@ -34,19 +44,25 @@
 - TypeScript + React + Vite + Worker como punto de partida, **no stack final aprobado** con autenticación y base de datos.
 - Importancia de reproducibilidad matemática separada de cambios externos de rutas.
 
-## Propuestas técnicas / visuales SIN aprobar
+## Propuesta de cierre de arquitectura (PROPUESTO, requiere aprobación)
+
+Encargada por el propietario en A-30. Detalle en [02 §8](02-arquitectura.md).
+
+| ID | Propuesta | Issue |
+|---|---|---|
+| P-01 | **Supabase** (Auth con Google y Postgres con RLS) para cuentas y datos; cuenta a nombre del propietario | #35 |
+| P-02 | **Cloudflare Workers** sirve la app y el proxy `/api` con claves de servidor | #18 |
+| P-03 | **Maps Embed** para el mapa; **Routes Essentials** (`TRAFFIC_UNAWARE`) para el cálculo; **Routes Pro** (`TRAFFIC_AWARE`) solo con el botón de tráfico; sin peajes de Google en v1 | #9, #19 |
+| P-04 | Tablas separadas `jobs` (interno) y `client_quotes` (cliente); `toClientQuote()` con lista blanca; enlace público solo mediante `get_public_quote(token)` | #38 |
+| P-05 | PDF generado en el navegador; WhatsApp mediante enlace `wa.me` | — |
+| P-06 | Reglas de IVA en `data/tax-rules.json`, versionadas, con fuente por regla | #37 |
+
+## Otras propuestas aún abiertas
 
 | Tema | Propuesta o discusión |
 |---|---|
-| Arquitectura | Supabase Auth + PostgreSQL, Cloudflare Worker; comparar alternativas gratuitas y respaldo |
-| Diseño | **Dirección v4 aprobada** para las pantallas inicial/calculadora. **Extensión v4 al resto de pantallas presentada por Claude y revisada por ChatGPT; pendiente de aprobación final expresa del propietario**. Ver [guía UX v4](10-diseno-ux.md). |
-| Mapa | **Una ruta visible a la vez** en el prototipo v4, con fichas para comparar ambas. Maps Embed + Routes son candidatos por verificar, no servicios ya autorizados. |
 | Alternativas de acceso | Correo electrónico además de Google |
-| Tráfico | **Criterio recomendado por ChatGPT, pendiente de confirmación**: actualización bajo demanda en lugar de cada cambio de campo; verificar precio de SKU. |
-| Términos en pantalla | Lenguaje sencillo con definiciones formales en ayuda («Qué es») recomendado; el propietario todavía puede ajustarlo. |
-| Resultados parciales | Recomendado permitir cotizar con precio manual y advertencias incluso sin algunos costos, sin declarar utilidad segura; pendiente de validación funcional final. |
-| Límites de uso | Cuotas de Routes, límites por usuario y modo degradado. **No prometer 05:00** u otra hora fija sin evidencia. |
-| Pro futuro | IA para interpretar datos, lectura de fotos, calibración avanzada, historial/rentabilidad profesional, personalización |
+| Pro futuro | IA para interpretar datos, lectura de fotos, calibración avanzada, historial/rentabilidad profesional, personalización (#36) |
 | Pagos Pro | Modelo de suscripción o prepago, precios y pasarela por validar |
 | Motocicletas/vehículos especiales | Cobertura y método específico de cálculo por verificar |
 
@@ -63,12 +79,13 @@
 | #16 | IVA y documentos | Tratamiento según contribuyente |
 | #17 | Privacidad y protección de datos | Cuentas, documentos y enlaces compartidos |
 | #18 | Hosting y capacidades gratuitas | Cloudflare y alternativas |
-| #20, #22 | Combustibles y vehículos | Fuentes oficiales y reutilización |
+| #20 | Combustibles | Fuente oficial y reutilización |
 | #12 | Validación/calibración real | Umbrales y método |
 | #14 | Publicación | Solo cuando propietario apruebe |
+| #35 | **Cuentas y datos: Supabase** | Propuesta P-01 |
 
-**El issue #11 (comparador de categorías) y la comparación de tercerización originalmente prevista para E4 quedan aplazados**: no son parte de la primera versión. La comparación de **rutas rápidas/con o sin peajes sí permanece en la versión gratuita**. No se cierran ni eliminan todavía; debe reconciliarse el backlog con el diseño aprobado.
+**El issue #11 (comparador de categorías), #22 y la comparación de tercerización** quedan en la épica futura **#36** (A-24). No se cerraron ni eliminaron. La comparación de **rutas** permanece en la versión gratuita (#3).
 
 ## Control documental
 
-El antiguo roadmap E0–E5 y las descripciones de algunas épicas/issues contienen funcionalidades superadas. **No se renumeran ni se cierran** hasta aprobar el diseño final y la nueva arquitectura. La preparación de documentos en PR no autoriza iniciar código.
+El **16-11-2026**, por encargo del propietario (A-30), el backlog se actualizó **sin cerrar ni renumerar issues**: se reescribieron las épicas #1, #2, #3 y #5, y las issues #29 y #32; se movieron #11 y #22 a la épica futura #36; se crearon #35 a #39 y se agregaron comentarios de verificación en #8, #9, #15, #16, #18, #19, #21 y #23. Detalle en [08](08-hoja-de-ruta.md). La preparación de documentos en PR no autoriza iniciar código.

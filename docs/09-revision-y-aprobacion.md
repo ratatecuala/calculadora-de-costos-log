@@ -4,7 +4,7 @@ No necesitas programar ni ejecutar comandos. Todo se hace desde la web de GitHub
 
 ## Estado actual de las aprobaciones
 
-La documentación del **PR #34** refleja el **alcance actualizado**. La **dirección visual v4 blanco/azul/grafito y las muestras de inicio/calculadora** están aprobadas por el propietario. La **extensión de las demás pantallas** fue revisada por ChatGPT, pero requiere aprobación final. También están pendientes **nombre comercial, proveedor de cuentas, límites de API y nuevo backlog**. Ver [guía UX v4](10-diseno-ux.md). Aprobar un documento no autoriza código, cuentas, despliegues, suscripciones ni cargos. Las etapas/issues anteriores necesitan reconciliación después de aprobar el prototipo de Claude.
+La documentación del **PR #34** refleja el **alcance actualizado**. La **dirección visual v4 blanco/azul/grafito y las muestras de inicio/calculadora** están aprobadas por el propietario. El 16-11-2026 el propietario aprobó también la **extensión de las demás pantallas** y los criterios funcionales (A-21 a A-29). El **backlog se actualizó** ese día (ver [08](08-hoja-de-ruta.md)). Siguen pendientes **nombre comercial, aprobación de la arquitectura propuesta (proveedor de cuentas, Supabase #35) y límites de API**. Ver [guía UX v4](10-diseno-ux.md). Aprobar un documento no autoriza código, cuentas, despliegues, suscripciones ni cargos. 
 
 ## El ciclo de un cambio
 

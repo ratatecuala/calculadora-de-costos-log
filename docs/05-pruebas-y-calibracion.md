@@ -29,7 +29,7 @@
 - Borrador, enviada, aceptada, rechazada; distinguir aceptación de **ingreso efectivamente cobrado**.
 - PDF/compartir: verifica precio, fecha, servicio y condiciones; **no** expone costos internos, márgenes, remuneración, direcciones exactas no autorizadas ni datos de otro usuario. **IVA solo si corresponde**, con estado tributario comprobable, sin 19 % automático.
 - Compartir enlace: controles de adivinación/revocación/expiración según diseño autorizado.
-- Compatibilidad y accesibilidad en móvil (teclado, tamaño de controles, contraste, flujo de ida y vuelta sin pérdida de datos). Contrastar la implementación con la **línea visual v4**: blanco, azul sobrio, grafito, inicio/calculadora en una pantalla desplazable, una ruta visible a la vez; la extensión de las demás pantallas queda sujeta a aprobación final.
+- Compatibilidad y accesibilidad en móvil (teclado, tamaño de controles, contraste, flujo de ida y vuelta sin pérdida de datos). Contrastar la implementación con la **línea visual v4**: blanco, azul sobrio, grafito, inicio/calculadora en una pantalla desplazable, una ruta visible a la vez; la extensión de las demás pantallas fue aprobada el 16-11-2026 (A-21).
 - Pruebas de respaldo/restauración, límites de almacenamiento y eliminación de cuenta.
 
 ## 4. Registros manuales de viajes y combustible

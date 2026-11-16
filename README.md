@@ -12,7 +12,8 @@ Herramienta web para **transportistas independientes y fletes livianos en Chile*
 |---|---|
 | Etapa actual | E0: redefinición del producto, UX/UI y validaciones técnicas |
 | Aplicación | **No hay código funcional ni despliegue** |
-| Diseño | **Dirección visual v4 aprobada para inicio y calculadora**: blanco, azul sobrio y grafito. Claude extendió el diseño al resto; los detalles restantes están en revisión final ([guía UX](docs/10-diseno-ux.md)) |
+| Diseño | **Diseño v4 completo aprobado** (16-11-2026): blanco, azul sobrio y grafito, navegación móvil y escritorio de tres columnas ([guía UX](docs/10-diseno-ux.md)) |
+| Arquitectura | **Propuesta de cierre** en revisión ([02 §8](docs/02-arquitectura.md), #35) |
 | Repositorio | Público, con documentación propuesta en PR [#34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34) |
 | Nombre comercial y dominio | **Pendientes**, decisión del propietario (#13) |
 | Licencia | Pendiente (#7) |
@@ -50,7 +51,7 @@ La comparación detallada entre categorías de vehículos para clientes y el eva
 | [07 · Decisiones](docs/07-decisiones.md) | Aprobado, propuesta y pendiente |
 | [08 · Hoja de ruta](docs/08-hoja-de-ruta.md) | Replanificación por resolver, sin renumerar issues todavía |
 | [09 · Revisión y aprobación](docs/09-revision-y-aprobacion.md) | Cómo revisar PR sin programar |
-| [10 · Diseño UX/UI v4](docs/10-diseno-ux.md) | Dirección visual, pantallas, copy y estados, con decisiones aún pendientes |
+| [10 · Diseño UX/UI v4](docs/10-diseno-ux.md) | Diseño aprobado: pantallas, valores visuales, glosario y estados |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Ramas, issues grandes, trabajo paralelo y controles |
 | [SECURITY.md](SECURITY.md) | Reporte de incidentes |
 
@@ -63,4 +64,4 @@ La comparación detallada entre categorías de vehículos para clientes y el eva
 - Ningún gasto, despliegue, API de pago o integración a `main` se activa sin autorización explícita.
 - GitHub es la fuente técnica; Trello solo se organiza posteriormente y con autorización.
 
-**Primero:** cerrar la revisión UX/UI v4 y arquitectura/costos de servicios. **Después:** reconciliar backlog y pedir autorización de programación. **Finalmente:** lanzar la herramienta gratuita con aprobación y validar uso real antes de evaluar Pro.
+**Hecho:** diseño UX/UI v4 aprobado y backlog actualizado (16-11-2026). **Ahora:** aprobar la arquitectura y los costos de servicios, y luego pedir autorización de programación. **Finalmente:** lanzar la herramienta gratuita con aprobación y validar uso real antes de evaluar Pro.

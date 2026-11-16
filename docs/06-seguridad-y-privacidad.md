@@ -32,6 +32,7 @@
 - Login con Google candidato para cuentas; el acceso anónimo solo usa el motor y estado temporal.
 - El proveedor final (Supabase u otro) necesita aprobación. Aplicar reglas de acceso por propietario (por ejemplo, RLS) y comprobar con **dos cuentas separadas** que ninguna puede leer, modificar o exportar registros ajenos.
 - Todo endpoint de cotización compartida debe producir solo una **proyección pública permitida**, jamás una respuesta con campos privados ocultos únicamente por CSS.
+- Propuesta concreta ([02 §8.4](02-arquitectura.md)): tabla `client_quotes` **sin columnas internas**, llenada por `toClientQuote()` con lista blanca (#38), y acceso público solo mediante `get_public_quote(token)`.
 - Definir enlaces de alta entropía, expiración/revocación y política de acceso antes de habilitar compartir.
 - Exportación, eliminación y copia de respaldo de datos de usuario necesitan diseño y pruebas.
 
