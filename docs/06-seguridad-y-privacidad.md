@@ -1,82 +1,79 @@
-# 06 · Protocolo de seguridad y privacidad
+# 06 · Seguridad y privacidad — aplicación gratuita con cuentas
 
-Estado: los **principios están aprobados**. Los detalles legales están pendientes de #15 (términos de Google) y #17 (Ley 21.719).
+**Estado:** requisitos mínimos y temas por investigar (#15, #17, #18). La arquitectura, proveedor de identidad y política de datos aún necesitan aprobación. Repositorio público; nombre comercial pendiente.
 
-## 1. Reglas de oro
+## 1. Reglas innegociables
 
-1. **Ninguna clave, token ni contraseña en el repositorio.** El repositorio es **público**.
-2. **Ningún cargo variable de APIs** sin autorización expresa del propietario (#9).
-3. **Las cuentas de servicios son del propietario.** Claude recibe solo accesos mínimos y revocables (#8).
-4. **No se procesan más datos personales de los necesarios.** Lo que puede quedarse en el navegador, se queda ahí.
-5. **Nada se publica** en una URL pública sin la autorización del propietario (#14).
+1. Ninguna clave, token, contraseña, datos de calibración real o dirección privada en el repositorio, PR o issue público.
+2. **$0 en cargos variables autorizados**; la posibilidad de abrir una cuenta con facturación no autoriza consumo o gasto.
+3. Todas las cuentas técnicas bajo titularidad/control del propietario, accesos mínimos y revocables para colaboradores.
+4. El usuario puede **calcular sin cuenta**. Solo guardar información en nube cuando inicia sesión y lo autoriza.
+5. Separar totalmente el **modelo privado de cálculo** de la **cotización visible para el cliente**.
+6. Nada de despliegues, pagos o servicios facturables sin permiso del propietario.
 
-## 2. Claves de API y cuentas
+## 2. Inventario de datos del nuevo alcance
 
-| Control | Detalle | Etapa |
+| Clase | Ejemplos | Regla preliminar |
 |---|---|---|
-| Claves solo en el servidor | Secretos del Worker de Cloudflare. Nunca en el código ni en el navegador. | E2 |
-| Restricción de claves | Cada clave limitada a las APIs que usa | E2 |
-| Archivos locales ignorados | `.env`, `.dev.vars` y similares en `.gitignore` | E1 |
-| Escaneo de secretos | Activar *secret scanning* y *push protection* de GitHub. El propietario lo hace en Settings → Code security. | E1 |
-| Dependencias | Dependabot activado | E1 |
-| Rotación | Procedimiento documentado. Si una clave se expone, se revoca de inmediato. | E2 |
+| Cuenta | Identificador, correo y nombre del proveedor de login | Mínimo necesario; acceso y borrado por propietario |
+| Perfil de transportista | Nombre comercial, contacto que decide mostrar | Privado por defecto; separar datos visibles al cliente |
+| Vehículos | Categoría, año, modelo, combustible, rendimiento y costos | Privado; no exigir patente ni documento si no es imprescindible |
+| Cotización interna | Rutas, costos, meta de remuneración, margen y precio | Privado; protegido por cuenta |
+| Cotización compartida | Servicio, comunas, condiciones, precio, contacto voluntario | Entidad/documento independiente; URL con control de acceso |
+| Viajes reales y combustible | Odómetro, litros, fechas, montos; boletas manuales | Datos privados por usuario, con borrado/exportación |
+| Datos de Maps | Origen/destino y respuesta externa | Tránsito mínimo por Worker/Google; almacenamiento restringido según términos |
+| Métricas | Uso de flujos, errores y recurrencia | Agregadas o seudónimas, sin rutas personales en logs |
+| Fotos | **No se implementan en v1** | Pro futuro: privacidad, permisos y retención por diseñar |
 
-## 3. Protección contra cobros y abuso
+**No guardar**: datos reales de otros proyectos, contraseñas de Google, credenciales bancarias, fotos con metadatos GPS ni secretos del usuario.
 
-| Control | Detalle |
+## 3. Identidad y aislamiento
+
+- Login con Google candidato para cuentas; el acceso anónimo solo usa el motor y estado temporal.
+- El proveedor final (Supabase u otro) necesita aprobación. Aplicar reglas de acceso por propietario (por ejemplo, RLS) y comprobar con **dos cuentas separadas** que ninguna puede leer, modificar o exportar registros ajenos.
+- Todo endpoint de cotización compartida debe producir solo una **proyección pública permitida**, jamás una respuesta con campos privados ocultos únicamente por CSS.
+- Definir enlaces de alta entropía, expiración/revocación y política de acceso antes de habilitar compartir.
+- Exportación, eliminación y copia de respaldo de datos de usuario necesitan diseño y pruebas.
+
+## 4. Claves, proveedores y facturación
+
+- Claves restringidas, server-side para Google Routes y CNE; Maps Embed puede requerir clave pública de navegador **restringida por dominio y API**, no un secreto de servidor expuesto por error.
+- Cloudflare/Google/Supabase: acceso mínimo y logs sin direcciones, teléfonos ni montos.
+- Facturación de Google **solo tras autorización**: revisar SKU, cuotas por API, presupuesto, latencia de cuotas y riesgo de abuso; **las alertas no cortan el cobro**.
+- En el proxy: límites por cuenta y por origen, antiabuso proporcionado, contador persistente/controles que soporten concurrencia, apagado y modo manual. No confiar en un contador solo en memoria.
+- Si se agota el presupuesto de consultas: enlace «Abrir en Google Maps» y kilómetros manuales.
+- Activar alertas de seguridad, escaneo de secretos y revisión de dependencias donde esté disponible.
+
+## 5. Rutas y documentos
+
+- La interfaz puede mostrar Google Maps, pero **no extraer datos mediante scraping**.
+- No conservar/exportar polilíneas, km y tiempos provenientes de Google sin revisión de términos (#15). El documento PDF debe evitar incluir contenido de Google no autorizado.
+- Mapa integrado y cálculo pueden diferir; advertirlo. El usuario elige rutas y tarifas sin afirmaciones falsas.
+- Los comprobantes de cotización pueden contener datos personales del cliente: reducir alcance, proteger enlaces y permitir eliminar documentos.
+- IVA o detalles tributarios se muestran solo conforme a configuración/regla verificada (#16).
+
+## 6. Revisión legal obligatoria antes de lanzamiento
+
+- Ley chilena de protección de datos y su vigencia efectiva, consentimiento cuando corresponda, finalidades y plazo de retención (#17).
+- Rol contractual y transferencia internacional a Google/Cloudflare/proveedor de cuenta.
+- Privacidad del historial, capacidad de descargar y eliminar datos, información al cliente que recibe cotización.
+- Política de errores, incidentes y posibles cobros/abusos; instrucciones de revocación de claves.
+
+## 7. Respaldo y operación
+
+- GitHub solo contiene código/documentos públicos.
+- La base de datos privada de producción requiere plan de **respaldos verificables y restauración probada**. No asumir que el plan gratuito lo trae.
+- Usuarios sin cuenta: datos temporales y posible pérdida al cerrar navegador; comunicarlo.
+- Plan gratuito de alojamiento e identidad: verificar pausas por inactividad, límites y efecto en personas reales.
+- Las cifras, logs y registros se almacenan solo durante el tiempo justificado y conforme a la política aprobada.
+
+## 8. Puertas de seguridad
+
+| Antes de | Evidencia necesaria |
 |---|---|
-| Cuotas diarias en Google Cloud | Límite conservador propuesto a verificar. **Las cuotas pueden retrasarse y no garantizan gasto cero**; no habilitar servicios facturables sin autorización del propietario y límites probados. |
-| Límite diario propio | En el Worker, por debajo de la cuota de Google, para degradar con aviso antes de llegar al límite |
-| Turnstile | Verificación anti-bots al iniciar un cálculo _(gratuidad por verificar, #18)_ |
-| Límite por IP | Sin guardar la IP. Solo en memoria y por poco tiempo. |
-| Alertas de presupuesto | 1 USD, como aviso adicional (no detienen el cobro) |
-| Modo degradado | Si la cuota se agota o la API falla, la calculadora funciona en modo manual con aviso |
-| Interruptor de apagado | Una variable de configuración desactiva Google por completo |
-
-## 4. Inventario de datos personales
-
-| Dato | ¿Sale del navegador? | Destino | ¿Lo guardamos? | Control |
-|---|---|---|---|---|
-| Direcciones y comuna | Sí, solo para calcular la ruta | Worker (de paso) y Google | **No.** Los logs no registran el contenido de las solicitudes. | Aviso de privacidad que nombra a Google y Cloudflare |
-| Coordenadas y trazado de la ruta | No (vuelven al navegador) | — | No | Se descartan |
-| Vehículo, sueldos, costos y precios | **No** | — | Solo en el navegador, si el usuario lo decide | Botón "Borrar mis datos" |
-| Direcciones recientes | No | — | En el navegador, **solo si el usuario lo activa** | Desactivado por defecto |
-| IP y navegador | Sí, de forma inevitable | Cloudflare y Turnstile | No en nuestros logs. Retención mínima en la plataforma _(por verificar, #18)_ | — |
-| Consulta de precio de combustible | Sí | Worker | No | Solo envía la región |
-| Métricas de uso | Sí | Worker | Solo contadores agregados | Sin IP ni direcciones |
-| Archivo exportado | Lo controla el usuario | — | — | Aviso: "contiene direcciones" |
-| Datos de calibración | Sí | Almacenamiento **privado** | Sí, a nivel de comuna | Consentimiento escrito; **nunca en este repositorio** |
-
-**Minimización:** la interfaz indicará que **no se necesita el número exacto de la dirección**. Una esquina o intersección basta para estimar costos.
-
-**Pendiente legal (#17):**
-- papel de Google y Cloudflare (encargados o terceros);
-- transferencia internacional de datos;
-- contenido del aviso de privacidad;
-- consentimiento de los participantes de la calibración.
-
-## 5. Datos de Google (pendiente de #15)
-
-- No se cachean ni se exportan km, duración ni trazados de Google.
-- Los place ID y las direcciones escritas por el usuario pueden guardarse en su navegador.
-- Las coordenadas se guardan como máximo 30 días.
-- Los resultados de Google no se muestran en mapas de otros proveedores.
-
-## 6. Registros técnicos
-
-- Se registran: tipo de error, código, latencia e identificador anónimo de solicitud.
-- **No se registran:** direcciones, coordenadas, IP, montos ingresados por el usuario.
-
-## 7. Respaldo
-
-- **Código y documentación:** GitHub es la fuente de verdad.
-- **Perfiles del usuario:** viven en su navegador; se ofrece exportar e importar un archivo y se avisa de cambios sin respaldar.
-- **Riesgo conocido:** Safari puede borrar el almacenamiento de sitios que no se visitan en 7 días (por verificar en un iPhone real). Mitigaciones: pedir almacenamiento persistente, recordar exportar y sugerir instalar la app en la pantalla de inicio.
-
-## 8. Controles por etapa
-
-| Indispensable antes de… | Controles |
-|---|---|
-| E1 (motor manual) | `.gitignore` de secretos, escaneo de secretos, Dependabot, CI obligatoria |
-| E2 (APIs) | Claves en el servidor, cuotas verificadas, Turnstile, límite por IP, logs sin datos personales, modo degradado |
-| E5 (publicación) | Revisión de seguridad sin hallazgos críticos, aviso de privacidad aprobado, runbook de incidentes |
+| Primera implementación | Autorización E1, reglas de repositorio, pruebas del motor y sin secretos |
+| Cuentas | Proveedor aprobado, aislamiento autenticado, eliminación y respaldo |
+| Maps Routes/CNE | Términos, SKU y controles de uso aprobados; salida manual |
+| Cotizaciones compartidas | Proyección sin costos internos ni fugas, revocación y pruebas cruzadas |
+| Lanzamiento gratuito | Pruebas móviles, seguridad, privacidad, textos legales y autorización pública |
+| Pro o IA posterior | Nueva revisión por fotos, pagos, privacidad y gastos; no forma parte de v1 |
