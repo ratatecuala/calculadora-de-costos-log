@@ -94,14 +94,14 @@ Para cada alternativa válida de ruta (habitual/rápida y evitando peajes) se ev
 - La alternativa «evitando peajes» **no garantiza TAG = 0**; el usuario puede confirmar 0 o declarar que no conoce el importe.
 - La diferencia de duración `duration - staticDuration` es **una referencia comparativa del modelo de rutas** y no un contador medido de minutos de taco. No derivar consumo por congestión de ese valor sin un modelo calibrado.
 - El usuario puede declarar rendimiento urbano, carretera o uno mixto respaldado. No inventar porcentajes de ciudad/carretera ni coeficientes de frenado/carga.
-- Si falta rendimiento, costo fijo, TAG o cualquier partida material, mostrar qué resultado **sí** se pudo calcular y rotularlo «Costo parcial»; **no afirmar que una ruta es la más barata** cuando lo omitido puede invertir la comparación.
+- Si falta rendimiento, costo fijo, TAG o cualquier partida material, mostrar qué resultado **sí** se pudo calcular y rotularlo «Costo parcial»; **no afirmar que una ruta es la más barata** cuando lo omitido puede invertir la comparación. **No bloquear automáticamente la creación de cotización**: permitir que el transportista introduzca un precio propio y genere un documento **indicativo**, con aviso de costos internos incompletos; no presentar precio sugerido ni utilidad como completos sin base suficiente.
 - Cada valor guarda procedencia, fecha y versión del modelo, respetando las condiciones del proveedor de rutas.
 
-**Salida para el usuario:** «Costo estimado del viaje», «Saldo estimado tras desembolsos», «Ingreso estimado tras costos» y «Diferencia frente a tu remuneración objetivo». Estas cantidades no equivalen necesariamente a dinero cobrado o saldo bancario.
+**Salida para el usuario:** términos claros en la interfaz y formales en ayuda: «Lo que pagas en el viaje» (desembolsos estimados), «Lo que quieres ganar por tu trabajo» (remuneración objetivo), «Te queda después de pagar el viaje» (saldo estimado tras desembolsos) y «Te queda después de todos los costos» (ingreso estimado tras costos). **No** llamar a estas cantidades ingreso cobrado ni saldo bancario. Si hay datos incompletos, mostrar explícitamente que la cifra también es parcial.
 
 ## 3B. Cotización y registro real
 
-La **cotización para el cliente** tiene un contrato de datos separado del cálculo interno: precio elegido, servicios incluidos, impuestos cuando correspondan, condiciones y vigencia. No incluir costos internos, margen ni información privada de la cuenta.
+La **cotización para el cliente** tiene un contrato de datos separado del cálculo interno: precio elegido, servicios incluidos, impuestos **solo cuando correspondan según contribuyente y regla validada (#16)**, condiciones y vigencia. No incluir costos internos, margen ni información privada de la cuenta. El documento no debe sugerir que está automáticamente facturado, pagado o aceptado.
 
 El registro gratuito de viaje real y cargas de combustible conserva **lecturas confirmadas por el usuario**. El rendimiento «lleno a lleno» se obtiene mediante kilómetros recorridos entre llenados completos divididos por litros repostados en el segundo llenado (o la suma correspondiente si hubo cargas parciales). Dos fotos de odómetro por sí solas **no miden litros consumidos**. Lectura automática de fotos y calibración avanzada quedan para Pro futuro.
 
