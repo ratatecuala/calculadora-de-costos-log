@@ -1,7 +1,7 @@
 ## Resumen
 <!-- Qué cambia y por qué, en lenguaje simple. -->
 
-Cierra #
+Refs #
 
 ## Tipo de cambio
 - [ ] Documentación
