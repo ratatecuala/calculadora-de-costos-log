@@ -4,7 +4,7 @@ No necesitas programar ni ejecutar comandos. Todo se hace desde la web de GitHub
 
 ## Estado actual de las aprobaciones
 
-La documentación del **PR #34** refleja el **alcance actualizado**, pero el nombre comercial, la identidad visual, el proveedor de cuentas, los límites de API y el nuevo backlog están **pendientes**. Aprobar un documento no autoriza código, cuentas, despliegues, suscripciones ni cargos. Las etapas/issues anteriores necesitan reconciliación después de aprobar el prototipo de Claude.
+La documentación del **PR #34** refleja el **alcance actualizado**. La **dirección visual v4 blanco/azul/grafito y las muestras de inicio/calculadora** están aprobadas por el propietario. La **extensión de las demás pantallas** fue revisada por ChatGPT, pero requiere aprobación final. También están pendientes **nombre comercial, proveedor de cuentas, límites de API y nuevo backlog**. Ver [guía UX v4](10-diseno-ux.md). Aprobar un documento no autoriza código, cuentas, despliegues, suscripciones ni cargos. Las etapas/issues anteriores necesitan reconciliación después de aprobar el prototipo de Claude.
 
 ## El ciclo de un cambio
 
