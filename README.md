@@ -9,6 +9,8 @@ Pensada para fleteros independientes, conductores con auto, camioneta, furgón o
 
 > **Principio rector:** no presentar estimaciones como cifras exactas. Cada resultado muestra de dónde viene cada dato, qué falta y cuánta incertidumbre tiene.
 
+> **Para Claude, ChatGPT o cualquier agente:** leer primero [AGENTS.md](AGENTS.md), luego [decisiones vigentes](docs/07-decisiones.md), [hoja de ruta](docs/08-hoja-de-ruta.md) y el issue correspondiente. **Ningún PR se integra ni se inicia programación sin autorización expresa del propietario.**
+
 ## Estado del proyecto
 
 | | |
@@ -33,6 +35,18 @@ Pensada para fleteros independientes, conductores con auto, camioneta, furgón o
 | [09 · Revisión y aprobación](docs/09-revision-y-aprobacion.md) | Cómo revisa y aprueba cambios el propietario (sin comandos) |
 | [CONTRIBUTING](CONTRIBUTING.md) | Convenciones de desarrollo, ramas, commits, etiquetas |
 | [SECURITY](SECURITY.md) | Cómo reportar un problema de seguridad |
+
+## Reglas de trabajo
+
+- **Propietario:** aprueba prioridades, gastos, cuentas, cambios de alcance y cualquier integración a `main`.
+- **Claude:** desarrolla únicamente tareas autorizadas, mediante ramas y PR pequeños con pruebas.
+- **ChatGPT:** revisa las decisiones técnicas, las fórmulas y los PR relevantes antes de su aprobación.
+- **GitHub:** documentación, código e issues. **Trello:** seguimiento visual una vez autorizado, sin duplicar el backlog.
+- **Costo de APIs:** $0 de cargos variables autorizados; nada se activa que pueda generar cobros sin aprobación.
+- **Cada entrega:** debe explicar qué cambió, qué no tocó, cómo comprobarlo sin conocimientos técnicos y qué queda pendiente.
+- **Sin fusiones automáticas, cambios directos a `main`, secretos, datos privados ni funcionalidades fuera de alcance.**
+
+Reglas completas para cualquier agente: **[AGENTS.md](AGENTS.md)**. Claude también debe consultar **[CLAUDE.md](CLAUDE.md)**.
 
 ## Roles
 
