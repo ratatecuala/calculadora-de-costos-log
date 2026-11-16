@@ -1,6 +1,6 @@
 # Calculadora y cotizador de fletes — nombre pendiente
 
-> **Nombre comercial:** PENDIENTE DE DECISIÓN. El nombre anterior («CamiON») está descartado. El nombre técnico del repositorio no representa la marca futura.
+> **Nombre comercial:** PENDIENTE DE DECISIÓN. Se descartó el nombre usado en documentos anteriores. El nombre técnico del repositorio no representa la marca futura.
 
 Herramienta web para **transportistas independientes y fletes livianos en Chile**. El primer lanzamiento será una **calculadora gratuita de costos, rutas y cotizaciones profesionales**, diseñada prioritariamente para teléfono móvil.
 
