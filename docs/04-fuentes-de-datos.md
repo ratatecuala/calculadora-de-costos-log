@@ -87,3 +87,12 @@ Fuentes oficiales para consulta: [Maps Embed directions](https://developers.goog
 - **Hallazgos del 16-11-2026** (vía buscador; confirmar en #16): según las preguntas frecuentes del SII, la exención de IVA para quienes trabajan solos **no aplica** a quienes exploten vehículos de transporte de carga; en jurisprudencia del SII sobre una empresa de carga, los fletes se facturan afectos a IVA. El transporte de pasajeros está exento, pero no aplica aquí. Falta confirmar el documento que corresponde a cada perfil de persona natural.
 - Revisar Ley 21.719 y cambios de vigencia, obligaciones de privacidad, transferencias internacionales y datos de cuentas (#17).
 - Toda afirmación legal o tarifaria exige fuente oficial actualizada antes de publicación.
+
+
+## 8. Auditoría Google Maps y evaluación de proveedores alternativos (16-11-2026)
+
+- **[Deep Research Google Maps](11-auditoria-google-maps.md):** corrobora documentalmente Base→A→B→Base con tres legs y dos solicitudes para normal/evitando peajes; Google Maps Embed visualiza, pero no suministra los km al motor. **Abre un riesgo contractual no resuelto** sobre persistencia de resultados de Routes y precios derivados: ver #15; no declarar almacenamiento permitido ni prohibición absoluta sin interpretación suficiente.
+- **[Comparación preliminar Mapbox / TomTom / HERE / Waze / GraphHopper](12-alternativas-mapas.md):** Mapbox Directions anuncia 100.000 solicitudes gratuitas/mes, 50.000 cargas web de mapa y cobertura de tráfico declarada para Chile; TomTom anuncia 20.000 solicitudes de rutas/mes; HERE ofrece plan Limited con restricciones; Waze no ofrece una API pública de cotización equivalente; GraphHopper Free es no comercial. **El precio de rutas no equivale al costo total** de mapa, búsqueda y almacenamiento.
+- **No elegir proveedor hasta verificar:** exactitud de direcciones/ETA en Chile, condiciones de uso comercial, tratamiento y exportación de distancias/precios comerciales, riesgo de facturación, cuota y costo total.
+- **No mezclar** resultados de Google Maps con mapas de otro proveedor hasta revisar los permisos de las respectivas licencias.
+- Las **investigaciones profundas futuras serán por GPT Deep Research, con aviso y autorización previa del propietario**. Esta actualización no autoriza código, cuentas, experimentos, API ni gastos.
