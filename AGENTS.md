@@ -9,6 +9,7 @@ Este archivo es la **puerta de entrada operativa** para Claude, ChatGPT, Codex y
 3. Identificar la tarea concreta, sus archivos afectados, cómo se comprobará y **qué aprobación permite ejecutarla**.
 4. Si no existe autorización expresa para el alcance, **detenerse y pedirla**. Que un issue exista, una propuesta esté documentada o una IA la recomiende no equivale a permiso.
 5. Al detectar contradicciones, priorizar una decisión reciente y explícita del propietario, dejar evidencia en el issue y proponer la actualización documental. No presentar como aprobado algo que todavía no lo está.
+6. **Regla de investigación:** no iniciar investigaciones externas profundas sin aviso y autorización previa del propietario. El canal acordado para investigaciones profundas es **GPT Deep Research**; Claude recibe el informe, comprueba su encaje y ejecuta solo tareas documentales o técnicas autorizadas. Una comparación preliminar no constituye aprobación del proveedor ni habilitación de APIs. Leer [auditoría de Google](docs/11-auditoria-google-maps.md) y [alternativas de mapas](docs/12-alternativas-mapas.md).
 
 ## 2. Situación y alcance vigente
 
