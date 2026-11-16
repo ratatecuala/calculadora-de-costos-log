@@ -52,6 +52,8 @@ La comparación detallada entre categorías de vehículos para clientes y el eva
 | [08 · Hoja de ruta](docs/08-hoja-de-ruta.md) | Replanificación por resolver, sin renumerar issues todavía |
 | [09 · Revisión y aprobación](docs/09-revision-y-aprobacion.md) | Cómo revisar PR sin programar |
 | [10 · Diseño UX/UI v4](docs/10-diseno-ux.md) | Diseño aprobado: pantallas, valores visuales, glosario y estados |
+| [11 · Auditoría Google Maps](docs/11-auditoria-google-maps.md) | Informe Deep Research, costos, rutas y condiciones contractuales pendientes |
+| [12 · Alternativas de mapas](docs/12-alternativas-mapas.md) | Revisión preliminar de Mapbox, TomTom, HERE, Waze y GraphHopper |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Ramas, issues grandes, trabajo paralelo y controles |
 | [SECURITY.md](SECURITY.md) | Reporte de incidentes |
 
