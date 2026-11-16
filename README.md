@@ -12,7 +12,7 @@ Herramienta web para **transportistas independientes y fletes livianos en Chile*
 |---|---|
 | Etapa actual | E0: redefinición del producto, UX/UI y validaciones técnicas |
 | Aplicación | **No hay código funcional ni despliegue** |
-| Diseño | Claude está preparando la propuesta visual consolidada; **no está aprobada aún** |
+| Diseño | **Dirección visual v4 aprobada para inicio y calculadora**: blanco, azul sobrio y grafito. Claude extendió el diseño al resto; los detalles restantes están en revisión final ([guía UX](docs/10-diseno-ux.md)) |
 | Repositorio | Público, con documentación propuesta en PR [#34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34) |
 | Nombre comercial y dominio | **Pendientes**, decisión del propietario (#13) |
 | Licencia | Pendiente (#7) |
@@ -24,7 +24,7 @@ Herramienta web para **transportistas independientes y fletes livianos en Chile*
 - **Probar sin cuenta**; ingresar con Google para guardar información. Alternativa por correo a resolver.
 - Perfil de transportista y **varios vehículos** (tipo, marca, modelo, año, motorización, combustible; rendimiento urbano/carretera opcional).
 - Calculadora para un servicio **base opcional → origen A → destino B → regreso opcional a la base**. No es un planificador de múltiples entregas.
-- Mapa integrado, comparación **ruta habitual/rápida vs. evitando peajes**, kilómetros, duración y referencia de tráfico desde servicios oficiales cuando sea posible.
+- **Mapa con un camino a la vez** y comparación **ruta habitual/rápida vs. evitando peajes**; kilómetros y duración. Tráfico actualizado bajo consulta expresa como **criterio recomendado sujeto a verificación de costo**, no por cada edición de formulario.
 - Combustible y peajes con procedencia verificable, editables; modo manual ante errores o límites de API.
 - Costos de ayudantes, carga/descarga, materiales, desgaste, gastos fijos, tiempo propio y precio sugerido.
 - **Cotización profesional exportable en PDF o compartible**, sin revelar costos ni márgenes al cliente.
@@ -50,6 +50,7 @@ La comparación detallada entre categorías de vehículos para clientes y el eva
 | [07 · Decisiones](docs/07-decisiones.md) | Aprobado, propuesta y pendiente |
 | [08 · Hoja de ruta](docs/08-hoja-de-ruta.md) | Replanificación por resolver, sin renumerar issues todavía |
 | [09 · Revisión y aprobación](docs/09-revision-y-aprobacion.md) | Cómo revisar PR sin programar |
+| [10 · Diseño UX/UI v4](docs/10-diseno-ux.md) | Dirección visual, pantallas, copy y estados, con decisiones aún pendientes |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Ramas, issues grandes, trabajo paralelo y controles |
 | [SECURITY.md](SECURITY.md) | Reporte de incidentes |
 
@@ -62,4 +63,4 @@ La comparación detallada entre categorías de vehículos para clientes y el eva
 - Ningún gasto, despliegue, API de pago o integración a `main` se activa sin autorización explícita.
 - GitHub es la fuente técnica; Trello solo se organiza posteriormente y con autorización.
 
-**Primero:** aprobar diseño/alcance y arquitectura revisada. **Después:** reconciliar backlog y desarrollar la versión gratuita. **Finalmente:** validar uso real y decidir si tiene sentido ofrecer Pro.
+**Primero:** cerrar la revisión UX/UI v4 y arquitectura/costos de servicios. **Después:** reconciliar backlog y pedir autorización de programación. **Finalmente:** lanzar la herramienta gratuita con aprobación y validar uso real antes de evaluar Pro.
