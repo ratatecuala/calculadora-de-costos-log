@@ -1,65 +1,67 @@
 # 04 · Fuentes de datos y restricciones de uso
 
-Convención: **[H]** hecho verificado (con fuente y forma de verificación) · **[S]** suposición pendiente de verificar (con el issue que la verifica).
+**Estado:** guía de investigación para la primera calculadora gratuita. **No habilita ninguna API ni facturación**. Las cifras, cuotas, licencias y cobertura deben verificarse antes de implementar. Nombre comercial pendiente.
 
-> La mayoría de los hechos se obtuvieron mediante un buscador que resume páginas oficiales, el 16-11-2026, porque la red de la sesión de planificación no permitía leerlas directamente. Las cifras de Google marcadas "ChatGPT" fueron leídas directamente en la tabla oficial. **Antes de implementar, cada fuente se confirma con lectura directa** en su issue de investigación.
+Convención: **VERIFICADO CON ENLACE** · **PROPUESTO** · **POR VALIDAR**. Fuente externa y fecha visibles al usuario cuando afectan el cálculo.
 
-## Google Maps Platform
+## 1. Rutas y mapa de Google
 
-### Precios (tabla oficial, verificada por ChatGPT el 11-11-2026)
+| Necesidad | Servicio candidato | Qué puede ofrecer | Restricción |
+|---|---|---|---|
+| Mostrar ruta A → B en pantalla | **Maps Embed API** | Mapa incrustado, indicaciones y preferencia `avoid=tolls` o `avoid=highways` | **No** proporciona km/minutos como respuesta estructurada para los cálculos |
+| Calcular km y duración por trayecto | **Google Routes API** | `distanceMeters` y `duration`; `staticDuration` y datos de tráfico según preferencia solicitada | Requiere facturación, control de SKU, campos y cuotas |
+| Elegir alternativa evitando peajes | Routes `routeModifiers.avoidTolls` | Preferencia de ruta, **no garantía de cero peajes** | Si no hay ruta comparable, mostrarlo claramente |
+| Dibujar dos rutas superpuestas | Posible alternativa técnica de mapas dinámicos | Por evaluar con datos de Routes y condiciones de Google | **No suponer que Embed admite esta visualización** |
 
-| SKU | Gratis al mes | Precio por 1.000 adicionales |
-|---|---|---|
-| Compute Routes Essentials | 10.000 | 5 USD |
-| Compute Routes Pro (tráfico, 11–25 paradas) | 5.000 | 10 USD |
-| Autocomplete Requests | 10.000 | 2,83 USD |
-| Place Details Essentials | 10.000 | 5 USD |
+Fuentes oficiales para consulta: [Maps Embed directions](https://developers.google.com/maps/documentation/embed/embedding-map), [Compute Routes](https://developers.google.com/maps/documentation/routes/reference/rest/v2/TopLevel/computeRoutes), [Tráfico](https://developers.google.com/maps/documentation/routes/config_trade_offs), [Precios](https://developers.google.com/maps/billing-and-pricing/pricing).
 
-- [H] El SKU lo define la característica más cara de la solicitud. El cálculo de **peajes** es del SKU **Enterprise**.
-- [H] El modo camión (`TRUCK`) existe solo en EE. UU. y Japón. **No está disponible en Chile.**
-- [H] Routes acepta **direcciones en texto** y entrega `geocodingResults` con `partialMatch`. Google recomienda usar place ID por precisión.
-- [S] Que la geocodificación interna de Routes no tenga cargo adicional (#19).
-- [S] Que Google calcule peajes en Chile (#21).
-- [H] Las alertas de presupuesto **no detienen** el cobro. Las **cuotas diarias** ayudan a contener el consumo, pero pueden aplicarse con retraso y no garantizan un gasto de $0. La facturación requiere autorización expresa del propietario.
+**Precisión:** Google puede devolver duraciones distintas según `TRAFFIC_UNAWARE`, `TRAFFIC_AWARE` o `TRAFFIC_AWARE_OPTIMAL`. La diferencia entre `duration` y `staticDuration` **no es una medición directa del tiempo perdido en un taco**. No convertirla automáticamente en litros adicionales.
 
-### Restricciones de uso (vía buscador; lectura directa en #15)
+**Costos:** Maps Embed aparece en la tabla oficial como **SKU Embed con uso ilimitado sin cargo por evento**, aunque requiere configuración y facturación en Google Cloud. Routes tiene SKUs y límites gratuitos **diferentes según capacidades**; tráfico y peajes pueden cambiar la clasificación. **No presupuestar solamente dos consultas por cotización**: base→A, A→B y B→base opcional, cada uno con preferencias distintas, pueden requerir múltiples solicitudes.
 
-- [H] No se pueden mostrar resultados de Routes en **mapas que no sean de Google**. Si se muestran sin mapa, se exige atribución.
-- [H] Está prohibido **exportar o extraer** contenido de Google para usarlo fuera de los servicios (los ejemplos incluyen resultados de rutas y distancias). El caché solo se permite donde lo autorizan los términos específicos.
-- [H] Las **coordenadas** se pueden guardar hasta 30 días. Los **place ID** se pueden guardar indefinidamente.
-- **Postura conservadora aprobada mientras se resuelve #15:**
-  - no se guardan ni exportan km, duración ni polilíneas de Google;
-  - la calibración usa el odómetro como dato propio;
-  - las estimaciones de Google se conservan un máximo de 30 días y después solo quedan métricas agregadas.
+**Presupuesto del propietario:** cargos variables = **$0 autorizados inicialmente**. El hecho de que una cuenta pueda tener facturación no es permiso de consumir servicios. Alertas y cuotas pueden retrasarse; implementar control de consumo propio, modo manual y apagado antes de activar cualquier llamada.
 
-## Combustibles: Comisión Nacional de Energía (CNE)
+**Rutas alternativas:** el usuario puede elegir una ruta más rápida o una que evita peajes si existen opciones válidas. No mostrar «X pesos más barata» cuando TAG, rendimiento u otros componentes pueden cambiar el resultado.
 
-- [H] Existe una API oficial (`api.cne.cl`, documentada en `apidocs.cne.cl`) con autenticación Bearer mediante un token obtenido tras registrarse.
-- [S] El token expira. Faltan por confirmar los términos de uso, la licencia, la frecuencia de actualización y los límites (#20).
-- [H] Bencina en Línea es la plataforma oficial de la CNE. Los distribuidores deben informar sus precios.
-- Uso previsto: precio de referencia por región o comuna, con **fecha visible** y **editable** por el usuario.
+## 2. Dirección, términos y persistencia
 
-## Peajes y TAG
+- Entrada escrita o place ID según experimento chileno #19. Verificar comuna y coincidencia geográfica incluso cuando Google no marque `partialMatch`.
+- Las rutas de Embed y Routes pueden **no coincidir exactamente**; la interfaz no debe afirmar que son idénticas sin verificación.
+- **No hacer scraping** de la web/app de Google Maps para extraer tráfico, peajes o kilómetros.
+- No guardar, redistribuir ni incluir en PDF datos derivados de Google sin análisis formal de sus términos (#15). Mientras tanto, favorecer guardar el **importe en pesos calculado por nuestro motor**, parámetros confirmados por usuario, y datos propios, no polilíneas/tiempos originales de Google.
+- No mostrar resultados de Google en mapas de otros proveedores sin analizar las restricciones aplicables.
+- El enlace «Abrir en Google Maps» permanece disponible aun si se agota la cuota de cálculo.
 
-- [H] El MOP (Dirección General de Concesiones) publica fichas de tarifas por concesión, en PDF.
-- [H] Las autopistas urbanas usan las bandas **TBFP** (fuera de punta), **TBP** (punta) y **TS** (saturación), y distinguen días laborales de sábados.
-- [H] Las tarifas se reajustan en enero (en promedio +3,4 % en 2026). En 2026 el MOP negociaba rebajas con las concesionarias, así que **pueden cambiar durante el año**.
-- [H] No se encontró ninguna API pública oficial de tarifas.
-- [S] Existen proveedores comerciales que dicen cubrir Chile; su calidad y precio están sin verificar (#21).
-- Solución: **pendiente** (#10). El ingreso manual existe siempre.
+## 3. Combustible: Chile / CNE
 
-## Rendimientos vehiculares
+- Fuente candidata: Comisión Nacional de Energía (Bencina en Línea y API CNE). Verificar endpoint, registro, licencia, cobertura, vigencia y cuota en #20.
+- Mostrar **fuente, fecha, zona y tipo de combustible**, con edición manual.
+- El cálculo usa km/rendimiento del usuario o una referencia justificada y etiquetada. No inferir consumo en taco, carga o carretera solo por velocidad.
+- Sin dato confiable de rendimiento, el gasto de combustible queda **incompleto**, no igual a cero.
 
-- [H] consumovehicular.cl es el portal oficial del etiquetado vehicular del Ministerio de Energía. Cubre vehículos livianos y medianos y usa el ciclo WLTC desde octubre de 2025.
-- [S] Si permite descarga o reutilización de sus datos (#22).
-- [H] No existe una fuente oficial de rendimiento para camiones. Se usará el dato del usuario o un rango por categoría con fuente, rotulado "no calibrado".
+## 4. Peajes y TAG
 
-## Hosting
+- Investigar tablas oficiales de concesionarias y MOP (#10/#21), por **pórtico, sentido, horario, categoría y fecha**.
+- No asumir que `avoidTolls` significa TAG = 0.
+- Sin cobertura comprobada, **ingreso manual**, con estados diferenciados: confirmado en cero / monto declarado / monto desconocido.
+- La automatización de peajes solo se activa cuando costos, cobertura, fuente y permisos estén aprobados.
 
-- [S] Plan gratuito de Cloudflare Workers: 100.000 solicitudes al día y 10 ms de CPU, sin restricción comercial (fuente secundaria; #18).
-- [H] El plan Hobby de Vercel es solo para uso personal no comercial (fuente secundaria). Por eso no se usa.
+## 5. Catálogo vehicular
 
-## Marco legal relevante
+- Categorías iniciales: vehículos de flete/mudanza livianos, con características reales del vehículo ingresadas por su dueño.
+- Marca, modelo, año, motorización y combustible: usuario o catálogo propio verificable; fuente oficial por investigar (#22).
+- El portal chileno de consumo vehicular puede aportar **referencias de homologación**, no rendimiento real de ese ejemplar. Verificar condiciones de reutilización.
+- La viabilidad de motocicletas y camiones livianos se analiza por separado; alto tonelaje fuera de v1.
+- Cualquier tipo de energía no modelable en litros requiere tratamiento explícito.
 
-- [H] La Ley 21.719 de protección de datos entra en vigencia el 1-12-2026, salvo que se apruebe el proyecto de postergación que estaba en trámite en noviembre de 2026 (#17).
-- [S] IVA del flete, crédito fiscal, recuperación del impuesto al diésel, licencias por peso bruto vehicular y restricciones de circulación (#16).
+## 6. Hosting, identidad y privacidad
+
+- Cloudflare Worker/Pages y Supabase Auth/Postgres son **candidatos**, todavía no aprobados. Investigar límites gratuitos, respaldo, continuidad, reglas de seguridad y responsabilidades del proveedor (#8/#17/#18).
+- Los datos personales/vehiculares y económicos privados deben tener acceso autenticado, con protección por propietario.
+- Las cotizaciones públicas son **vistas minimizadas**; nunca deben revelar costos internos ni direcciones privadas por accidente.
+
+## 7. Regulación
+
+- Validar IVA, documentos tributarios y tributación del servicio en Chile (#16). **No aplicar IVA a todos los usuarios por defecto**.
+- Revisar Ley 21.719 y cambios de vigencia, obligaciones de privacidad, transferencias internacionales y datos de cuentas (#17).
+- Toda afirmación legal o tarifaria exige fuente oficial actualizada antes de publicación.
