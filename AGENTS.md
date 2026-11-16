@@ -13,13 +13,13 @@ Este archivo es la **puerta de entrada operativa** para Claude, ChatGPT, Codex y
 ## 2. Situación y alcance vigente
 
 - **Producto inicial:** calculadora y cotizador **gratuitos para transportistas de fletes livianos en Chile**. Permitir cálculo anónimo; registro con Google para vehículos e historial. El modo «Necesito transportar», el marketplace y la logística elástica **no forman parte del primer lanzamiento**.
-- **Fase:** E0, revisión de diseño UX/UI, alcance y arquitectura; Claude prepara el prototipo consolidado. **No hay autorización para programar todavía**. Las etiquetas e hitos originales se reconciliarán después de aprobar el diseño.
+- **Fase:** E0. La dirección visual **v4 (blanco, azul sobrio y grafito) y las pantallas inicial/calculadora** fueron aprobadas; Claude ya presentó la extensión del diseño y ChatGPT la revisó. **Aún no existe aprobación expresa del propietario para toda la extensión, la arquitectura o programar**. Issues/épicas se reconciliarán tras cerrar esas decisiones.
 - **Tecnología:** motor puro y aislado; TypeScript + React + Vite + Cloudflare como punto de partida. **Autenticación y almacenamiento son ahora necesarios** para cuentas, vehículos y cotizaciones; Supabase es un candidato, no proveedor aprobado.
 - **No hay aplicación funcional ni despliegue autorizado.** No afirmar lo contrario.
 - **Cargos variables de APIs: $0 autorizados**. El propietario acepta evaluar Google Cloud con cuenta de facturación, pero **no autorizó activar APIs con riesgo de cargos ni consumirlas**. Límites de cuota no garantizan $0.
 - **Repositorio público**; licencia aún pendiente. Ningún documento privado o secreto debe incorporarse.
 - Cuentas técnicas a nombre y bajo control del propietario.
-- **Dentro de v1:** mapa y rutas A→B (con base/regreso opcionales), combustible, TAG, costos, PDF y registros manuales de viajes/cargas; cuentas Google para guardar. **Fuera:** solicitudes y ofertas a clientes, marketplace/logística elástica, alto tonelaje, IA, pagos y Pro.
+- **Dentro de v1:** mapa (un camino a la vez como criterio UX), rutas A→B (base/regreso opcionales), combustible, TAG, costos, PDF y registros manuales de viajes/cargas; cuentas Google para guardar. **Fuera:** solicitudes y ofertas a clientes, marketplace/logística elástica, alto tonelaje, IA, pagos y Pro. La comparación de categorías/tercerización para clientes queda pospuesta.
 - La fuente de decisiones es [docs/07-decisiones.md](docs/07-decisiones.md); el alcance y fórmulas están en [docs/01-alcance.md](docs/01-alcance.md) y [docs/03-motor-de-costos.md](docs/03-motor-de-costos.md).
 
 ## 3. Responsabilidades y sistema de trabajo
@@ -80,7 +80,7 @@ La aprobación de **documentación no autoriza programación**, y la de un PR no
 - No introducir coeficientes de rendimiento o velocidad sin fuentes y calibración.
 - Las cuotas y alertas de Google **reducen riesgo, pero no garantizan gasto cero**. Respetar el presupuesto autorizado y el modo manual.
 - El primer producto **no recomienda compatibilidad de vehículos para clientes** ni calcula precios de mercado ajenos. Si se plantea en el futuro, no afirmar compatibilidad sin dimensiones, peso y restricciones verificadas.
-- Consultar [seguridad y privacidad](docs/06-seguridad-y-privacidad.md) y [pruebas](docs/05-pruebas-y-calibracion.md) antes de cambios relacionados.
+- Consultar [seguridad y privacidad](docs/06-seguridad-y-privacidad.md), [pruebas](docs/05-pruebas-y-calibracion.md) y la [guía UX v4](docs/10-diseno-ux.md). Antes de programar confirmar con propietario tanto arquitectura como todos los puntos de diseño pendientes.
 
 ## 8. Cómo pedir aprobación
 
