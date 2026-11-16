@@ -25,7 +25,7 @@ Estado: los **principios están aprobados**. Los detalles legales están pendien
 
 | Control | Detalle |
 |---|---|
-| Cuotas diarias en Google Cloud | ≈ tramo gratuito ÷ 30, menos 10 %. Es el **tope duro**. |
+| Cuotas diarias en Google Cloud | Límite conservador propuesto a verificar. **Las cuotas pueden retrasarse y no garantizan gasto cero**; no habilitar servicios facturables sin autorización del propietario y límites probados. |
 | Límite diario propio | En el Worker, por debajo de la cuota de Google, para degradar con aviso antes de llegar al límite |
 | Turnstile | Verificación anti-bots al iniciar un cálculo _(gratuidad por verificar, #18)_ |
 | Límite por IP | Sin guardar la IP. Solo en memoria y por poco tiempo. |
