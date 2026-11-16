@@ -1,6 +1,6 @@
 # 03 · Motor de costos: fórmulas y ejemplos
 
-Estado: **acordado en planificación** (tres rondas entre propietario, Claude y ChatGPT). Su aprobación formal es la del PR que integra este documento (#23). Cualquier cambio posterior de fórmula requiere un PR, nueva versión del motor y aprobación del propietario.
+**Estado:** las fórmulas básicas del transportista se conservan para el primer lanzamiento, sujetas a casos dorados (#24) y aprobación del PR. La **comparación con una cotización externa / tercerización** se conserva aquí como antecedente matemático, **fuera de la primera versión**. Las rutas «con autopista» y «evitando peajes» no son una comparación de tercerización.
 
 > **Todos los montos de ejemplo son ficticios.** Sirven para ilustrar y probar el motor; no son datos de mercado.
 
@@ -14,7 +14,7 @@ Cada partida lleva tres atributos, y las medidas se calculan filtrando por ellos
 | `contrato` | por servicio · por hora · sueldo fijo · propio (dueño) |
 | `incluidoEnCotizacion` | sí · no · no aplica (solo en la comparación de tercerización) |
 
-## 2. Las cinco medidas
+## 2. Medidas del motor — núcleo gratuito y extensión futura
 
 ```
 (1) Dinero desembolsado del viaje
@@ -28,7 +28,7 @@ Cada partida lleva tres atributos, y las medidas se calculan filtrando por ellos
       CF = gastos fijos asignados = (F_anual / H_prod_año) · H_viaje       [solo si hay datos]
       R  = sueldo objetivo del dueño = H_dueño · valor_hora_dueño          [META, no pago]
 
-(3) Comparación de tercerización
+(3) FUTURO (NO IMPLEMENTAR EN V1): comparación de tercerización
     Δ = (A + B) − (Q + G + S)
       A = costos propios realmente evitados (solo partidas que desaparecen)
       B = beneficio NETO de un trabajo alternativo concreto (ingreso − costos directos); 0 si no hay
@@ -50,7 +50,7 @@ Cada partida lleva tres atributos, y las medidas se calculan filtrando por ellos
     Diferencia frente a tu meta  = (P − D − W − CF) − R    → "por encima / por debajo de tu meta"
 ```
 
-### Reglas de la comparación de tercerización
+### Reglas históricas de la comparación de tercerización (FUERA DE V1)
 
 - Un servicio necesario **en ambas opciones** (por ejemplo, un ayudante que se paga igual) **sale de ambos lados**: no entra ni en A ni en S.
 - Si la cotización incluye algo que el usuario no necesita, **no se descuenta**.
@@ -77,6 +77,33 @@ Cada partida lleva tres atributos, y las medidas se calculan filtrando por ellos
 - **Rangos:** solo donde hay base (rendimiento declarado con mínimo y máximo, peaje con hora incierta entre TBFP y TS, precio de combustible entre el mínimo y el máximo regional). En los demás casos, valor único con su procedencia.
 - **Redondeo:** solo al final, a 1.000 CLP. El precio sugerido se redondea hacia arriba.
 - **Procedencia** de cada valor: MEDIDO · OFICIAL (fuente y fecha) · DECLARADO · PREDETERMINADO (no calibrado) · CALCULADO.
+
+## 3A. Alcance vigente del trayecto y comparación de rutas
+
+La versión gratuita calcula, como máximo, los siguientes tramos **diferentes**:
+
+1. **Base → A**, desplazamiento de aproximación opcional.
+2. **A → B**, transporte con carga obligatorio.
+3. **B → Base**, regreso opcional.
+
+Cada tramo tiene sus propios kilómetros y minutos, con posible diferencia de rendimiento y peajes. El motor debe sumar **una sola vez** cada kilómetro, hora, peaje, carga/descarga y servicio adicional. Si el usuario solo indica A → B, no se deben inventar desplazamientos extra.
+
+Para cada alternativa válida de ruta (habitual/rápida y evitando peajes) se evalúan **por separado** los desembolsos D, desgaste W, asignación de fijos CF, remuneración objetivo R y precio sugerido. No reutilizar el costo de una ruta para la otra si cambian km, tiempo o peajes.
+
+- El tiempo total incluye **conducción de todos los tramos aplicables más carga y descarga**, sin sumarlos dos veces.
+- La alternativa «evitando peajes» **no garantiza TAG = 0**; el usuario puede confirmar 0 o declarar que no conoce el importe.
+- La diferencia de duración `duration - staticDuration` es **una referencia comparativa del modelo de rutas** y no un contador medido de minutos de taco. No derivar consumo por congestión de ese valor sin un modelo calibrado.
+- El usuario puede declarar rendimiento urbano, carretera o uno mixto respaldado. No inventar porcentajes de ciudad/carretera ni coeficientes de frenado/carga.
+- Si falta rendimiento, costo fijo, TAG o cualquier partida material, mostrar qué resultado **sí** se pudo calcular y rotularlo «Costo parcial»; **no afirmar que una ruta es la más barata** cuando lo omitido puede invertir la comparación.
+- Cada valor guarda procedencia, fecha y versión del modelo, respetando las condiciones del proveedor de rutas.
+
+**Salida para el usuario:** «Costo estimado del viaje», «Saldo estimado tras desembolsos», «Ingreso estimado tras costos» y «Diferencia frente a tu remuneración objetivo». Estas cantidades no equivalen necesariamente a dinero cobrado o saldo bancario.
+
+## 3B. Cotización y registro real
+
+La **cotización para el cliente** tiene un contrato de datos separado del cálculo interno: precio elegido, servicios incluidos, impuestos cuando correspondan, condiciones y vigencia. No incluir costos internos, margen ni información privada de la cuenta.
+
+El registro gratuito de viaje real y cargas de combustible conserva **lecturas confirmadas por el usuario**. El rendimiento «lleno a lleno» se obtiene mediante kilómetros recorridos entre llenados completos divididos por litros repostados en el segundo llenado (o la suma correspondiente si hubo cargas parciales). Dos fotos de odómetro por sí solas **no miden litros consumidos**. Lectura automática de fotos y calibración avanzada quedan para Pro futuro.
 
 ## 4. Escenarios resueltos
 
@@ -123,7 +150,7 @@ Mismo viaje. El dueño no maneja: coordina durante 0,5 h.
 
 **Prueba:** si el conductor tiene **sueldo fijo mensual**, su costo sale de D, entra en CF y **no** entra en A al comparar con una cotización.
 
-### Escenario C: pyme con furgón y chofer de planta frente a una cotización externa
+### Escenario C (FUTURO, fuera de v1): pyme con furgón y chofer de planta frente a una cotización externa
 
 Cotización: **45.000 + IVA**, incluye ayudante y carga y descarga. La pyme recupera IVA (supuesto), así que se compara en neto.
 
@@ -140,7 +167,7 @@ Cotización: **45.000 + IVA**, incluye ayudante y carga y descarga. La pyme recu
 - **Sin trabajo alternativo** (B = 0): Δ = 16.369 − 45.000 = **−28.631**. Conviene hacerlo con medios propios.
 - **Con un trabajo alternativo concreto** que deja 30.000 netos (B = 30.000): Δ = 46.369 − 45.000 = **+1.369**. Si eso es menor que la incertidumbre, la app muestra **"empate técnico"**.
 
-## 5. Pruebas obligatorias de la comparación de tercerización
+## 5. Pruebas de tercerización — conservar como referencia, NO bloqueantes para v1
 
 | Prueba | Datos | Resultado ingenuo | Resultado correcto |
 |---|---|---|---|
@@ -150,7 +177,7 @@ Cotización: **45.000 + IVA**, incluye ayudante y carga y descarga. La pyme recu
 | **T4.** Empate | Δ dentro del rango de incertidumbre | — | Muestra "empate técnico" |
 | **T5.** Invariante | B = 0, G = 0, S = 0 | — | Δ = A − Q exacto |
 
-Estos escenarios, más otros casos, forman los **10 casos dorados** (#24). El código debe coincidir con ellos **al peso**.
+Los escenarios A y B son referencias para casos dorados del núcleo gratuito (#24). Las pruebas T1–T5 de **tercerización** se conservan para una posible etapa futura y **no deben implementarse en v1**. Los 10 casos dorados de v1 se deben redefinir para abarcar rutas, datos faltantes, recargos y no duplicación de costos.
 
 ## 6. Reproducibilidad
 
@@ -160,5 +187,7 @@ Estos escenarios, más otros casos, forman los **10 casos dorados** (#24). El c�
 
 ## 7. Pendiente
 
-- Reglas de IVA, crédito fiscal y diésel por tipo de usuario: #16.
-- Umbrales de "margen estrecho" del comparador y texto del "costo mínimo de operar": #11.
+- Reglas de IVA, crédito fiscal y diésel por tipo de usuario: #16; no aplicar IVA indiscriminadamente.
+- Versión y pruebas de costos por tramo y rutas alternativas, y tratamiento de combustible urbano/carretera.
+- Peajes/TAG con tarifa y horario verificables, o declaración de dato faltante (#10/#21).
+- Las reglas del comparador de vehículos y tercerización (#11) quedan fuera de v1.
