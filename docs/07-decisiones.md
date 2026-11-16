@@ -101,3 +101,12 @@ Encargada por el propietario (A-30). Detalle en [02 §8](02-arquitectura.md). Su
 ## Control documental
 
 El **16-11-2026**, por encargo del propietario (A-30), el backlog se actualizó **sin cerrar ni renumerar issues**: se reescribieron las épicas #1, #2, #3 y #5, y las issues #29 y #32; se movieron #11 y #22 a la épica futura #36; se crearon #35 a #39 y se agregaron comentarios de verificación en #8, #9, #15, #16, #18, #19, #21 y #23. Detalle en [08](08-hoja-de-ruta.md). La preparación de documentos en PR no autoriza iniciar código.
+
+
+## Evaluación de proveedores de mapas — NO aprobada
+
+El propietario autorizó el 16-11-2026 **trasladar el informe Deep Research de Google al PR #34 y revisar preliminarmente proveedores alternativos**. Esto **no** equivale a elegir Google, Mapbox, TomTom, HERE, Waze o GraphHopper.
+
+**Hallazgo pendiente:** interpretación contractual del almacenamiento/exportación de datos Routes y del **precio propio calculado con distancias de Google** (#15). No afirmar prohibición o permiso universal. Se añadió la comparación de costos/capacidades de [Mapbox, TomTom y otros](12-alternativas-mapas.md), sin evaluación empírica de precisión chilena.
+
+**Regla del propietario:** antes de **cualquier investigación externa profunda**, avisar y solicitar autorización; dichas investigaciones se harán con **GPT Deep Research**. Claude no debe sustituir este procedimiento por búsquedas autónomas. Sigue sin autorizarse programación, facturación, despliegue o merge.
