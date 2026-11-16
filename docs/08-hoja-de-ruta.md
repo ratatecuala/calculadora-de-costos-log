@@ -1,29 +1,37 @@
-# 08 · Hoja de ruta E0–E5
+# 08 · Hoja de ruta — replanteamiento pendiente
 
-Estado: **aprobada**. No se comprometen fechas: dependen de las decisiones del propietario y de la disponibilidad de vehículos para calibrar.
+**Estado:** la secuencia anterior E0–E5 ya no refleja el nuevo alcance. **Aún existen épicas #1–#6 con etiquetas antiguas**; no se han reestructurado ni renumerado. Esta hoja es un **orden lógico de entregables**, pendiente de aprobación junto con el diseño/arquitectura. No autoriza programación.
 
-Las entregas E1 a E4 son **internas**: se prueban en URLs de vista previa. Solo E5 publica, y con autorización expresa (#14).
+## Secuencia propuesta
 
-| Etapa | Épica | Entregable | Público | Requisitos para empezar |
-|---|---|---|---|---|
-| **E0** Decisiones y preparación | #1 | Documentación aprobada, decisiones de cuentas y facturación, investigaciones sin costo, 10 casos dorados | — | — |
-| **E1** Motor y calculadora manual | #2 | Las cinco medidas probadas, km y peajes manuales, ambos modos en formato básico, vista previa por PR | Interno | #23, #24, #18, #8 (Cloudflare) |
-| **E2** Calculadora con rutas | #3 | Routes Essentials (hasta 2 paradas y regreso), ingreso de direcciones según #19, "Abrir en Google Maps", protecciones de cuota, perfiles locales, modo degradado | Interno | E1, #9, #19 |
-| **E3** Precios y peajes | #4 | Precio CNE con fecha y respaldo, peajes según #10 | Interno o beta | E2, #20, #21, #10 |
-| **E4** Comparador y cotizaciones | #5 | 4 estados de compatibilidad, evaluador de tercerización, catálogo con fuente | Beta cerrada | E1, #22, #11, #16 |
-| **E5** Calibración y v1.0 | #6 | Calibración, pruebas de comprensión, revisión de seguridad y privacidad, textos legales, publicación | **Público** | E2–E4, #12, #13, #7, #14 |
+| Frente | Entregable | Condición para avanzar |
+|---|---|---|
+| **Preparación y diseño (E0)** | Nombre pendiente; especificación funcional actualizada; prototipo visual unificado; arquitectura de cuentas/almacenamiento; viabilidad APIs; casos dorados | Aprobación explícita de alcance, diseño, arquitectura y riesgos |
+| **Motor y calculadora manual** | Motor aislado probado, perfil mínimo de vehículo, base→A→B→regreso, costo parcial y precio sugerido; acceso anónimo | Pruebas matemáticas independientes y sin APIs de pago |
+| **Cuentas y vehículos** | Google login, almacenamiento seguro por usuario, varios vehículos, historial básico y respaldo | Proveedor y privacidad aprobados |
+| **Mapas y rutas comparables** | Maps Embed o alternativa autorizada, Routes y tráfico, ruta habitual/evitando peajes, contingencia manual | Términos Google, cuotas, gastos y política de datos aprobados |
+| **Combustibles, TAG y calidad de cifras** | Fuente oficial editable, peajes manuales y automatización verificada si es viable; pruebas con transportistas | No afirmar resultados completos con componentes ausentes |
+| **Cotizador e historial** | PDF/compartir seguro, estados del documento, registro manual de viajes y combustible, IVA correcto | Privacidad y reglas tributarias verificadas |
+| **Validación y lanzamiento gratuito** | Pruebas móviles y de comprensión, seguridad, casos reales, publicación autorizada, medición de uso y recurrencia | Aprobación expresa del propietario |
+| **Después del lanzamiento** | Estudiar Pro, IA, fotos, rentabilidad avanzada; marketplace vs. logística elástica | Evidencia de uso real y nuevo alcance aprobado |
 
-## Orden crítico
+**No fijar fechas ni dividir obligatoriamente en microissues.** Se pueden desarrollar varios frentes en paralelo si sus dependencias, responsables, archivos y pruebas están controlados.
 
-```
-#23 docs aprobadas ─┬─> #24 casos dorados ─> E1 (motor + formulario manual)
-                    └─> #18 Cloudflare ────┘
-#8 cuentas ─> #9 facturación ─> #19 experimento de direcciones ─> E2
-#20 CNE + #21 peajes ─> #10 decisión de peajes ─> E3
-#22 catálogo + #11 políticas + #16 IVA ─> E4
-#12 criterios + #13 dominio + #7 licencia ─> E5 ─> #14 publicación
-```
+## Puertas de aprobación
 
-## Principio de control
+1. **Diseño:** Claude presenta versión visual consolidada; el propietario la aprueba, y luego se reconciliará el backlog.
+2. **Arquitectura:** se elige proveedor de autenticación y datos, se verifica costo y respaldo; toda cuenta debe ser del propietario.
+3. **Motor:** se construyen casos dorados antes de depender de resultados visuales.
+4. **Integraciones:** solo servicios autorizados; cuota agotada → modo manual; sin garantía de $0 cuando exista facturación.
+5. **Publicación:** seguridad, documentos y cumplimiento revisados. El propietario autoriza el lanzamiento.
+6. **Validación real:** medir registro → primer cálculo → primera cotización → retorno y uso repetido.
 
-Cada etapa se detalla en issues concretos **solo cuando empieza**. Hoy existen issues detallados para E0 y E1; E2 a E5 tienen su alcance como lista de verificación dentro de su épica.
+## Issues actuales y reconciliación
+
+- **#23 / PR #34:** documentación; **no integrar sin OK**.
+- **#24:** casos dorados; conservar los del motor aplicable a v1, mover pruebas de tercerización fuera del camino crítico.
+- **#15–#22:** investigaciones reutilizables; redefinir alcance según mapa, cuentas, rutas simples, peajes y privacidad.
+- **#26–#33:** tareas E1 existentes; verificar cuáles siguen siendo correctas antes de ejecutarlas.
+- **#1–#6 y #7–#14:** épicas y decisiones existentes; algunos títulos/descripciones quedarán obsoletos hasta su revisión.
+
+**Reorganizar y actualizar issues/épicas solo después de aprobar el diseño**, conservando trazabilidad. No se autoriza aún crear Trello, código, cuentas ni despliegues.
