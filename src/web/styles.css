@@ -136,8 +136,10 @@ body {
   font-weight: 600;
   color: #3e4c59;
   display: flex;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 4px 6px;
   align-items: center;
+  min-width: 0;
 }
 .field-input {
   display: flex;
@@ -492,5 +494,67 @@ select {
   }
   .doc {
     border: 0;
+  }
+}
+
+/* «Mi vehículo» */
+.field-input select {
+  border: 0;
+  outline: 0;
+  width: 100%;
+  min-height: 46px;
+  font: inherit;
+  font-size: 16px;
+  background: transparent;
+  color: var(--text);
+  padding: 0;
+}
+.field-error {
+  font-size: 13px;
+  color: var(--err-fg);
+}
+.vehicle-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.link-btn.inline {
+  padding: 0;
+  font-size: inherit;
+}
+.confirm {
+  background: var(--err-bg);
+  border: 1px solid #f0b8b3;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--err-fg);
+  font-size: 14px;
+}
+.btn2.danger {
+  border-color: #f0b8b3;
+  color: var(--err-fg);
+}
+.danger-text {
+  color: var(--err-fg);
+}
+.top nav {
+  display: flex;
+  overflow-x: auto;
+}
+@media (max-width: 480px) {
+  .top {
+    padding: 0 10px;
+    gap: 6px;
+  }
+  .nav {
+    padding: 16px 6px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .brand {
+    font-size: 15px;
   }
 }

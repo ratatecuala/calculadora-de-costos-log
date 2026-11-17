@@ -74,6 +74,7 @@ Se ejecutan con `npm test` (Vitest), sin red ni servicios externos.
 | `tests/session.test.ts` | **6.** Editar precio o parámetros no repite la consulta. **7.** Modo manual en el navegador |
 | `tests/secrets.test.ts` | **8.** Se compila la app con una clave falsa en el entorno y no aparece en el paquete; las respuestas no la incluyen |
 | `tests/engine.golden.test.ts` | Casos dorados G1–G10, escenarios A y B, y propiedades de las cotas |
+| `tests/vehicles.test.ts` | «Mi vehículo»: crear, editar y eliminar; validación; predeterminado; recuperar tras recargar y con datos dañados; cargar los datos correctos al cambiar de vehículo; ajustar una cotización sin alterar el perfil; valores faltantes como costo parcial; el vehículo no llega a la cotización del cliente |
 | `tests/regression.audit.test.ts` | Hallazgos de la auditoría de ChatGPT (commit `6f73aaa`): ruta de direcciones anteriores, respuesta tardía, retención por campo de km y minutos, validación de la respuesta del proveedor, copia del emisor. **Fallaban con la versión auditada** (14 de 15) |
 
 **No probado todavía:**

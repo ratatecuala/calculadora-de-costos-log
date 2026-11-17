@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { formatClp } from '../../engine/rounding';
 import type { BusinessProfile, JobRecord } from '../../shared/clientQuote';
+import { VEHICLE_TYPE_LABEL } from '../../shared/vehicle';
 import { buildJobRecord } from '../jobs';
 import type { QuoteSession } from '../session';
 import type { QuoteRepository } from '../storage';
@@ -30,7 +31,7 @@ export function QuoteForm({ session, repository, onSaved, onCancel }: Props) {
   const [business, setBusiness] = useState<BusinessProfile>(() => repository.getBusiness());
   const [form, setForm] = useState({
     clientName: '',
-    serviceDescription: 'Flete',
+    serviceDescription: s.vehicle ? `Flete en ${VEHICLE_TYPE_LABEL[s.vehicle.type].toLowerCase()}` : 'Flete',
     includes: s.params.helpers > 0 ? `Carga y descarga, ${s.params.helpers} ayudante(s)` : 'Carga y descarga',
     conditions: '',
     serviceDate: '',

@@ -150,3 +150,11 @@ La contrapropuesta de MapLibre + PMTiles + Valhalla (con geocodificación OSM), 
 | Supabase (#35) como lugar del historial | No hay autorización para crear cuentas (A-44) | **Pendiente.** El historial se guarda **en el navegador** (localStorage) detrás de una interfaz reemplazable; la migración a la nube espera la decisión de #35 |
 | Reglas de IVA (#16) sin verificar | La cotización debería mostrar IVA | **Pendiente.** Sin regla verificada, la cotización muestra el neto (A-28) |
 | Límite de rutas por usuario sin cifra | A-42 exige límites por usuario | **Pendiente.** Se implementan valores **provisionales y configurables** (20 rutas al día por usuario y 40 por origen de red), que el propietario debe confirmar |
+
+## Decisión del 17-11-2026: módulo «Mi vehículo»
+
+| ID | Decisión | Fecha |
+|---|---|---|
+| A-45 | Módulo **«Mi vehículo»**: varios vehículos con nombre, tipo (camioneta, furgón o camión liviano), combustible, rendimiento (km/L) y desgaste ($/km); editar, eliminar y elegir un predeterminado. Al elegirlo se cargan sus datos en la cotización y se pueden ajustar solo para ella. **Sin valores predeterminados inventados.** Guardado local, con una interfaz migrable a Supabase. **Sin cambios en el motor.** Comunicada por el propietario a Claude el 17-11-2026; ratificar en PR #34 | 2026-11-17 |
+
+**Decisión menor de implementación (revisable):** el primer vehículo registrado queda como predeterminado para ahorrar un paso. Eliminar el predeterminado no elige otro automáticamente.

@@ -30,6 +30,7 @@ import {
   type RouteResult,
   type RouteSource,
 } from '../shared/route';
+import type { AppliedVehicle, VehicleProfile } from '../shared/vehicle';
 import { buildWaypoints, routeKey } from '../shared/waypoints';
 
 export interface RouteClient {
@@ -78,7 +79,16 @@ export interface SessionState {
   quota: QuotaInfo | null;
   /** Solicitudes de ruta enviadas en esta sesión (transparencia y pruebas). */
   routeRequests: number;
+  /**
+   * Vehículo aplicado a esta cotización: COPIA de sus valores al momento de elegirlo.
+   * Editar `params` después no modifica el perfil guardado.
+   */
+  vehicle: AppliedVehicle | null;
 }
+
+/** Campos que el vehículo carga en la cotización. Nada más se toca al elegirlo. */
+export const VEHICLE_FIELDS = ['kmPerL', 'wearPerKm'] as const;
+export type VehicleField = (typeof VEHICLE_FIELDS)[number];
 
 export type MixedSource = RouteSource | 'mixto';
 
@@ -124,6 +134,7 @@ export function initialState(): SessionState {
     chosenPrice: null,
     quota: null,
     routeRequests: 0,
+    vehicle: null,
   };
 }
 
@@ -198,6 +209,42 @@ export class QuoteSession {
       km: c.legs.every((l) => ok(l.kmSource, 'distance')),
       minutes: c.legs.every((l) => ok(l.minutesSource, 'duration')),
     };
+  }
+
+  /**
+   * Elige un vehículo para esta cotización: copia su rendimiento y desgaste a los
+   * parámetros. Combustible, remuneración, peajes, ayudantes y otros gastos no cambian.
+   * Un valor faltante en el perfil queda faltante (null), nunca 0. No consulta rutas.
+   * Con `null` se deja de usar un vehículo y se conservan los valores actuales.
+   */
+  selectVehicle(profile: VehicleProfile | null): void {
+    if (!profile) {
+      this.set({ vehicle: null });
+      return;
+    }
+    const applied: AppliedVehicle = {
+      id: profile.id,
+      name: profile.name,
+      type: profile.type,
+      fuel: profile.fuel,
+      kmPerL: profile.kmPerL,
+      wearPerKm: profile.wearPerKm,
+    };
+    this.set({ vehicle: applied, params: { ...this.state.params, kmPerL: applied.kmPerL, wearPerKm: applied.wearPerKm } });
+  }
+
+  /** Campos del vehículo ajustados solo para esta cotización. */
+  vehicleAdjustments(): VehicleField[] {
+    const v = this.state.vehicle;
+    if (!v) return [];
+    return VEHICLE_FIELDS.filter((f) => this.state.params[f] !== v[f]);
+  }
+
+  /** Vuelve a los valores del vehículo elegido. */
+  restoreVehicleValues(): void {
+    const v = this.state.vehicle;
+    if (!v) return;
+    this.set({ params: { ...this.state.params, kmPerL: v.kmPerL, wearPerKm: v.wearPerKm } });
   }
 
   setParams(partial: Partial<TripParams>): void {

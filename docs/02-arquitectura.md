@@ -303,6 +303,11 @@ tests/        pruebas Vitest (presupuesto, concurrencia, SKU, motor, sesión, se
 - **Proveedor Google:** existe la plantilla de solicitud y su validación. **No está conectado**: exige `ROUTES_PROVIDER=google`, `GOOGLE_ROUTES_ENABLED=true` y una clave de servidor que no existe. Las pruebas usan un `fetch` falso.
 - **Contador en producción:** clase Durable Object (`src/server/budget/durableObject.ts`) con el mismo libro serializado. **No se ha ejecutado en Cloudflare**, porque no hay cuenta autorizada.
 - **Historial:** en el navegador (localStorage), detrás de `QuoteRepository`; migrable a Supabase cuando se apruebe #35.
+- **«Mi vehículo» (A-45):**
+  - perfiles en el navegador (`cotizador.vehiculos.v1`) detrás de `VehicleRepository`, una interfaz **asíncrona** (`src/web/vehicleRepository.ts`), para cambiar a la tabla `vehicles` de Supabase sin tocar la interfaz;
+  - elegir un vehículo **copia** su rendimiento y desgaste a la cotización (`QuoteSession.selectVehicle`); los ajustes son solo de esa cotización y no alteran el perfil;
+  - el motor no cambia;
+  - la cotización guarda internamente qué vehículo y qué valores se usaron; el cliente no los ve.
 - **Coherencia (auditoría de ChatGPT):**
   - solo se calcula y cotiza con la ruta de las direcciones actuales;
   - las respuestas tardías se descartan (generación por consulta);

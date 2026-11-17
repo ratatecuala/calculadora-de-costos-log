@@ -3,6 +3,7 @@ import { displayThreshold, formatClp } from '../../engine/rounding';
 import type { Comparison } from '../../engine/compare';
 import { googleMapsDirectionsUrl } from '../../shared/mapsUrl';
 import type { RouteKind } from '../../shared/route';
+import { VEHICLE_TYPE_LABEL, type VehicleProfile } from '../../shared/vehicle';
 import { buildWaypoints } from '../../shared/waypoints';
 import { boundedText, formatKm, formatMinutes, missingText, ROLE_LABEL, signedBoundedText, SOURCE_LABEL } from '../format';
 import type { QuoteSession, RouteComputation, RouteState } from '../session';
@@ -11,6 +12,8 @@ import { NumberField } from './NumberField';
 interface Props {
   session: QuoteSession;
   onCreateQuote: () => void;
+  vehicles: VehicleProfile[];
+  onManageVehicles: () => void;
 }
 
 const EXAMPLE = {
@@ -26,12 +29,13 @@ const EXAMPLE = {
   otherCosts: 0,
 };
 
-export function Calculator({ session, onCreateQuote }: Props) {
+export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles }: Props) {
   const s = useSyncExternalStore(session.subscribe, session.getSnapshot);
   const habitual = session.computation('habitual');
   const comparison = session.computation('evitarPeajes');
   const cmp = session.comparisonResult();
   const loading = s.habitual.status === 'cargando';
+  const adjusted = session.vehicleAdjustments();
   const mapsUrl = (() => {
     const { origin, destination, base, startAtBase, returnToBase } = s.inputs;
     if (origin.trim().length < 3 || destination.trim().length < 3) return null;
@@ -81,9 +85,29 @@ export function Calculator({ session, onCreateQuote }: Props) {
               Cargar ejemplo ficticio
             </button>
           </div>
+          <VehiclePicker session={session} vehicles={vehicles} onManageVehicles={onManageVehicles} />
           <div className="grid2">
-            <NumberField label="Precio del combustible" suffix="$/L" value={s.params.fuelPricePerL} onChange={(v) => session.setParams({ fuelPricePerL: v })} />
-            <NumberField label="Rendimiento" suffix="km/L" value={s.params.kmPerL} onChange={(v) => session.setParams({ kmPerL: v })} />
+            <NumberField
+              label="Rendimiento"
+              suffix="km/L"
+              value={s.params.kmPerL}
+              onChange={(v) => session.setParams({ kmPerL: v })}
+              tag={adjusted.includes('kmPerL') ? 'Solo esta cotización' : undefined}
+            />
+            <NumberField
+              label="Desgaste del vehículo"
+              suffix="$/km"
+              value={s.params.wearPerKm}
+              onChange={(v) => session.setParams({ wearPerKm: v })}
+              hint="Neumáticos, aceite y mantención"
+              tag={adjusted.includes('wearPerKm') ? 'Solo esta cotización' : undefined}
+            />
+            <NumberField
+              label={s.vehicle?.fuel === 'gasolina' ? 'Precio de la gasolina' : s.vehicle?.fuel === 'diesel' ? 'Precio del diésel' : 'Precio del combustible'}
+              suffix="$/L"
+              value={s.params.fuelPricePerL}
+              onChange={(v) => session.setParams({ fuelPricePerL: v })}
+            />
             <NumberField label="Ayudantes" value={s.params.helpers} placeholder="0" onChange={(v) => session.setParams({ helpers: Math.round(v ?? 0) })} />
             <NumberField label="Pago por ayudante" suffix="$" value={s.params.helperFee} onChange={(v) => session.setParams({ helperFee: v })} />
             <NumberField
@@ -98,7 +122,6 @@ export function Calculator({ session, onCreateQuote }: Props) {
           <details className="fold">
             <summary>Opciones avanzadas</summary>
             <div className="grid2">
-              <NumberField label="Desgaste del vehículo" suffix="$/km" value={s.params.wearPerKm} onChange={(v) => session.setParams({ wearPerKm: v })} hint="Neumáticos, aceite y mantención" />
               <NumberField label="Parte de tus gastos fijos" suffix="$/h" value={s.params.fixedPerHour} onChange={(v) => session.setParams({ fixedPerHour: v })} hint="Seguro, permiso, patente" />
               <NumberField label="Lo que quieres ganar por tu trabajo" suffix="$/h" value={s.params.ownerPerHour} onChange={(v) => session.setParams({ ownerPerHour: v })} hint="Es tu meta, no un gasto" />
               <NumberField label="Otros gastos" suffix="$" value={s.params.otherCosts} placeholder="0" onChange={(v) => session.setParams({ otherCosts: v ?? 0 })} hint="Estacionamiento, materiales" />
@@ -119,6 +142,73 @@ export function Calculator({ session, onCreateQuote }: Props) {
         {!habitual ? <p className="sub">Calcula la ruta (o ingresa los km) para cotizar.</p> : null}
         {habitual && s.chosenPrice === null ? <p className="sub">Escribe el precio que vas a cobrar para crear la cotización.</p> : null}
       </section>
+    </div>
+  );
+}
+
+function VehiclePicker({ session, vehicles, onManageVehicles }: { session: QuoteSession; vehicles: VehicleProfile[]; onManageVehicles: () => void }) {
+  const s = useSyncExternalStore(session.subscribe, session.getSnapshot);
+  const applied = s.vehicle;
+  const stored = applied ? vehicles.find((v) => v.id === applied.id) : undefined;
+  const deleted = applied !== null && stored === undefined;
+  const changed =
+    stored !== undefined &&
+    applied !== null &&
+    (stored.kmPerL !== applied.kmPerL || stored.wearPerKm !== applied.wearPerKm || stored.name !== applied.name || stored.fuel !== applied.fuel);
+  const adjusted = session.vehicleAdjustments();
+
+  if (vehicles.length === 0 && !applied) {
+    return (
+      <p className="notice">
+        ¿Usas siempre el mismo vehículo?{' '}
+        <button type="button" className="link-btn inline" onClick={onManageVehicles}>
+          Regístralo
+        </button>{' '}
+        y sus datos se cargarán solos.
+      </p>
+    );
+  }
+  return (
+    <div className="vehicle-picker">
+      <label className="field">
+        <span className="field-label">Vehículo</span>
+        <span className="field-input">
+          <select
+            value={applied?.id ?? ''}
+            onChange={(e) => session.selectVehicle(vehicles.find((v) => v.id === e.target.value) ?? null)}
+          >
+            <option value="">Sin vehículo guardado</option>
+            {vehicles.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name} · {VEHICLE_TYPE_LABEL[v.type]}
+              </option>
+            ))}
+            {deleted && applied ? <option value={applied.id}>{applied.name} (eliminado)</option> : null}
+          </select>
+        </span>
+      </label>
+      <div className="row-gap">
+        {adjusted.length > 0 ? (
+          <button type="button" className="link-btn" onClick={() => session.restoreVehicleValues()}>
+            Restaurar valores del vehículo
+          </button>
+        ) : null}
+        <button type="button" className="link-btn" onClick={onManageVehicles}>
+          Administrar vehículos
+        </button>
+      </div>
+      {changed && stored ? (
+        <p className="notice">
+          Editaste este vehículo después de elegirlo.{' '}
+          <button type="button" className="link-btn inline" onClick={() => session.selectVehicle(stored)}>
+            Cargar sus datos actualizados
+          </button>
+        </p>
+      ) : null}
+      {deleted ? <p className="sub">Este vehículo fue eliminado; sus valores se mantienen solo en esta cotización.</p> : null}
+      {applied && (applied.kmPerL === null || applied.wearPerKm === null) ? (
+        <p className="sub">A este vehículo le falta {applied.kmPerL === null ? 'el rendimiento' : ''}{applied.kmPerL === null && applied.wearPerKm === null ? ' y ' : ''}{applied.wearPerKm === null ? 'el desgaste' : ''}: el costo saldrá parcial hasta que lo completes.</p>
+      ) : null}
     </div>
   );
 }

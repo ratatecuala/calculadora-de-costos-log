@@ -48,6 +48,17 @@ export interface JobRecord {
     margin: number;
     missing: string[];
     engineVersion: string;
+    /** Vehículo usado y valores aplicados en esta cotización (dato propio, interno). */
+    vehicle?: {
+      id: string;
+      name: string;
+      type: 'camioneta' | 'furgon' | 'camionLiviano';
+      fuel: 'gasolina' | 'diesel' | 'otro';
+      kmPerL: number | null;
+      wearPerKm: number | null;
+      /** Campos ajustados solo para esta cotización. */
+      adjusted: string[];
+    } | null;
   };
 }
 

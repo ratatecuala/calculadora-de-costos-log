@@ -54,6 +54,18 @@ export function buildJobRecord(
       margin: s.margin,
       missing: m.missing,
       engineVersion: ENGINE_VERSION,
+      vehicle: s.vehicle
+        ? {
+            id: s.vehicle.id,
+            name: s.vehicle.name,
+            type: s.vehicle.type,
+            fuel: s.vehicle.fuel,
+            // Valores efectivamente usados en esta cotización.
+            kmPerL: s.params.kmPerL,
+            wearPerKm: s.params.wearPerKm,
+            adjusted: session.vehicleAdjustments(),
+          }
+        : null,
     },
   };
 }
