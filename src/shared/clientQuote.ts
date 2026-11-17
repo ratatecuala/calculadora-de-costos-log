@@ -1,0 +1,126 @@
+/**
+ * Separación entre costos internos y cotización al cliente (A-29).
+ * `toClientQuote` copia SOLO los campos de la lista blanca: nada de combustible,
+ * desgaste, gastos fijos, remuneración objetivo, margen ni km/minutos del proveedor.
+ */
+export interface BusinessProfile {
+  name: string;
+  phone: string;
+  email: string;
+}
+
+/** Registro interno del trabajo (solo para el transportista). */
+export interface JobRecord {
+  id: string;
+  number: number;
+  createdAt: string;
+  clientName: string;
+  serviceDescription: string;
+  includes: string;
+  conditions: string;
+  validUntil: string;
+  serviceDate: string;
+  originLabel: string;
+  destinationLabel: string;
+  netPrice: number;
+  tax: { ruleId: string; amount: number } | null;
+  status: 'borrador' | 'enviada' | 'aceptada' | 'rechazada' | 'realizada';
+  /** Datos internos: nunca llegan al cliente. */
+  internal: {
+    routeSource: 'simulado' | 'google' | 'declarado';
+    /** Km y minutos solo si su retención lo permite (A-38); si no, null. */
+    km: number | null;
+    minutes: number | null;
+    costEstimate: number;
+    costType: 'estimado' | 'cotaInferior' | 'cotaSuperior';
+    suggestedPrice: number;
+    margin: number;
+    missing: string[];
+    engineVersion: string;
+  };
+}
+
+export interface ClientQuote {
+  number: number;
+  issuedAt: string;
+  businessName: string;
+  businessPhone: string;
+  businessEmail: string;
+  clientName: string;
+  serviceDescription: string;
+  includes: string;
+  conditions: string;
+  validUntil: string;
+  serviceDate: string;
+  originLabel: string;
+  destinationLabel: string;
+  netPrice: number;
+  taxAmount: number | null;
+  total: number;
+}
+
+/** Lista blanca: si se agrega un campo, la prueba de separación falla hasta revisarlo. */
+export const CLIENT_QUOTE_KEYS = [
+  'number',
+  'issuedAt',
+  'businessName',
+  'businessPhone',
+  'businessEmail',
+  'clientName',
+  'serviceDescription',
+  'includes',
+  'conditions',
+  'validUntil',
+  'serviceDate',
+  'originLabel',
+  'destinationLabel',
+  'netPrice',
+  'taxAmount',
+  'total',
+] as const satisfies ReadonlyArray<keyof ClientQuote>;
+
+export function toClientQuote(job: JobRecord, business: BusinessProfile): ClientQuote {
+  const taxAmount = job.tax ? job.tax.amount : null;
+  return {
+    number: job.number,
+    issuedAt: job.createdAt,
+    businessName: business.name,
+    businessPhone: business.phone,
+    businessEmail: business.email,
+    clientName: job.clientName,
+    serviceDescription: job.serviceDescription,
+    includes: job.includes,
+    conditions: job.conditions,
+    validUntil: job.validUntil,
+    serviceDate: job.serviceDate,
+    originLabel: job.originLabel,
+    destinationLabel: job.destinationLabel,
+    netPrice: job.netPrice,
+    taxAmount,
+    total: job.netPrice + (taxAmount ?? 0),
+  };
+}
+
+const clp = (n: number) => `$${new Intl.NumberFormat('es-CL').format(n)}`;
+
+/** Texto para WhatsApp, construido solo desde la cotización al cliente. */
+export function whatsappText(q: ClientQuote): string {
+  const lines = [
+    `Cotización N° ${String(q.number).padStart(4, '0')} — ${q.businessName}`,
+    `Cliente: ${q.clientName}`,
+    `Servicio: ${q.serviceDescription}`,
+    `Recorrido: ${q.originLabel} → ${q.destinationLabel}`,
+    q.serviceDate ? `Fecha del servicio: ${q.serviceDate}` : '',
+    q.includes ? `Incluye: ${q.includes}` : '',
+    q.taxAmount === null
+      ? `Valor neto: ${clp(q.netPrice)}`
+      : `Neto ${clp(q.netPrice)} + IVA ${clp(q.taxAmount)} = Total ${clp(q.total)}`,
+    q.validUntil ? `Válida hasta: ${q.validUntil}` : '',
+    q.conditions ? `Condiciones: ${q.conditions}` : '',
+  ];
+  return lines.filter(Boolean).join('\n');
+}
+
+export function whatsappUrl(q: ClientQuote): string {
+  return `https://wa.me/?text=${encodeURIComponent(whatsappText(q))}`;
+}

@@ -1,0 +1,14 @@
+{
+  "dataVersion": "2026-11-17",
+  "nota": "Reglas tributarias para la cotización (A-28). Solo se ofrecen al usuario las reglas con verified=true. Pendiente de verificación en #16: hasta entonces la cotización muestra el valor neto.",
+  "rules": [
+    {
+      "id": "iva-afecto-19",
+      "label": "Emito documento afecto a IVA (19 %)",
+      "rate": 0.19,
+      "verified": false,
+      "source": "Pendiente: confirmar con el SII o un contador qué documento corresponde a cada perfil de transportista (#16)",
+      "verifiedAt": null
+    }
+  ]
+}
