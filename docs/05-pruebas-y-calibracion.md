@@ -59,3 +59,26 @@ Antes de publicación: pruebas con personas de distinto nivel digital, varios ve
 ## 6. Herramientas candidatas
 
 Vitest / pruebas de propiedades para motor; pruebas de integración para Workers y permisos; Playwright para rutas completas; accesibilidad automatizada más revisión manual. Elegir la suite definitiva después de aprobar arquitectura.
+
+
+## Pruebas implementadas en el PR #34 (17-11-2026)
+
+Se ejecutan con `npm test` (Vitest), sin red ni servicios externos.
+
+| Archivo | Qué demuestra |
+|---|---|
+| `tests/budget.limits.test.ts` | **1.** Nunca se autoriza nada por encima del límite global; ritmo diario; corte de emergencia para los reintentos; comparaciones 3/día y 10/mes; límites por usuario y origen |
+| `tests/budget.concurrency.test.ts` | **2.** 500 reservas simultáneas no superan el cupo, más un control negativo que muestra que, sin serialización, sí lo superarían; 200 solicitudes HTTP simultáneas; doble clic |
+| `tests/routeHandler.test.ts` | **3.** Contador caído o colgado = cierre. **4.** Los reintentos consumen presupuesto. **7.** Cupo agotado = modo manual sin hora de reinicio. Interruptor y validación estricta |
+| `tests/sku.test.ts` | **5.** Pro y Enterprise bloqueados antes de llamar; el adaptador Google envía solo la plantilla Essentials (con `fetch` falso) |
+| `tests/session.test.ts` | **6.** Editar precio o parámetros no repite la consulta. **7.** Modo manual en el navegador |
+| `tests/secrets.test.ts` | **8.** Se compila la app con una clave falsa en el entorno y no aparece en el paquete; las respuestas no la incluyen |
+| `tests/engine.golden.test.ts` | Casos dorados G1–G10, escenarios A y B, y propiedades de las cotas |
+
+**No probado todavía:**
+- el Durable Object en Cloudflare (no hay cuenta);
+- Google Routes real (no autorizado);
+- la verificación independiente de los casos dorados (#24);
+- la accesibilidad con lector de pantalla.
+
+El flujo completo se verificó en navegador (móvil y escritorio) contra el servidor local, sin solicitudes externas.

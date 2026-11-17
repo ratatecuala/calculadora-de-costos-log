@@ -125,6 +125,11 @@ describe('Casos dorados G1–G10', () => {
       netPrice: 55000,
       tax: null,
       status: 'borrador',
+      payment: 'pendiente',
+      waypoints: [
+        { role: 'A', address: 'Calle Uno 123, Ñuñoa' },
+        { role: 'B', address: 'Avenida Dos 456, Las Condes' },
+      ],
       internal: {
         routeSource: 'simulado',
         km: 57.4,
@@ -140,7 +145,7 @@ describe('Casos dorados G1–G10', () => {
     const q = toClientQuote(job, { name: 'Fletes de prueba', phone: '+56 9 0000 0000', email: 'prueba@example.com' });
     expect(Object.keys(q).sort()).toEqual([...CLIENT_QUOTE_KEYS].sort());
     const text = JSON.stringify(q) + whatsappText(q);
-    for (const forbidden of ['24223', '1779', '3350', '13400', '42752', '51000', '57.4', 'combustible', 'desgaste', 'margen', 'simulado']) {
+    for (const forbidden of ['24223', '1779', '3350', '13400', '42752', '51000', '57.4', 'combustible', 'desgaste', 'margen', 'simulado', 'calle uno']) {
       expect(text.toLowerCase()).not.toContain(forbidden);
     }
   });

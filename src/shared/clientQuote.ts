@@ -9,6 +9,8 @@ export interface BusinessProfile {
   email: string;
 }
 
+export type JobStatus = 'borrador' | 'enviada' | 'aceptada' | 'rechazada' | 'realizada';
+
 /** Registro interno del trabajo (solo para el transportista). */
 export interface JobRecord {
   id: string;
@@ -24,10 +26,14 @@ export interface JobRecord {
   destinationLabel: string;
   netPrice: number;
   tax: { ruleId: string; amount: number } | null;
-  status: 'borrador' | 'enviada' | 'aceptada' | 'rechazada' | 'realizada';
+  status: JobStatus;
+  /** El pago se registra aparte: «aceptada» no es «pagada». */
+  payment: 'pendiente' | 'recibido';
+  /** Direcciones escritas por el usuario (dato propio), para el enlace «Ver ruta en Google Maps». */
+  waypoints: Array<{ role: 'base' | 'A' | 'B'; address: string }>;
   /** Datos internos: nunca llegan al cliente. */
   internal: {
-    routeSource: 'simulado' | 'google' | 'declarado';
+    routeSource: 'simulado' | 'google' | 'declarado' | 'mixto';
     /** Km y minutos solo si su retención lo permite (A-38); si no, null. */
     km: number | null;
     minutes: number | null;

@@ -67,3 +67,16 @@ La comparación detallada entre categorías de vehículos para clientes y el eva
 - GitHub es la fuente técnica; Trello solo se organiza posteriormente y con autorización.
 
 **Hecho:** diseño UX/UI v4 aprobado y backlog actualizado (16-11-2026). **Ahora:** aprobar la arquitectura y los costos de servicios, y luego pedir autorización de programación. **Finalmente:** lanzar la herramienta gratuita con aprobación y validar uso real antes de evaluar Pro.
+
+
+## Probar localmente (datos simulados)
+
+Requiere Node 20 o superior. No usa cuentas, claves ni servicios externos.
+
+```bash
+npm install
+npm test        # 60 pruebas: candado de consumo, motor, sesión, SKU y secretos
+npm run dev     # abre http://localhost:5173
+```
+
+Las distancias y los tiempos son **simulados** y la app lo indica en cada resultado. Google Routes no está conectado: hace falta la autorización del propietario (A-44).
