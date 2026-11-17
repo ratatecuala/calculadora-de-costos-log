@@ -22,10 +22,11 @@ export interface WorkerEnv {
 
 export { RouteBudgetDurableObject };
 
-// Solo se reutilizan objetos sin configuración: el cliente del contador (también es la
-// clave de deduplicación) y el proveedor ya armado para una misma configuración.
+// Solo se reutiliza el cliente del contador (también es la clave de deduplicación).
+// El proveedor se arma en cada solicitud con la configuración vigente (tercera revisión):
+// así una rotación de la clave se aplica de inmediato, aunque la nueva tenga el mismo largo.
+// Armarlo no hace ninguna llamada de red, así que no cuesta consultas.
 const gates = new WeakMap<object, DurableObjectBudgetGate>();
-let providerCache: { fingerprint: string; provider: RouteProvider } | null = null;
 
 function stringEnv(env: WorkerEnv): Record<string, string> {
   return Object.fromEntries(Object.entries(env).filter(([, v]) => typeof v === 'string')) as Record<string, string>;
@@ -41,12 +42,7 @@ function budgetGate(env: WorkerEnv): DurableObjectBudgetGate {
 }
 
 function providerFor(config: ServerConfig, gate: DurableObjectBudgetGate): RouteProvider {
-  // La huella no contiene la clave: solo si existe y su largo, para detectar cambios.
-  const fingerprint = `${config.provider}|${config.routesEnabled}|${config.googleApiKey?.length ?? 0}`;
-  if (!providerCache || providerCache.fingerprint !== fingerprint) {
-    providerCache = { fingerprint, provider: createRouteService(config, gate).provider };
-  }
-  return providerCache.provider;
+  return createRouteService(config, gate).provider;
 }
 
 /** Comparación en tiempo constante para el token de administración. */

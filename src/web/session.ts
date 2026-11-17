@@ -208,7 +208,16 @@ export class QuoteSession {
   private costFingerprint(): string | null {
     const c = this.computation('habitual');
     if (!c) return null;
-    return `${this.state.habitual.key}|${c.measures.cost.type}|${Math.round(c.measures.cost.value)}`;
+    // Tercera revisión (P2): cualquier cambio de recorrido, km/minutos usados, vehículo o
+    // parámetros de costo exige reconfirmar, aunque el costo redondeado quede igual.
+    // El margen y los recargos no cambian el costo: no exigen confirmar.
+    return JSON.stringify({
+      ruta: this.state.habitual.key,
+      tramos: c.legs.map((l) => [l.km, l.minutes]),
+      vehiculo: this.state.vehicle?.id ?? null,
+      params: this.state.params,
+      costo: [c.measures.cost.type, c.measures.cost.value],
+    });
   }
 
   /** El precio elegido se decidió con otro costo (cambió la ruta, el vehículo o los parámetros). */
@@ -307,6 +316,9 @@ export class QuoteSession {
 
   /** El usuario prefiere ingresar km y minutos a mano (sin consultar). */
   useManual(kind: RouteKind = 'habitual'): void {
+    // Tercera revisión (P1): una consulta pendiente queda invalidada; su respuesta tardía
+    // no puede reemplazar los km y minutos que el usuario escriba a mano.
+    this.generation[kind] += 1;
     this.setRouteState(kind, {
       ...emptyRoute(),
       status: 'manual',
@@ -380,7 +392,8 @@ export class QuoteSession {
         key,
         manualReason: response.reason,
         message: response.message,
-        manualLegs: this.legTemplate(),
+        // Tercera revisión: si el reintento también falla, lo que el usuario escribió se mantiene.
+        manualLegs: declared.length > 0 ? declared : this.legTemplate(),
       });
     }
   }

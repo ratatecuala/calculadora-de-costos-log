@@ -307,8 +307,11 @@ tests/        pruebas Vitest (presupuesto, concurrencia, SKU, motor, sesión, se
   - `ROUTES_ENABLED` se lee **en cada solicitud**; el Worker no guarda la configuración en el isolate;
   - además hay un interruptor **en caliente** en el almacenamiento del contador (`switch:apagado`). Se revisa dentro de cada reserva, también en los reintentos, y no consume cupo. Apaga la siguiente consulta sin reiniciar ni redesplegar;
   - se acciona con `POST /api/admin/routes` y `Authorization: Bearer <ADMIN_TOKEN>`. Sin `ADMIN_TOKEN` (o con uno de menos de 32 caracteres) esa ruta responde 404. El token sería un secreto de Cloudflare: **no existe hoy** y su creación requiere autorización.
-- **Reintento explícito:** tras «el servicio no respondió» o «no pudimos verificar el cupo», presionar de nuevo «Calcular ruta» consulta otra vez (nueva reserva). Con cupo agotado o límites alcanzados no se repite. Los km y minutos escritos a mano se conservan si el reintento tiene éxito.
-- **Precio:** si el costo cambia después de escribir el precio (otra ruta, otro vehículo u otros parámetros), hay que confirmar el precio antes de crear la cotización.
+  - **Alcance:** apagar impide **reservas nuevas** (y reintentos); no cancela una llamada a Google que ya estaba en curso en ese momento.
+  - el proveedor se arma **en cada solicitud** con la configuración vigente, así que una rotación de la clave se aplica en la siguiente consulta (tercera revisión).
+- **Reintento explícito:** tras «el servicio no respondió» o «no pudimos verificar el cupo», presionar de nuevo «Calcular ruta» consulta otra vez (nueva reserva). Con cupo agotado o límites alcanzados no se repite. Los km y minutos escritos a mano se conservan tanto si el reintento tiene éxito como si vuelve a fallar.
+- **Modo manual durante una consulta:** elegir «Prefiero ingresar los km a mano» invalida la consulta pendiente; su respuesta tardía se descarta.
+- **Precio:** hay que reconfirmarlo antes de crear la cotización si, después de escribirlo, cambia el recorrido, los km o minutos usados, el vehículo o cualquier parámetro de costo, aunque el costo redondeado quede igual. El margen sugerido y los recargos no cambian el costo y no exigen confirmar.
 - **«Mi vehículo» (A-45):**
   - perfiles en el navegador (`cotizador.vehiculos.v1`) detrás de `VehicleRepository`, una interfaz **asíncrona** (`src/web/vehicleRepository.ts`), para cambiar a la tabla `vehicles` de Supabase sin tocar la interfaz;
   - elegir un vehículo **copia** su rendimiento y desgaste a la cotización (`QuoteSession.selectVehicle`); los ajustes son solo de esa cotización y no alteran el perfil;
