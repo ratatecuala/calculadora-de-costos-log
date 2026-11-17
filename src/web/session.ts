@@ -8,6 +8,12 @@
  *   navegador con el motor económico, sin nuevas solicitudes de ruta.
  * - Si el servidor responde «manual» (cupo agotado, contador caído, servicio apagado…),
  *   se activa el modo manual: km y minutos por tramo, declarados por el usuario.
+ *
+ * Coherencia (auditoría ChatGPT, PR #34):
+ * - Solo se calcula y cotiza con una ruta cuya clave coincide con las direcciones ACTUALES.
+ * - Cada consulta lleva un número de generación; una respuesta tardía de un recorrido
+ *   anterior se descarta y nunca reemplaza al vigente.
+ * - La procedencia y la retención se llevan POR CAMPO (km y minutos por separado).
  */
 import { compareRoutes, type Comparison } from '../engine/compare';
 import { buildCostItems, EMPTY_PARAMS, type TripParams } from '../engine/inputs';
@@ -74,12 +80,24 @@ export interface SessionState {
   routeRequests: number;
 }
 
+export type MixedSource = RouteSource | 'mixto';
+
+export interface ComputedLeg extends LegValue {
+  kmSource: RouteSource;
+  minutesSource: RouteSource;
+}
+
 export interface RouteComputation {
   kind: RouteKind;
-  legs: Array<LegValue & { source: RouteSource }>;
+  legs: ComputedLeg[];
   km: number;
   minutes: number;
-  source: RouteSource | 'mixto';
+  /** Procedencia de los km de todos los tramos (o «mixto»). */
+  kmSource: MixedSource;
+  /** Procedencia de los minutos de todos los tramos (o «mixto»). */
+  minutesSource: MixedSource;
+  /** Resumen para mostrar: una sola procedencia o «mixto». */
+  source: MixedSource;
   items: CostItem[];
   measures: Measures;
 }
@@ -112,6 +130,8 @@ export function initialState(): SessionState {
 export class QuoteSession {
   private state: SessionState;
   private readonly listeners = new Set<() => void>();
+  /** Generación por tipo de ruta: invalida respuestas tardías. */
+  private readonly generation: Record<RouteKind, number> = { habitual: 0, evitarPeajes: 0 };
 
   constructor(
     private readonly client: RouteClient,
@@ -138,11 +158,46 @@ export class QuoteSession {
     const key = this.requestKey(inputs, 'habitual');
     const h = this.state.habitual;
     const stale = h.key !== null && key !== h.key;
+    if (stale) {
+      // Cualquier consulta en curso queda obsoleta: su respuesta se descartará.
+      this.generation.habitual += 1;
+      this.generation.evitarPeajes += 1;
+    }
+    // Si el usuario vuelve exactamente al recorrido ya calculado, se recupera sin consultar.
+    const restored: RouteState | null =
+      !stale && h.status === 'desactualizado' && key !== null && key === h.key
+        ? h.route
+          ? { ...h, status: 'listo' }
+          : h.manualLegs.length > 0
+            ? { ...h, status: 'manual' }
+            : null
+        : null;
     this.set({
       inputs,
-      habitual: stale ? { ...h, status: 'desactualizado' } : h,
+      habitual: stale ? { ...h, status: 'desactualizado' } : (restored ?? h),
       comparison: stale ? emptyRoute() : this.state.comparison,
     });
+  }
+
+  /** Se puede crear una cotización solo con un cálculo vigente y un precio elegido. */
+  canQuote(): boolean {
+    return this.computation('habitual') !== null && this.state.chosenPrice !== null;
+  }
+
+  /**
+   * Retención por campo (A-38): los km (o minutos) se pueden guardar en el historial solo
+   * si TODOS los tramos los declaró el usuario, o si el proveedor permite conservarlos.
+   */
+  retainable(kind: RouteKind): { km: boolean; minutes: boolean } {
+    const c = this.computation(kind);
+    if (!c) return { km: false, minutes: false };
+    const retention = this.routeState(kind).route?.retention;
+    const ok = (src: RouteSource, field: 'distance' | 'duration') =>
+      src === 'declarado' || (src !== 'simulado' && retention?.[field] === 'permanente');
+    return {
+      km: c.legs.every((l) => ok(l.kmSource, 'distance')),
+      minutes: c.legs.every((l) => ok(l.minutesSource, 'duration')),
+    };
   }
 
   setParams(partial: Partial<TripParams>): void {
@@ -193,7 +248,10 @@ export class QuoteSession {
 
   /** Comparación opcional: 1 solicitud adicional, solo con la ruta habitual vigente. */
   compareWithoutTolls(): Promise<void> {
-    if (this.state.habitual.status !== 'listo') return Promise.resolve();
+    const h = this.state.habitual;
+    if (h.status !== 'listo' || h.key === null || h.key !== this.requestKey(this.state.inputs, 'habitual')) {
+      return Promise.resolve();
+    }
     return this.fetchRoute('evitarPeajes');
   }
 
@@ -208,6 +266,7 @@ export class QuoteSession {
     const key = routeKey(input);
     if (rs.key === key && (rs.status === 'listo' || rs.status === 'manual')) return; // nada cambió: no se consulta
 
+    const generation = ++this.generation[kind];
     this.setRouteState(kind, { ...emptyRoute(), status: 'cargando', key });
     this.set({ routeRequests: this.state.routeRequests + 1 });
     let response: RouteApiResponse;
@@ -217,6 +276,8 @@ export class QuoteSession {
       response = { status: 'manual', reason: 'error_proveedor', message: MANUAL_MESSAGES.error_proveedor, quota: null };
     }
     if (response.quota) this.set({ quota: response.quota });
+    // Respuesta tardía: el recorrido cambió (o hubo otra consulta) mientras se esperaba.
+    if (generation !== this.generation[kind] || this.requestKey(this.state.inputs, kind) !== key) return;
     if (response.status === 'ok') {
       this.setRouteState(kind, { ...emptyRoute(), status: 'listo', key, route: response.route });
     } else {
@@ -234,20 +295,22 @@ export class QuoteSession {
   // ---- Resultados derivados (motor económico en el navegador) ----
   computation(kind: RouteKind): RouteComputation | null {
     const rs = this.routeState(kind);
-    let legs: Array<LegValue & { source: RouteSource }>;
+    // Solo con la ruta del recorrido ACTUAL (auditoría P0).
+    if (rs.key === null || rs.key !== this.requestKey(this.state.inputs, kind)) return null;
+    let legs: ComputedLeg[];
     if (rs.status === 'manual') {
-      legs = rs.manualLegs.map((l) => ({ ...l, source: 'declarado' as const }));
-    } else if ((rs.status === 'listo' || rs.status === 'desactualizado') && rs.route) {
+      legs = rs.manualLegs.map((l) => ({ ...l, kmSource: 'declarado' as const, minutesSource: 'declarado' as const }));
+    } else if (rs.status === 'listo' && rs.route) {
       const route = rs.route;
       legs = route.legs.map((l, i) => {
         const o = rs.overrides[i] ?? {};
-        const corrected = o.km !== undefined || o.minutes !== undefined;
         return {
           from: l.from,
           to: l.to,
           km: o.km !== undefined ? o.km : l.distanceM / 1000,
           minutes: o.minutes !== undefined ? o.minutes : l.durationS / 60,
-          source: corrected ? ('declarado' as const) : route.source,
+          kmSource: o.km !== undefined ? ('declarado' as const) : route.source,
+          minutesSource: o.minutes !== undefined ? ('declarado' as const) : route.source,
         };
       });
     } else {
@@ -264,8 +327,11 @@ export class QuoteSession {
       surcharges: this.state.surcharges,
       price: this.state.chosenPrice,
     });
-    const sources = new Set(legs.map((l) => l.source));
-    return { kind, legs, km, minutes, source: sources.size === 1 ? [...sources][0]! : 'mixto', items, measures };
+    const single = (values: RouteSource[]): MixedSource => (new Set(values).size === 1 ? values[0]! : 'mixto');
+    const kmSource = single(legs.map((l) => l.kmSource));
+    const minutesSource = single(legs.map((l) => l.minutesSource));
+    const source = single([...legs.map((l) => l.kmSource), ...legs.map((l) => l.minutesSource)]);
+    return { kind, legs, km, minutes, kmSource, minutesSource, source, items, measures };
   }
 
   comparisonResult(): Comparison | null {

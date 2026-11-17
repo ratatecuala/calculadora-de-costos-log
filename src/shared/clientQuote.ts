@@ -29,6 +29,11 @@ export interface JobRecord {
   status: JobStatus;
   /** El pago se registra aparte: «aceptada» no es «pagada». */
   payment: 'pendiente' | 'recibido';
+  /**
+   * Copia de los datos del emisor al momento de emitir. Opcional solo por compatibilidad
+   * con registros anteriores a esta versión.
+   */
+  issuer?: BusinessProfile;
   /** Direcciones escritas por el usuario (dato propio), para el enlace «Ver ruta en Google Maps». */
   waypoints: Array<{ role: 'base' | 'A' | 'B'; address: string }>;
   /** Datos internos: nunca llegan al cliente. */
@@ -85,14 +90,19 @@ export const CLIENT_QUOTE_KEYS = [
   'total',
 ] as const satisfies ReadonlyArray<keyof ClientQuote>;
 
-export function toClientQuote(job: JobRecord, business: BusinessProfile): ClientQuote {
+/**
+ * Usa la copia del emisor guardada en el registro; `fallbackIssuer` solo se usa para
+ * registros antiguos que no la tienen.
+ */
+export function toClientQuote(job: JobRecord, fallbackIssuer?: BusinessProfile): ClientQuote {
   const taxAmount = job.tax ? job.tax.amount : null;
+  const issuer = job.issuer ?? fallbackIssuer ?? { name: '', phone: '', email: '' };
   return {
     number: job.number,
     issuedAt: job.createdAt,
-    businessName: business.name,
-    businessPhone: business.phone,
-    businessEmail: business.email,
+    businessName: issuer.name,
+    businessPhone: issuer.phone,
+    businessEmail: issuer.email,
     clientName: job.clientName,
     serviceDescription: job.serviceDescription,
     includes: job.includes,

@@ -303,3 +303,9 @@ tests/        pruebas Vitest (presupuesto, concurrencia, SKU, motor, sesión, se
 - **Proveedor Google:** existe la plantilla de solicitud y su validación. **No está conectado**: exige `ROUTES_PROVIDER=google`, `GOOGLE_ROUTES_ENABLED=true` y una clave de servidor que no existe. Las pruebas usan un `fetch` falso.
 - **Contador en producción:** clase Durable Object (`src/server/budget/durableObject.ts`) con el mismo libro serializado. **No se ha ejecutado en Cloudflare**, porque no hay cuenta autorizada.
 - **Historial:** en el navegador (localStorage), detrás de `QuoteRepository`; migrable a Supabase cuando se apruebe #35.
+- **Coherencia (auditoría de ChatGPT):**
+  - solo se calcula y cotiza con la ruta de las direcciones actuales;
+  - las respuestas tardías se descartan (generación por consulta);
+  - la procedencia y la retención se llevan por campo (km y minutos);
+  - los tramos con distancia o duración ausente, inválida o cero se rechazan (`src/server/validateRoute.ts`), y una velocidad implícita fuera de 3–130 km/h genera una advertencia visible;
+  - cada cotización guarda una copia de los datos del emisor.

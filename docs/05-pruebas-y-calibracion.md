@@ -74,9 +74,12 @@ Se ejecutan con `npm test` (Vitest), sin red ni servicios externos.
 | `tests/session.test.ts` | **6.** Editar precio o parámetros no repite la consulta. **7.** Modo manual en el navegador |
 | `tests/secrets.test.ts` | **8.** Se compila la app con una clave falsa en el entorno y no aparece en el paquete; las respuestas no la incluyen |
 | `tests/engine.golden.test.ts` | Casos dorados G1–G10, escenarios A y B, y propiedades de las cotas |
+| `tests/regression.audit.test.ts` | Hallazgos de la auditoría de ChatGPT (commit `6f73aaa`): ruta de direcciones anteriores, respuesta tardía, retención por campo de km y minutos, validación de la respuesta del proveedor, copia del emisor. **Fallaban con la versión auditada** (14 de 15) |
 
 **No probado todavía:**
-- el Durable Object en Cloudflare (no hay cuenta);
+- el Durable Object en Cloudflare (no hay cuenta); el candado **no está probado en producción**;
+- la confirmación de direcciones: qué ubicación interpretó Google y la comprobación con la línea recta quedan pendientes para el experimento de #19;
+- el abuso real: el identificador anónimo del navegador se puede reemplazar, y lo contienen el límite por origen y el techo global;
 - Google Routes real (no autorizado);
 - la verificación independiente de los casos dorados (#24);
 - la accesibilidad con lector de pantalla.

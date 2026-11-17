@@ -84,7 +84,8 @@ describe('Prueba 6 — editar precio o parámetros no genera otra solicitud de r
     expect(s.computation('habitual')!.source).toBe('simulado');
     s.setLegOverride('habitual', 0, { km: 20 });
     const c = s.computation('habitual')!;
-    expect(c.legs[0]!.source).toBe('declarado');
+    expect(c.legs[0]!.kmSource).toBe('declarado');
+    expect(c.legs[0]!.minutesSource).toBe('simulado');
     expect(c.km).toBe(20);
     expect(client.requestRoute).toHaveBeenCalledTimes(1);
   });

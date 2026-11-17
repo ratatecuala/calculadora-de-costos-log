@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { formatClp } from '../../engine/rounding';
 import type { BusinessProfile, JobRecord } from '../../shared/clientQuote';
-import { buildWaypoints } from '../../shared/waypoints';
+import { buildJobRecord } from '../jobs';
 import type { QuoteSession } from '../session';
 import type { QuoteRepository } from '../storage';
-
-export const ENGINE_VERSION = 'motor-1.0.0';
 
 interface Props {
   session: QuoteSession;
@@ -42,37 +40,16 @@ export function QuoteForm({ session, repository, onSaved, onCancel }: Props) {
   });
   if (!computation || s.chosenPrice === null) return null;
   const price = s.chosenPrice;
-  const m = computation.measures;
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
 
   const save = () => {
     repository.saveBusiness(business);
-    const rs = s.habitual;
-    const storable = computation.source === 'declarado' || (rs.route?.retention.distance === 'permanente' && computation.source !== 'mixto');
-    const job: JobRecord = {
+    const job = buildJobRecord(session, form, business, {
       id: crypto.randomUUID(),
       number: repository.nextNumber(),
       createdAt: new Date().toISOString().slice(0, 10),
-      ...form,
-      clientName: form.clientName.trim() || 'Cliente',
-      netPrice: price,
-      tax: null, // IVA pendiente de reglas verificadas (#16)
-      status: 'borrador',
-      payment: 'pendiente',
-      waypoints: buildWaypoints({ ...s.inputs, base: s.inputs.base }).map((w) => ({ role: w.role, address: w.address })),
-      internal: {
-        routeSource: computation.source,
-        // Retención por campo (A-38): km y minutos de Google o simulados no se guardan.
-        km: storable ? computation.km : null,
-        minutes: storable ? computation.minutes : null,
-        costEstimate: m.cost.value,
-        costType: m.cost.type,
-        suggestedPrice: m.suggested.value,
-        margin: s.margin,
-        missing: m.missing,
-        engineVersion: ENGINE_VERSION,
-      },
-    };
+    });
+    if (!job) return; // la ruta dejó de estar vigente
     repository.save(job);
     onSaved(job);
   };

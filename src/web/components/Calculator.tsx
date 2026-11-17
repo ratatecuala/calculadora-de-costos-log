@@ -113,7 +113,7 @@ export function Calculator({ session, onCreateQuote }: Props) {
       <section className="col">
         <PriceCard session={session} computation={habitual} />
         <ComparisonCard session={session} habitualReady={s.habitual.status === 'listo'} comparison={comparison} cmp={cmp} />
-        <button type="button" className="btn" disabled={!habitual || s.chosenPrice === null} onClick={onCreateQuote}>
+        <button type="button" className="btn" disabled={!session.canQuote()} onClick={onCreateQuote}>
           Crear cotización
         </button>
         {!habitual ? <p className="sub">Calcula la ruta (o ingresa los km) para cotizar.</p> : null}
@@ -137,6 +137,15 @@ function TextField({ label, value, onChange, placeholder }: { label: string; val
 function RouteCard(props: { title: string; rs: RouteState; computation: RouteComputation | null; kind: RouteKind; session: QuoteSession; mapsUrl: string | null }) {
   const { rs, computation, kind, session, mapsUrl } = props;
   if (rs.status === 'vacio' || rs.status === 'cargando') return null;
+  if (rs.status === 'desactualizado') {
+    // Ruta de direcciones anteriores: no se muestra ni se usa para calcular (auditoría P0).
+    return (
+      <div className="card">
+        <h2 className="sec">{props.title}</h2>
+        <p className="warn">Cambiaste el recorrido. Presiona «Calcular ruta» (o ingresa los km a mano) para actualizar costos y precio.</p>
+      </div>
+    );
+  }
   const legs =
     rs.status === 'manual'
       ? rs.manualLegs
@@ -158,7 +167,6 @@ function RouteCard(props: { title: string; rs: RouteState; computation: RouteCom
           <strong>Datos simulados.</strong> Estos kilómetros y minutos NO son reales: Google Routes aún no está conectado. Corrígelos con los de tu recorrido.
         </p>
       ) : null}
-      {rs.status === 'desactualizado' ? <p className="warn">Cambiaste una dirección. Presiona «Calcular ruta» para actualizar.</p> : null}
       {rs.status === 'manual' && rs.message ? <p className="notice">{rs.message}</p> : null}
       {rs.route?.warnings
         .filter((w) => w.code === 'coincidencia_parcial')
@@ -167,6 +175,13 @@ function RouteCard(props: { title: string; rs: RouteState; computation: RouteCom
             No encontramos con exactitud el punto {'point' in w ? ROLE_LABEL[w.point] : ''}. Revisa que la dirección tenga comuna, o corrige los km.
           </p>
         ))}
+      {rs.route?.warnings.map((w) =>
+        w.code === 'tramo_atipico' ? (
+          <p className="warn" key={`atipico-${w.leg}`}>
+            El tramo {w.leg + 1} tiene una velocidad promedio poco habitual. Revisa sus km y minutos antes de cotizar.
+          </p>
+        ) : null,
+      )}
       {rs.route?.warnings.some((w) => w.code === 'peajes_no_garantizados') ? (
         <p className="sub">Evitar peajes es una preferencia: la ruta puede tener algún peaje.</p>
       ) : null}

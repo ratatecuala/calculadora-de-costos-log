@@ -27,7 +27,9 @@ export interface Leg {
 
 export type RouteWarning =
   | { code: 'coincidencia_parcial'; point: PointRole }
-  | { code: 'peajes_no_garantizados' };
+  | { code: 'peajes_no_garantizados' }
+  /** Velocidad promedio implícita poco plausible: el usuario debe revisar km y minutos. */
+  | { code: 'tramo_atipico'; leg: number };
 
 export interface RouteResult {
   kind: RouteKind;

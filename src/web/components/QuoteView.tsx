@@ -11,6 +11,7 @@ interface Props {
 
 /**
  * Vista de la cotización: solo muestra la `ClientQuote` (lista blanca).
+ * Los datos del emisor salen de la copia guardada al emitir, no del perfil actual.
  * PDF: impresión del navegador («Guardar como PDF»), sin servicios externos.
  */
 export function QuoteView({ job, repository, onBack }: Props) {

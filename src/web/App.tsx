@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import type { JobRecord } from '../shared/clientQuote';
 import { httpRouteClient } from './api';
 import { Calculator } from './components/Calculator';
@@ -13,6 +13,9 @@ type View = { name: 'cotizar' } | { name: 'nueva' } | { name: 'trabajos' } | { n
 export function App() {
   const session = useMemo(() => new QuoteSession(httpRouteClient), []);
   const [view, setView] = useState<View>({ name: 'cotizar' });
+  const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot);
+  // La franja depende del proveedor que realmente respondió (auditoría): no se afirma «simulado» con datos reales.
+  const simulated = [snapshot.habitual.route, snapshot.comparison.route].some((r) => r?.source === 'simulado');
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [view.name]);
@@ -34,7 +37,13 @@ export function App() {
         </nav>
       </header>
       <div className="banner no-print" role="status">
-        Versión de prueba: las distancias y tiempos son <strong>simulados</strong> hasta conectar Google Routes. No los uses para cobrar sin revisarlos.
+        {simulated ? (
+          <>
+            Versión de prueba: estas distancias y tiempos son <strong>simulados</strong>. No los uses para cobrar sin revisarlos.
+          </>
+        ) : (
+          <>Versión de prueba, aún no publicada.</>
+        )}
       </div>
       <main>
         {view.name === 'cotizar' ? <Calculator session={session} onCreateQuote={() => setView({ name: 'nueva' })} /> : null}

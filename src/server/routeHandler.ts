@@ -16,6 +16,7 @@ import { routeKey } from '../shared/waypoints';
 import type { ServerConfig } from './config';
 import type { BudgetGate, ReservationKind } from './budget/ledger';
 import type { RouteProvider } from './providers/types';
+import { checkLegs, mergeWarnings } from './validateRoute';
 
 export interface RouteHandlerDeps {
   config: Pick<ServerConfig, 'routesEnabled' | 'originSalt'>;
@@ -80,7 +81,12 @@ async function processRequest(
   }
   if (!outcome.ok) return manual(502, 'error_proveedor', await safeQuota(deps, userKey, now));
 
-  return { httpStatus: 200, json: { status: 'ok', route: sanitize(outcome.route), quota: await safeQuota(deps, userKey, now) } };
+  // Segunda barrera, para cualquier proveedor: tramos inválidos no llegan al cálculo (sin reintento).
+  const check = checkLegs(outcome.route.legs);
+  if (!check.valid) return manual(502, 'error_proveedor', await safeQuota(deps, userKey, now));
+  const route = { ...outcome.route, warnings: mergeWarnings(outcome.route.warnings, check.warnings) };
+
+  return { httpStatus: 200, json: { status: 'ok', route: sanitize(route), quota: await safeQuota(deps, userKey, now) } };
 }
 
 async function tryReserve(
@@ -117,8 +123,9 @@ function sanitize(route: RouteResult): RouteResult {
     kind: route.kind,
     source: route.source,
     legs: route.legs.map((l) => ({ from: l.from, to: l.to, distanceM: l.distanceM, durationS: l.durationS })),
-    totalDistanceM: route.totalDistanceM,
-    totalDurationS: route.totalDurationS,
+    // Totales recalculados desde los tramos: siempre consistentes.
+    totalDistanceM: route.legs.reduce((s, l) => s + l.distanceM, 0),
+    totalDurationS: route.legs.reduce((s, l) => s + l.durationS, 0),
     warnings: route.warnings.map((w) => ({ ...w })),
     computedAt: route.computedAt,
     retention: { distance: route.retention.distance, duration: route.retention.duration },

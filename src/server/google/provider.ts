@@ -8,6 +8,7 @@
 import type { Leg, PointRole, RouteRequestInput, RouteResult, RouteWarning } from '../../shared/route';
 import { buildWaypoints } from '../../shared/waypoints';
 import type { ProviderOutcome, RouteProvider } from '../providers/types';
+import { checkLegs } from '../validateRoute';
 import { ESSENTIALS_FIELD_MASK, ROUTES_ENDPOINT, assertEssentialsOnly, buildComputeRoutesBody } from './template';
 
 export interface GoogleProviderOptions {
@@ -18,8 +19,8 @@ export interface GoogleProviderOptions {
 }
 
 interface GoogleLeg {
-  distanceMeters?: number;
-  duration?: string;
+  distanceMeters?: unknown;
+  duration?: unknown;
 }
 interface GoogleResponse {
   routes?: Array<{ legs?: GoogleLeg[] }>;
@@ -73,12 +74,14 @@ export class GoogleRoutesProvider implements RouteProvider {
     const legs: Leg[] = googleLegs.map((leg, i) => ({
       from: points[i]!.role,
       to: points[i + 1]!.role,
-      distanceM: Math.max(0, Math.round(leg.distanceMeters ?? 0)),
+      // Sin valores por defecto: un dato ausente o mal formado queda como NaN y se rechaza.
+      distanceM: typeof leg.distanceMeters === 'number' ? Math.round(leg.distanceMeters) : Number.NaN,
       durationS: parseDuration(leg.duration),
     }));
-    if (legs.some((l) => l.distanceM <= 0)) return { ok: false, retryable: false, error: 'google: tramo sin distancia' };
+    const check = checkLegs(legs, points.length - 1);
+    if (!check.valid) return { ok: false, retryable: false, error: `google: ${check.error}` };
 
-    const warnings: RouteWarning[] = [];
+    const warnings: RouteWarning[] = [...check.warnings];
     const partial = (role: PointRole, flag?: boolean) => {
       if (flag) warnings.push({ code: 'coincidencia_parcial', point: role });
     };
@@ -102,7 +105,9 @@ export class GoogleRoutesProvider implements RouteProvider {
   }
 }
 
-function parseDuration(value: string | undefined): number {
-  const match = /^(\d+(?:\.\d+)?)s$/.exec(value ?? '');
-  return match ? Math.round(Number(match[1])) : 0;
+/** «1440s» → 1440. Cualquier otro formato → NaN (se rechaza; nunca 0). */
+function parseDuration(value: unknown): number {
+  if (typeof value !== 'string') return Number.NaN;
+  const match = /^(\d+(?:\.\d+)?)s$/.exec(value);
+  return match ? Math.round(Number(match[1])) : Number.NaN;
 }
