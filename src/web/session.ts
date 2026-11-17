@@ -84,7 +84,15 @@ export interface SessionState {
    * Editar `params` después no modifica el perfil guardado.
    */
   vehicle: AppliedVehicle | null;
+  /**
+   * Base sobre la que el usuario eligió su precio (recorrido + costo). Si el costo cambia
+   * después (otra ruta, otro vehículo, otros parámetros), el precio debe reconfirmarse.
+   */
+  priceBasis: string | null;
 }
+
+/** Motivos de modo manual que NO se reintentan al volver a presionar «Calcular ruta». */
+const NON_RETRYABLE_MANUAL: ReadonlySet<ManualReason> = new Set(['cupo_agotado', 'limite_usuario', 'limite_comparaciones']);
 
 /** Campos que el vehículo carga en la cotización. Nada más se toca al elegirlo. */
 export const VEHICLE_FIELDS = ['kmPerL', 'wearPerKm'] as const;
@@ -135,6 +143,7 @@ export function initialState(): SessionState {
     quota: null,
     routeRequests: 0,
     vehicle: null,
+    priceBasis: null,
   };
 }
 
@@ -192,7 +201,26 @@ export class QuoteSession {
 
   /** Se puede crear una cotización solo con un cálculo vigente y un precio elegido. */
   canQuote(): boolean {
-    return this.computation('habitual') !== null && this.state.chosenPrice !== null;
+    return this.computation('habitual') !== null && this.state.chosenPrice !== null && !this.priceNeedsConfirmation();
+  }
+
+  /** Huella del costo vigente: recorrido + tipo y valor del costo (al peso). */
+  private costFingerprint(): string | null {
+    const c = this.computation('habitual');
+    if (!c) return null;
+    return `${this.state.habitual.key}|${c.measures.cost.type}|${Math.round(c.measures.cost.value)}`;
+  }
+
+  /** El precio elegido se decidió con otro costo (cambió la ruta, el vehículo o los parámetros). */
+  priceNeedsConfirmation(): boolean {
+    if (this.state.chosenPrice === null) return false;
+    const current = this.costFingerprint();
+    return current !== null && current !== this.state.priceBasis;
+  }
+
+  /** El usuario confirma que mantiene su precio con el costo actual. */
+  confirmPrice(): void {
+    this.set({ priceBasis: this.costFingerprint() });
   }
 
   /**
@@ -260,7 +288,8 @@ export class QuoteSession {
     this.set({ surcharges: Math.max(0, value) });
   }
   setChosenPrice(value: number | null): void {
-    this.set({ chosenPrice: value });
+    // La huella no depende del precio: se toma con el costo vigente al escribirlo.
+    this.set({ chosenPrice: value, priceBasis: value === null ? null : this.costFingerprint() });
   }
 
   /** Corrección de km o minutos de un tramo (queda como «declarado por ti»). */
@@ -311,7 +340,13 @@ export class QuoteSession {
       return;
     }
     const key = routeKey(input);
-    if (rs.key === key && (rs.status === 'listo' || rs.status === 'manual')) return; // nada cambió: no se consulta
+    // Nada cambió: no se consulta. Excepción (auditoría 2, P1): tras un fallo transitorio
+    // (error del servicio o del contador) o un modo manual elegido por el usuario, presionar
+    // de nuevo es un reintento explícito (consume una nueva reserva). Cupo o límites agotados no.
+    if (rs.key === key && rs.status === 'listo') return;
+    if (rs.key === key && (rs.status === 'manual' || rs.status === 'vacio') && rs.manualReason !== null && NON_RETRYABLE_MANUAL.has(rs.manualReason)) return;
+    // Km y minutos que el usuario ya escribió en modo manual no se pierden si la consulta tiene éxito.
+    const declared = rs.status === 'manual' && rs.key === key ? rs.manualLegs : [];
 
     const generation = ++this.generation[kind];
     this.setRouteState(kind, { ...emptyRoute(), status: 'cargando', key });
@@ -326,7 +361,18 @@ export class QuoteSession {
     // Respuesta tardía: el recorrido cambió (o hubo otra consulta) mientras se esperaba.
     if (generation !== this.generation[kind] || this.requestKey(this.state.inputs, kind) !== key) return;
     if (response.status === 'ok') {
-      this.setRouteState(kind, { ...emptyRoute(), status: 'listo', key, route: response.route });
+      const keep = declared.length === response.route.legs.length && declared.some((l) => l.km !== null || l.minutes !== null);
+      const overrides = keep
+        ? declared.map((l) => ({ ...(l.km !== null ? { km: l.km } : {}), ...(l.minutes !== null ? { minutes: l.minutes } : {}) }))
+        : [];
+      this.setRouteState(kind, {
+        ...emptyRoute(),
+        status: 'listo',
+        key,
+        route: response.route,
+        overrides,
+        message: keep ? 'Mantuvimos los km y minutos que ingresaste; puedes cambiarlos en la tabla de tramos.' : null,
+      });
     } else {
       this.setRouteState(kind, {
         ...emptyRoute(),

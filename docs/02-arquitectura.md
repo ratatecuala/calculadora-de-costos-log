@@ -302,7 +302,13 @@ tests/        pruebas Vitest (presupuesto, concurrencia, SKU, motor, sesión, se
 - **Proveedor activo:** `simulado`. Las respuestas llevan `fuente: "simulado"` y la interfaz lo dice en cada resultado.
 - **Proveedor Google:** existe la plantilla de solicitud y su validación. **No está conectado**: exige `ROUTES_PROVIDER=google`, `GOOGLE_ROUTES_ENABLED=true` y una clave de servidor que no existe. Las pruebas usan un `fetch` falso.
 - **Contador en producción:** clase Durable Object (`src/server/budget/durableObject.ts`) con el mismo libro serializado. **No se ha ejecutado en Cloudflare**, porque no hay cuenta autorizada.
-- **Historial:** en el navegador (localStorage), detrás de `QuoteRepository`; migrable a Supabase cuando se apruebe #35.
+- **Historial:** en el navegador (localStorage), detrás de `QuoteRepository`; migrable a Supabase cuando se apruebe #35. Si el navegador no puede guardar (lleno, bloqueado o modo privado), el error **se muestra** y la cotización no se da por guardada.
+- **Interruptor global (segunda auditoría):**
+  - `ROUTES_ENABLED` se lee **en cada solicitud**; el Worker no guarda la configuración en el isolate;
+  - además hay un interruptor **en caliente** en el almacenamiento del contador (`switch:apagado`). Se revisa dentro de cada reserva, también en los reintentos, y no consume cupo. Apaga la siguiente consulta sin reiniciar ni redesplegar;
+  - se acciona con `POST /api/admin/routes` y `Authorization: Bearer <ADMIN_TOKEN>`. Sin `ADMIN_TOKEN` (o con uno de menos de 32 caracteres) esa ruta responde 404. El token sería un secreto de Cloudflare: **no existe hoy** y su creación requiere autorización.
+- **Reintento explícito:** tras «el servicio no respondió» o «no pudimos verificar el cupo», presionar de nuevo «Calcular ruta» consulta otra vez (nueva reserva). Con cupo agotado o límites alcanzados no se repite. Los km y minutos escritos a mano se conservan si el reintento tiene éxito.
+- **Precio:** si el costo cambia después de escribir el precio (otra ruta, otro vehículo u otros parámetros), hay que confirmar el precio antes de crear la cotización.
 - **«Mi vehículo» (A-45):**
   - perfiles en el navegador (`cotizador.vehiculos.v1`) detrás de `VehicleRepository`, una interfaz **asíncrona** (`src/web/vehicleRepository.ts`), para cambiar a la tabla `vehicles` de Supabase sin tocar la interfaz;
   - elegir un vehículo **copia** su rendimiento y desgaste a la cotización (`QuoteSession.selectVehicle`); los ajustes son solo de esa cotización y no alteran el perfil;

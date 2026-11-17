@@ -13,15 +13,27 @@ const STATUS_LABEL: Record<JobStatus, string> = {
 
 export function History({ repository, onOpen }: { repository: QuoteRepository; onOpen: (job: JobRecord) => void }) {
   const [jobs, setJobs] = useState(() => repository.list());
+  const [failure, setFailure] = useState<string | null>(null);
   const update = (job: JobRecord, patch: Partial<JobRecord>) => {
-    repository.save({ ...job, ...patch });
-    setJobs(repository.list());
+    setFailure(null);
+    try {
+      repository.save({ ...job, ...patch });
+    } catch (e) {
+      setFailure(e instanceof Error ? e.message : 'No se pudo guardar el cambio.');
+    }
+    setJobs(repository.list()); // muestra lo que realmente quedó guardado
   };
   return (
     <div className="layout single">
       <div className="card">
         <h2 className="sec">Mis trabajos</h2>
         <p className="sub">Guardados en este navegador. Una cotización aceptada no es dinero recibido: el pago se registra aparte.</p>
+        {!repository.persistent ? <p className="warn">Este navegador no permite guardar: tus trabajos se perderán al cerrar la pestaña.</p> : null}
+        {failure ? (
+          <p className="warn" role="alert">
+            {failure}
+          </p>
+        ) : null}
         {jobs.length === 0 ? <p className="sub">Aún no tienes cotizaciones.</p> : null}
         {jobs.map((job) => (
           <div className="job" key={job.id}>

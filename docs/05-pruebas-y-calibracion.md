@@ -76,6 +76,7 @@ Se ejecutan con `npm test` (Vitest), sin red ni servicios externos.
 | `tests/engine.golden.test.ts` | Casos dorados G1–G10, escenarios A y B, y propiedades de las cotas |
 | `tests/vehicles.test.ts` | «Mi vehículo»: crear, editar y eliminar; validación; predeterminado; recuperar tras recargar y con datos dañados; cargar los datos correctos al cambiar de vehículo; ajustar una cotización sin alterar el perfil; valores faltantes como costo parcial; el vehículo no llega a la cotización del cliente |
 | `tests/regression.audit.test.ts` | Hallazgos de la auditoría de ChatGPT (commit `6f73aaa`): ruta de direcciones anteriores, respuesta tardía, retención por campo de km y minutos, validación de la respuesta del proveedor, copia del emisor. **Fallaban con la versión auditada** (14 de 15) |
+| `tests/regression.audit2.test.ts` | Segunda auditoría de ChatGPT: reintento explícito tras error del servicio o del contador (consume una reserva nueva y conserva los km escritos); sin repetición con cupo o límites agotados; interruptor en caliente en el contador y en el Worker (mismo isolate), ruta de administración con token; deduplicación estable; confirmación del precio al cambiar el costo; errores de guardado visibles. **Las pruebas de los dos P1 fallaban con la versión auditada** (4 de 4) |
 
 **No probado todavía:**
 - el Durable Object en Cloudflare (no hay cuenta); el candado **no está probado en producción**;

@@ -28,7 +28,15 @@ export interface ReservationRequest {
   now: Date;
 }
 
-export type DenialReason = 'cupo_agotado' | 'limite_usuario' | 'limite_comparaciones';
+export type DenialReason = 'cupo_agotado' | 'limite_usuario' | 'limite_comparaciones' | 'servicio_apagado';
+
+/**
+ * Interruptor global en el MISMO almacenamiento que los contadores (auditoría 2, P1).
+ * Se lee dentro de cada reserva, así que apagarlo detiene la siguiente consulta
+ * (incluidos reintentos) sin reiniciar el Worker ni volver a desplegar.
+ * Valor 1 = apagado. Ausente o 0 = encendido.
+ */
+export const SWITCH_KEY = 'switch:apagado';
 
 export type ReservationResult = { ok: true; globalUsed: number } | { ok: false; reason: DenialReason };
 
@@ -41,6 +49,12 @@ export interface QuotaSnapshot {
 export interface BudgetGate {
   reserve(request: ReservationRequest): Promise<ReservationResult>;
   quota(userKey: string, now: Date): Promise<QuotaSnapshot>;
+}
+
+/** Operación administrativa: encender o apagar el cálculo automático en caliente. */
+export interface ServiceSwitch {
+  setServiceEnabled(enabled: boolean): Promise<void>;
+  isServiceEnabled(): Promise<boolean>;
 }
 
 export interface LedgerOptions {
@@ -59,7 +73,7 @@ export interface LedgerOptions {
  * sección crítica serializada: dos reservas nunca se intercalan. La reserva se hace
  * ANTES de llamar al proveedor y no se devuelve aunque la llamada falle.
  */
-export class BudgetLedger implements BudgetGate {
+export class BudgetLedger implements BudgetGate, ServiceSwitch {
   private readonly policy: BudgetPolicy;
   private readonly timeoutMs: number;
   private readonly serialize: boolean;
@@ -76,6 +90,14 @@ export class BudgetLedger implements BudgetGate {
 
   reserve(request: ReservationRequest): Promise<ReservationResult> {
     return this.exclusive(() => this.reserveUnsafe(request));
+  }
+
+  setServiceEnabled(enabled: boolean): Promise<void> {
+    return this.exclusive(() => this.storage.putAll({ [SWITCH_KEY]: enabled ? 0 : 1 }));
+  }
+
+  isServiceEnabled(): Promise<boolean> {
+    return this.exclusive(async () => ((await this.storage.getMany([SWITCH_KEY])).get(SWITCH_KEY) ?? 0) !== 1);
   }
 
   quota(userKey: string, now: Date): Promise<QuotaSnapshot> {
@@ -99,9 +121,12 @@ export class BudgetLedger implements BudgetGate {
     const cmpDayKey = `cu:${p.day}:${request.userKey}`;
     const cmpMonthKey = `cm:${p.month}:${request.userKey}`;
 
-    const values = await this.storage.getMany([globalKey, userDayKey, originDayKey, cmpDayKey, cmpMonthKey]);
+    const values = await this.storage.getMany([SWITCH_KEY, globalKey, userDayKey, originDayKey, cmpDayKey, cmpMonthKey]);
     const v = (k: string) => values.get(k) ?? 0;
     const globalUsed = v(globalKey);
+
+    // 0. Interruptor global en caliente: vale para todo, incluidos los reintentos. No consume.
+    if (v(SWITCH_KEY) === 1) return { ok: false, reason: 'servicio_apagado' };
 
     // 1. Corte de emergencia: vale para todo, incluidos los reintentos.
     if (globalUsed >= this.policy.emergencyMonthly) return { ok: false, reason: 'cupo_agotado' };

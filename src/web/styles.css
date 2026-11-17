@@ -558,3 +558,6 @@ select {
     font-size: 15px;
   }
 }
+.price-changed {
+  margin: 0 0 8px;
+}

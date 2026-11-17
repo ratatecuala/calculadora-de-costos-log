@@ -29,6 +29,7 @@ export function QuoteForm({ session, repository, onSaved, onCancel }: Props) {
   const s = session.getSnapshot();
   const computation = session.computation('habitual');
   const [business, setBusiness] = useState<BusinessProfile>(() => repository.getBusiness());
+  const [failure, setFailure] = useState<string | null>(null);
   const [form, setForm] = useState({
     clientName: '',
     serviceDescription: s.vehicle ? `Flete en ${VEHICLE_TYPE_LABEL[s.vehicle.type].toLowerCase()}` : 'Flete',
@@ -44,14 +45,21 @@ export function QuoteForm({ session, repository, onSaved, onCancel }: Props) {
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
 
   const save = () => {
-    repository.saveBusiness(business);
+    setFailure(null);
     const job = buildJobRecord(session, form, business, {
       id: crypto.randomUUID(),
       number: repository.nextNumber(),
       createdAt: new Date().toISOString().slice(0, 10),
     });
     if (!job) return; // la ruta dejó de estar vigente
-    repository.save(job);
+    try {
+      repository.saveBusiness(business);
+      repository.save(job);
+    } catch (e) {
+      // No se navega: la cotización no quedó guardada y el usuario debe saberlo (auditoría 2).
+      setFailure(e instanceof Error ? e.message : 'No se pudo guardar la cotización.');
+      return;
+    }
     onSaved(job);
   };
 
@@ -85,6 +93,12 @@ export function QuoteForm({ session, repository, onSaved, onCancel }: Props) {
             <Text label="Correo" value={business.email} onChange={(e) => setBusiness({ ...business, email: e.target.value })} />
           </div>
         </details>
+        {!repository.persistent ? <p className="warn">Este navegador no permite guardar: la cotización se perderá al cerrar la pestaña.</p> : null}
+        {failure ? (
+          <p className="warn" role="alert">
+            {failure}
+          </p>
+        ) : null}
         <div className="row-gap">
           <button type="button" className="btn2" onClick={onCancel}>
             Volver

@@ -7,7 +7,15 @@
  *
  * Se definen tipos mínimos para no depender de paquetes de Cloudflare en esta fase.
  */
-import { BudgetLedger, type BudgetGate, type CounterStorage, type QuotaSnapshot, type ReservationRequest, type ReservationResult } from './ledger';
+import {
+  BudgetLedger,
+  type BudgetGate,
+  type CounterStorage,
+  type QuotaSnapshot,
+  type ReservationRequest,
+  type ReservationResult,
+  type ServiceSwitch,
+} from './ledger';
 
 interface DurableStorageLike {
   get<T>(keys: string[]): Promise<Map<string, T>>;
@@ -49,6 +57,15 @@ export class RouteBudgetDurableObject {
         const body = (await request.json()) as { userKey: string; now: string };
         return Response.json(await this.ledger.quota(body.userKey, new Date(body.now)));
       }
+      if (request.method === 'POST' && url.pathname === '/switch') {
+        const body = (await request.json()) as { enabled?: unknown };
+        if (typeof body.enabled !== 'boolean') return new Response('Solicitud inválida', { status: 400 });
+        await this.ledger.setServiceEnabled(body.enabled);
+        return Response.json({ enabled: await this.ledger.isServiceEnabled() });
+      }
+      if (request.method === 'GET' && url.pathname === '/switch') {
+        return Response.json({ enabled: await this.ledger.isServiceEnabled() });
+      }
       return new Response('No encontrado', { status: 404 });
     } catch {
       return new Response('Contador no disponible', { status: 503 });
@@ -57,7 +74,7 @@ export class RouteBudgetDurableObject {
 }
 
 /** Cliente del Worker hacia el Durable Object. Cualquier falla se propaga y el handler cierra. */
-export class DurableObjectBudgetGate implements BudgetGate {
+export class DurableObjectBudgetGate implements BudgetGate, ServiceSwitch {
   constructor(private readonly stub: DurableStubLike) {}
 
   async reserve(request: ReservationRequest): Promise<ReservationResult> {
@@ -76,5 +93,16 @@ export class DurableObjectBudgetGate implements BudgetGate {
     });
     if (!res.ok) throw new Error(`Contador respondió ${res.status}`);
     return (await res.json()) as QuotaSnapshot;
+  }
+
+  async setServiceEnabled(enabled: boolean): Promise<void> {
+    const res = await this.stub.fetch('https://budget/switch', { method: 'POST', body: JSON.stringify({ enabled }) });
+    if (!res.ok) throw new Error(`Contador respondió ${res.status}`);
+  }
+
+  async isServiceEnabled(): Promise<boolean> {
+    const res = await this.stub.fetch('https://budget/switch', { method: 'GET' });
+    if (!res.ok) throw new Error(`Contador respondió ${res.status}`);
+    return ((await res.json()) as { enabled: boolean }).enabled;
   }
 }

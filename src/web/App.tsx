@@ -8,7 +8,7 @@ import { QuoteForm } from './components/QuoteForm';
 import { QuoteView } from './components/QuoteView';
 import { VehiclesView } from './components/VehiclesView';
 import { QuoteSession } from './session';
-import { localQuoteRepository } from './storage';
+import { browserQuoteRepository } from './storage';
 import { browserVehicleRepository } from './vehicleRepository';
 
 type View = { name: 'cotizar' } | { name: 'nueva' } | { name: 'trabajos' } | { name: 'ver'; job: JobRecord } | { name: 'vehiculos' };
@@ -16,6 +16,7 @@ type View = { name: 'cotizar' } | { name: 'nueva' } | { name: 'trabajos' } | { n
 export function App() {
   const session = useMemo(() => new QuoteSession(httpRouteClient), []);
   const vehicleRepository = useMemo(() => browserVehicleRepository(), []);
+  const quoteRepository = useMemo(() => browserQuoteRepository(), []);
   const [view, setView] = useState<View>({ name: 'cotizar' });
   const [vehicles, setVehicles] = useState<VehicleProfile[]>([]);
   const [defaultVehicleId, setDefaultVehicleId] = useState<string | null>(null);
@@ -80,10 +81,10 @@ export function App() {
           />
         ) : null}
         {view.name === 'nueva' ? (
-          <QuoteForm session={session} repository={localQuoteRepository} onSaved={(job) => setView({ name: 'ver', job })} onCancel={() => setView({ name: 'cotizar' })} />
+          <QuoteForm session={session} repository={quoteRepository} onSaved={(job) => setView({ name: 'ver', job })} onCancel={() => setView({ name: 'cotizar' })} />
         ) : null}
-        {view.name === 'trabajos' ? <History repository={localQuoteRepository} onOpen={(job) => setView({ name: 'ver', job })} /> : null}
-        {view.name === 'ver' ? <QuoteView job={view.job} repository={localQuoteRepository} onBack={() => setView({ name: 'trabajos' })} /> : null}
+        {view.name === 'trabajos' ? <History repository={quoteRepository} onOpen={(job) => setView({ name: 'ver', job })} /> : null}
+        {view.name === 'ver' ? <QuoteView job={view.job} repository={quoteRepository} onBack={() => setView({ name: 'trabajos' })} /> : null}
         {view.name === 'vehiculos' ? (
           <VehiclesView
             repository={vehicleRepository}

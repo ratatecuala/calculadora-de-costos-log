@@ -65,7 +65,11 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles 
             ) : null}
           </details>
           <button type="button" className="btn" disabled={loading} onClick={() => void session.calculateRoute()}>
-            {loading ? 'Calculando…' : 'Calcular ruta'}
+            {loading
+              ? 'Calculando…'
+              : s.habitual.status === 'manual' && (s.habitual.manualReason === 'error_proveedor' || s.habitual.manualReason === 'contador_no_disponible')
+                ? 'Reintentar cálculo automático'
+                : 'Calcular ruta'}
           </button>
           <button type="button" className="link-btn" onClick={() => session.useManual('habitual')}>
             Prefiero ingresar los km a mano
@@ -141,6 +145,7 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles 
         </button>
         {!habitual ? <p className="sub">Calcula la ruta (o ingresa los km) para cotizar.</p> : null}
         {habitual && s.chosenPrice === null ? <p className="sub">Escribe el precio que vas a cobrar para crear la cotización.</p> : null}
+        {session.priceNeedsConfirmation() ? <p className="sub">Confirma tu precio (en «Tu precio») para crear la cotización.</p> : null}
       </section>
     </div>
   );
@@ -206,6 +211,9 @@ function VehiclePicker({ session, vehicles, onManageVehicles }: { session: Quote
         </p>
       ) : null}
       {deleted ? <p className="sub">Este vehículo fue eliminado; sus valores se mantienen solo en esta cotización.</p> : null}
+      {!applied && (s.params.kmPerL !== null || s.params.wearPerKm !== null) ? (
+        <p className="sub">Sin vehículo guardado: se mantienen el rendimiento y el desgaste que ya estaban escritos. Revísalos abajo.</p>
+      ) : null}
       {applied && (applied.kmPerL === null || applied.wearPerKm === null) ? (
         <p className="sub">A este vehículo le falta {applied.kmPerL === null ? 'el rendimiento' : ''}{applied.kmPerL === null && applied.wearPerKm === null ? ' y ' : ''}{applied.wearPerKm === null ? 'el desgaste' : ''}: el costo saldrá parcial hasta que lo completes.</p>
       ) : null}
@@ -319,13 +327,16 @@ function RouteCard(props: { title: string; rs: RouteState; computation: RouteCom
 function Breakdown({ computation }: { computation: RouteComputation | null }) {
   if (!computation) return null;
   const m = computation.measures;
+  // Con costo parcial (cota inferior, que se muestra truncada) las partidas también se truncan,
+  // para que su suma nunca supere el total mostrado (auditoría 2). Solo cambia la presentación.
+  const shown = (v: number) => formatClp(m.cost.type === 'cotaInferior' ? Math.floor(v) : Math.round(v));
   const line = (label: string, b: typeof m.D, hint?: string) => (
     <div className="ln">
       <span>
         {label}
         {hint ? <span className="sub"> · {hint}</span> : null}
       </span>
-      <span className="num">{b.missing.length ? <span className="tag tag-missing">{b.value === 0 ? 'Falta' : `${formatClp(Math.floor(b.value))} + ?`}</span> : formatClp(Math.round(b.value))}</span>
+      <span className="num">{b.missing.length ? <span className="tag tag-missing">{b.value === 0 ? 'Falta' : `${formatClp(Math.floor(b.value))} + ?`}</span> : shown(b.value)}</span>
     </div>
   );
   return (
@@ -394,6 +405,14 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
         onChange={(v) => session.setChosenPrice(v)}
         placeholder={m ? String(m.suggested.value) : 'Escribe tu precio'}
       />
+      {session.priceNeedsConfirmation() ? (
+        <div className="warn" role="alert">
+          <p className="price-changed">El costo del viaje cambió después de que escribiste tu precio. Revisa si te sigue conviniendo.</p>
+          <button type="button" className="btn2 small" onClick={() => session.confirmPrice()}>
+            Mantener este precio
+          </button>
+        </div>
+      ) : null}
       {m && m.afterTrip && m.afterAllCosts && m.overGoal ? (
         <div className="results">
           <div className="ln">

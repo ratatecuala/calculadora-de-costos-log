@@ -3,9 +3,10 @@
  *
  * Orden de controles (todos ANTES de llamar al proveedor):
  *   1. Validación de la entrada.
- *   2. Interruptor global (ROUTES_ENABLED).
+ *   2. Interruptor por configuración (ROUTES_ENABLED), leído en cada solicitud.
  *   3. Identidad anónima del cliente (obligatoria) y origen de red seudonimizado.
- *   4. Reserva atómica en el contador (global, ritmo diario, usuario, origen, comparaciones).
+ *   4. Reserva atómica en el contador (interruptor en caliente, global, ritmo diario,
+ *      usuario, origen, comparaciones).
  *      Si el contador falla o tarda: CIERRE (no se consulta) y modo manual.
  *   5. Llamada al proveedor. Un solo reintento, solo si el error es reintentable,
  *      y solo con una nueva reserva (los reintentos consumen presupuesto).
@@ -36,7 +37,9 @@ export interface HandlerResult {
 }
 
 const CLIENT_ID = /^[a-zA-Z0-9-]{16,64}$/;
-const inflight = new WeakMap<RouteHandlerDeps, Map<string, Promise<HandlerResult>>>();
+// Clave estable: el contador (BudgetGate). Las dependencias pueden rearmarse en cada
+// solicitud (configuración leída en caliente) sin perder la deduplicación.
+const inflight = new WeakMap<BudgetGate, Map<string, Promise<HandlerResult>>>();
 
 export function handleRouteRequest(body: unknown, ctx: RequestContext, deps: RouteHandlerDeps): Promise<HandlerResult> {
   const parsed = routeRequestSchema.safeParse(body);
@@ -48,10 +51,10 @@ export function handleRouteRequest(body: unknown, ctx: RequestContext, deps: Rou
   const userKey = `c:${ctx.clientId}`;
   // Doble clic o recarga: la misma solicitud en curso del mismo usuario se comparte (una sola reserva).
   const dedupeKey = `${userKey}|${routeKey(input)}`;
-  let map = inflight.get(deps);
+  let map = inflight.get(deps.budget);
   if (!map) {
     map = new Map();
-    inflight.set(deps, map);
+    inflight.set(deps.budget, map);
   }
   const existing = map.get(dedupeKey);
   if (existing) return existing;
@@ -71,13 +74,13 @@ async function processRequest(
   const kind: ReservationKind = input.kind === 'evitarPeajes' ? 'comparacion' : 'ruta';
 
   const first = await tryReserve(deps.budget, kind, userKey, originKey, now);
-  if (first !== 'ok') return manual(first === 'contador_no_disponible' ? 503 : 429, first, await safeQuota(deps, userKey, now));
+  if (first !== 'ok') return manual(denialStatus(first), first, await safeQuota(deps, userKey, now));
 
   let outcome = await deps.provider.computeRoute(input);
   if (!outcome.ok && outcome.retryable) {
     const retry = await tryReserve(deps.budget, 'reintento', userKey, originKey, now);
     if (retry === 'ok') outcome = await deps.provider.computeRoute(input);
-    else return manual(retry === 'contador_no_disponible' ? 503 : 429, retry, await safeQuota(deps, userKey, now));
+    else return manual(denialStatus(retry), retry, await safeQuota(deps, userKey, now));
   }
   if (!outcome.ok) return manual(502, 'error_proveedor', await safeQuota(deps, userKey, now));
 
@@ -103,6 +106,10 @@ async function tryReserve(
     // Cierre ante falla: cualquier error del contador (CounterUnavailableError u otro) bloquea la consulta.
     return 'contador_no_disponible';
   }
+}
+
+function denialStatus(reason: ManualReason): number {
+  return reason === 'contador_no_disponible' || reason === 'servicio_apagado' ? 503 : 429;
 }
 
 async function safeQuota(deps: RouteHandlerDeps, userKey: string, now: Date): Promise<QuotaInfo | null> {
