@@ -110,3 +110,43 @@ El propietario autorizó el 16-11-2026 **trasladar el informe Deep Research de G
 **Hallazgo pendiente:** interpretación contractual del almacenamiento/exportación de datos Routes y del **precio propio calculado con distancias de Google** (#15). No afirmar prohibición o permiso universal. Se añadió la comparación de costos/capacidades de [Mapbox, TomTom y otros](12-alternativas-mapas.md), sin evaluación empírica de precisión chilena.
 
 **Regla del propietario:** antes de **cualquier investigación externa profunda**, avisar y solicitar autorización; dichas investigaciones se harán con **GPT Deep Research**. Claude no debe sustituir este procedimiento por búsquedas autónomas. Sigue sin autorizarse programación, facturación, despliegue o merge.
+
+
+## Decisiones del 17-11-2026: inicio del desarrollo con Google Routes Essentials
+
+Comunicadas por el propietario a Claude el 17-11-2026, en el mensaje que autoriza las fases 1 a 3 dentro del PR #34. Siguen el mismo criterio de acreditación que A-21 a A-29: deben **ratificarse con un comentario en el PR #34**. Este mensaje **reemplaza** las decisiones anteriores que contradice (ver la tabla de contradicciones más abajo).
+
+| ID | Decisión | Reemplaza a |
+|---|---|---|
+| A-31 | El producto es una **calculadora profesional de costos y cotizaciones**, no un optimizador de rutas ni una alternativa a Google Maps | — |
+| A-32 | **Proveedor seleccionado para desarrollar: Google Routes API Essentials** | P-03 y la §9 de [02](02-arquitectura.md) («proveedor pendiente») |
+| A-33 | El transportista escribe **A y B**; el sistema obtiene **km y minutos automáticamente**; **base y regreso opcionales** | — |
+| A-34 | La app calcula costos y **recomienda un precio** que el transportista puede modificar; se genera la **cotización** con historial, PDF y WhatsApp | — |
+| A-35 | **Sin mapa integrado.** Enlace «Ver ruta en Google Maps» (Maps URLs, sin API) | A-22 (mapa con un camino a la vez) y Maps Embed |
+| A-36 | La comparación **habitual / evitando peajes es opcional** | A-24, en lo que se refiere a mostrarla siempre |
+| A-37 | **Tráfico en vivo fuera** de la primera implementación; Pro desactivado | A-23 |
+| A-38 | Los **cálculos comerciales y las cotizaciones son datos de la aplicación**. Se documentan las restricciones conocidas de Google sin bloquear el desarrollo; no se sigue debatiendo la interpretación contractual (#15 queda como registro de riesgo) | Bloqueo de #15 propuesto en #19 |
+| A-39 | **Política de consultas:** objetivo operativo de 7.000 solicitudes Essentials al mes y corte de emergencia de 8.000 | P-07 (cifras) |
+| A-40 | **Comparaciones gratuitas:** máximo 3 al día y 10 al mes por usuario; cada una consume una llamada adicional | — |
+| A-41 | **Pro y Enterprise completamente desactivados** | — |
+| A-42 | Nunca consultar al escribir; no repetir solicitudes al cambiar combustible, ayudantes, margen o precio; contador persistente y atómico; límites por usuario; interruptor global; bloqueo si falla el contador; modo manual al agotarse el cupo. **No se promete gasto cero** | — |
+| A-43 | Hasta autorizar Google Cloud: **respuestas simuladas, claramente identificadas**; nunca presentar distancias simuladas como reales | — |
+| A-44 | Se autoriza **solo** el trabajo de las fases 1 (documentación), 2 (seguridad económica) y 3 (cotizador con datos simulados) dentro del PR #34. Sin cuentas, APIs, facturación, despliegue ni merge | Amplía A-30 |
+
+### Arquitectura descartada como punto de partida
+
+La contrapropuesta de MapLibre + PMTiles + Valhalla (con geocodificación OSM), debatida en #19, **se descartó como punto de partida** el 17-11-2026, porque el producto no es un planificador de rutas (A-31). Se conserva en #19 y en [12](12-alternativas-mapas.md) como antecedente; solo se reabre si un requisito comprobado lo exige. TomTom y Mapbox quedan como respaldo documentado, sin evaluación activa.
+
+### Contradicciones detectadas y cómo se resolvieron
+
+| Documento o decisión anterior | Contradicción | Resolución |
+|---|---|---|
+| A-22 y [10](10-diseno-ux.md) §4: «mapa con un camino a la vez» | A-35: sin mapa integrado | Prevalece A-35. La guía UX lo indica |
+| A-23: tráfico bajo demanda con Routes Pro | A-37: tráfico fuera; Pro desactivado | Prevalece A-37 |
+| A-24: comparación de rutas siempre visible | A-36: comparación opcional con cupo | Prevalece A-36 |
+| [02](02-arquitectura.md) §8 (Embed + Routes) y §9 (proveedor pendiente) | A-32 y A-35 | §9 reescrita; los pasajes de §8 sobre Embed quedan como antecedente |
+| [02](02-arquitectura.md) §8.3: cuota de 160 o 435 al día (#9) | A-39: 7.000 / 8.000 al mes | Prevalece A-39. El ritmo diario acumulativo es el de #19 |
+| [01](01-alcance.md) y README: «mapas/rutas según viabilidad», «mapa con un camino a la vez» | A-35 | Actualizados |
+| Supabase (#35) como lugar del historial | No hay autorización para crear cuentas (A-44) | **Pendiente.** El historial se guarda **en el navegador** (localStorage) detrás de una interfaz reemplazable; la migración a la nube espera la decisión de #35 |
+| Reglas de IVA (#16) sin verificar | La cotización debería mostrar IVA | **Pendiente.** Sin regla verificada, la cotización muestra el neto (A-28) |
+| Límite de rutas por usuario sin cifra | A-42 exige límites por usuario | **Pendiente.** Se implementan valores **provisionales y configurables** (20 rutas al día por usuario y 40 por origen de red), que el propietario debe confirmar |

@@ -26,6 +26,8 @@
 5. **Publicación:** seguridad, documentos y cumplimiento revisados. El propietario autoriza el lanzamiento.
 6. **Validación real:** medir registro → primer cálculo → primera cotización → retorno y uso repetido.
 
+> **17-11-2026:** el propietario autorizó en el PR #34 las fases 1 (documentación), 2 (candado de consumo) y 3 (cotizador con datos simulados) (A-44). Conectar Google Routes, crear cuentas, desplegar e integrar siguen sin autorización.
+
 ## Orden de implementación propuesto (requiere autorización de programación)
 
 | Ola | Trabajo | En paralelo | Bloqueantes | Gasto |

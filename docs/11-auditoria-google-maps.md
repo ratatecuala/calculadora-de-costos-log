@@ -1,5 +1,8 @@
 # 11 · Auditoría documental de Google Maps Platform (Deep Research, 16-11-2026)
 
+> **Decisión del 17-11-2026 (A-32, A-38):** se desarrolla con Google Routes Essentials. Las restricciones de este informe se documentan como **registro de riesgo** y se aplican en el diseño (retención por campo, cotización sin km de Google); ya no bloquean el desarrollo.
+
+
 **Estado:** informe externo recibido del propietario y revisado para documentación. Es **evidencia de investigación**, no aprobación de proveedor, uso de datos, interpretación jurídica, facturación ni prueba real. **No se ejecutaron APIs**. Investigación profunda adicional **solo con autorización previa del propietario y mediante GPT Deep Research**.
 
 **Fuente base:** Deep Research facilitado por el propietario («Auditoría integral de Google Maps Platform para una calculadora gratuita de fletes en Chile», 16-11-2026). El informe señala documentación oficial al 11-11-2026. Las conclusiones contractuales son **interpretación preliminar, no dictamen jurídico**. Para el texto completo, conservar el material aportado por el propietario fuera del repositorio público si contiene material no autorizado.

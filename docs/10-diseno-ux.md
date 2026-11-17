@@ -56,6 +56,8 @@
 
 ## 4. Comparador y tráfico
 
+> **Actualización del 17-11-2026:** sin mapa integrado (A-35), comparación opcional con cupo (A-36) y tráfico en vivo fuera de la primera implementación (A-37). Los puntos de esta sección sobre mapa y tráfico quedan como antecedente.
+
 - **Cálculo ordinario:** la ruta más rápida/habitual frente a una con preferencia por evitar peajes. El usuario compara km, duración, combustible, TAG, desgaste, tiempo y precio estimado.
 - **Mapa (A-22, pendiente de ratificación):** un camino visible a la vez con selector, y enlace «Abrir en Google Maps». Maps Embed está propuesto ([02 §8](02-arquitectura.md)); sus términos se revisan en #15.
 - **Tráfico actualizado (A-23, pendiente de ratificación):** botón claramente visible «Actualizar con tráfico»; **nunca** se consulta en cada modificación del formulario. Sin él, la duración se rotula «duración habitual»; con él, «con tráfico de las HH:MM» (hora de la consulta). Activa el SKU Pro de Routes (verificado, ver [04](04-fuentes-de-datos.md)). Se mantiene el modo manual. No confundir `duration - staticDuration` con minutos de congestión observados.

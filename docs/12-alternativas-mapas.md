@@ -1,5 +1,8 @@
 # 12 · Alternativas a Google Maps para el cotizador de fletes — exploración preliminar
 
+> **Decisión del 17-11-2026 (A-32):** se desarrolla con Google Routes Essentials. Este análisis se conserva como antecedente; TomTom y Mapbox quedan como respaldo documentado. La arquitectura MapLibre + PMTiles + Valhalla debatida en #19 se descartó como punto de partida.
+
+
 **Fecha:** 16-11-2026. **Estado:** exploración acotada autorizada por el propietario para revisar Mapbox, Waze y otros proveedores. **No sustituye una investigación profunda con GPT Deep Research** ni una prueba real de precisión. No hay proveedor de mapas/rutas aprobado, API consumida, cuenta creada ni facturación habilitada.
 
 ## 1. Decisión de producto que buscamos

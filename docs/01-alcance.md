@@ -26,7 +26,7 @@ El transportista puede introducir y revisar:
 
 1. Vehículo, origen A, destino B, base y regreso opcionales, fecha/hora de salida.
 2. Ruta usual o rápida y ruta evitando peajes, **cuando el proveedor devuelva opciones válidas**.
-3. Distancia y duración estimadas por tramo, y enlace para verificar en Google Maps. **Tráfico actualizado bajo demanda (A-23, comunicada por el propietario, pendiente de ratificación en PR #34):** botón visible, nunca en cada cambio del formulario; sin él se usa la duración habitual y siempre existe el modo manual. Activa el SKU Pro de Routes (ver [04](04-fuentes-de-datos.md)).
+3. Distancia y duración por tramo **obtenidas automáticamente con Google Routes Essentials** (A-32), con el enlace «Ver ruta en Google Maps». **Tráfico en vivo fuera de la primera implementación** (A-37, reemplaza a A-23); la duración se rotula «tiempo habitual, sin tráfico actual». Km y minutos editables como corrección o respaldo.
 4. Precio de combustible de fuente oficial con fecha **o declarado por el usuario**, editable; rendimiento propio o referencia correctamente identificada, si existe y puede usarse.
 5. Peajes/TAG por ruta y horario cuando haya datos confiables; siempre con entrada manual y opción «no sé» distinta de «0».
 6. Tiempo de trabajo, carga/descarga, pisos como minutos declarados, ayudantes, estacionamiento, materiales, urgencia como recargo y otros costos.
@@ -35,7 +35,7 @@ El transportista puede introducir y revisar:
 
 **Dos rutas, dos cálculos comparables:** si un componente relevante falta, la interfaz muestra «Costo parcial» y no asegura cuál ruta es más barata. El tráfico afecta la duración; **no implica inventar litros adicionales** por congestión. El rendimiento urbano/carretera/mixto se elige o valida con datos suficientes.
 
-El diseño v4 **muestra un camino a la vez** y compara los importes de las dos alternativas debajo; no necesita dos polilíneas superpuestas. **Maps Embed** es candidato para esa visualización, y **Routes** lo es para km/duración estructurados. La coherencia de ambos resultados y condiciones de Google se verificará antes de programar. La alternancia es la decisión A-22 (comunicada por el propietario, pendiente de ratificación en PR #34).
+**Sin mapa integrado** (A-35, reemplaza a A-22): el recorrido se ve con el enlace «Ver ruta en Google Maps». La comparación **habitual / evitando peajes es opcional** (A-36), con cupo de 3 al día y 10 al mes por usuario.
 
 El modo manual funciona cuando fallan APIs o se agotan cuotas. No usar scraping de Google Maps.
 
@@ -51,7 +51,7 @@ Generar **PDF o documento compartible** con precio fijado por el transportista, 
 
 ## 5. Funciones gratuitas para validar el mercado
 
-Incluye obligatoriamente: calculadora, mapas/rutas según viabilidad y cuotas, costos editables, guardado de vehículos, cotizador PDF, historial básico, y **registro manual de viajes reales y cargas de combustible**. Rendimiento «lleno a lleno» calculado con información confirmada por el transportista puede ser gratuito.
+Incluye obligatoriamente: calculadora, rutas A→B automáticas (Google Routes Essentials) con enlace a Google Maps, costos editables, guardado de vehículos, cotizador PDF, historial básico, y **registro manual de viajes reales y cargas de combustible**. Rendimiento «lleno a lleno» calculado con información confirmada por el transportista puede ser gratuito.
 
 **Meta del lanzamiento:** saber si los transportistas lo utilizan para cotizaciones reales, regresan, generan documentos y reportan que los cálculos les ayudan. No medir solo registros.
 

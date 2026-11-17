@@ -262,6 +262,44 @@ Leídos vía buscador sobre la documentación oficial el 16-11-2026; se confirma
 
 
 
-## 9. Selección del proveedor de mapas — pendiente tras Deep Research
+## 9. Proveedor seleccionado y política de consultas (17-11-2026)
 
-La configuración Google Maps Embed + Routes descrita arriba es una **propuesta técnica, NO una decisión aprobada**. La [auditoría Google](11-auditoria-google-maps.md) identifica riesgo contractual sin resolver para persistir/exportar distancias, duraciones y quizás el precio de cotizaciones derivado; la [comparación preliminar](12-alternativas-mapas.md) identifica Mapbox y TomTom como alternativas reales para rutas, tráfico y peajes. Antes de autorizar el proveedor: verificar **contrato de almacenamiento/exportación, costo integral de mapas/geocodificación/rutas/tráfico y precisión de tiempos/distancias en Chile**, con investigación profunda por GPT Deep Research tras OK del propietario. No mezclar datos de proveedores hasta confirmar licencias. No activar APIs ni facturación.
+**Decisión (A-32):** se desarrolla con **Google Routes API, SKU Essentials** (`computeRoutes`, `TRAFFIC_UNAWARE`). **Sin mapa integrado** (A-35): ni Maps Embed ni Maps JavaScript; solo un enlace «Ver ruta en Google Maps» construido con Maps URLs, sin clave. Esta sección reemplaza la anterior «selección pendiente»; las secciones §8.2 (Embed) y §8.6 se conservan como antecedente. MapLibre + PMTiles + Valhalla quedó **descartado como punto de partida** (ver [07](07-decisiones.md)).
+
+**Restricciones conocidas de Google (registro de riesgo, sin bloquear el desarrollo, A-38):** según [11](11-auditoria-google-maps.md), los km, minutos y polilíneas de Routes no deben guardarse de forma permanente ni exportarse. Hay caché temporal de lat/lng hasta 30 días, y los Place ID se pueden guardar. La implementación por eso:
+- conserva en el historial solo los **datos propios**: direcciones escritas por el usuario, parámetros, cálculos comerciales, precio y cotización;
+- marca cada valor de ruta con su **procedencia** (`simulado`, `google`, `declarado`) y una **política de retención por campo**;
+- excluye de la cotización al cliente los km y minutos de Google.
+
+### 9.1 Política de consultas (A-39 a A-42)
+
+| Control | Valor | Dónde |
+|---|---|---|
+| Objetivo operativo mensual | **7.000** solicitudes Essentials, con ritmo diario acumulativo ⌊7.000 × d / D⌋ | `src/server/budget/policy.ts` |
+| Corte de emergencia mensual | **8.000** (lo usan los reintentos; nada lo supera) | Ídem |
+| Comparaciones por usuario | **3 al día y 10 al mes**; cada una es 1 solicitud adicional | Ídem |
+| Rutas por usuario | **Provisional:** 20 al día por usuario y 40 por origen de red (por confirmar) | Ídem |
+| SKU | Solo Essentials. Pro y Enterprise rechazados **antes** de cualquier solicitud | `src/server/google/template.ts` |
+| Contador | Persistente y atómico: reserva antes de llamar, no se devuelve, serializado | `src/server/budget/ledger.ts` |
+| Falla del contador | Cierre: sin solicitud y en modo manual | `src/server/routeHandler.ts` |
+| Reintentos | Máximo 1, solo ante 5xx o tiempo de espera; consume presupuesto | Ídem |
+| Interruptor global | `ROUTES_ENABLED` | Ídem |
+| Sin consultas al escribir ni al editar parámetros | El cálculo solo se dispara con «Calcular ruta»; la economía se recalcula en el navegador | `src/web/session.ts` |
+| Período | Mes y día en `America/Los_Angeles`, para alinearse con el mes de facturación de Google **[por verificar]** | `src/server/budget/period.ts` |
+
+**No se promete gasto cero.** Estos límites son protecciones propias; no sustituyen las cuotas ni las condiciones del proveedor.
+
+### 9.2 Implementación en el PR #34 (datos simulados)
+
+```
+src/engine/   motor económico puro (medidas, cotas, redondeo, comparación, IVA)
+src/shared/   tipos y esquemas compartidos, toClientQuote(), enlace de Google Maps
+src/server/   handler /api/route, presupuesto, proveedores (simulado y Google)
+src/web/      interfaz React, sesión de cálculo, historial local, PDF por impresión, WhatsApp
+tests/        pruebas Vitest (presupuesto, concurrencia, SKU, motor, sesión, secretos)
+```
+
+- **Proveedor activo:** `simulado`. Las respuestas llevan `fuente: "simulado"` y la interfaz lo dice en cada resultado.
+- **Proveedor Google:** existe la plantilla de solicitud y su validación. **No está conectado**: exige `ROUTES_PROVIDER=google`, `GOOGLE_ROUTES_ENABLED=true` y una clave de servidor que no existe. Las pruebas usan un `fetch` falso.
+- **Contador en producción:** clase Durable Object (`src/server/budget/durableObject.ts`) con el mismo libro serializado. **No se ha ejecutado en Cloudflare**, porque no hay cuenta autorizada.
+- **Historial:** en el navegador (localStorage), detrás de `QuoteRepository`; migrable a Supabase cuando se apruebe #35.

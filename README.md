@@ -25,7 +25,7 @@ Herramienta web para **transportistas independientes y fletes livianos en Chile*
 - **Probar sin cuenta**; ingresar con Google para guardar información. Alternativa por correo a resolver.
 - Perfil de transportista y **varios vehículos** (tipo, marca, modelo, año, motorización, combustible; rendimiento urbano/carretera opcional).
 - Calculadora para un servicio **base opcional → origen A → destino B → regreso opcional a la base**. No es un planificador de múltiples entregas.
-- **Mapa con un camino a la vez** y comparación **ruta habitual/rápida vs. evitando peajes**; kilómetros y duración. Tráfico actualizado bajo consulta expresa como **criterio recomendado sujeto a verificación de costo**, no por cada edición de formulario.
+- **A→B automático con Google Routes Essentials** (base y regreso opcionales): kilómetros y minutos, enlace «Ver ruta en Google Maps», sin mapa integrado. Comparación **habitual / evitando peajes opcional** (3 al día, 10 al mes por usuario). Tráfico en vivo fuera de la primera versión. **Hoy funciona con datos simulados.**
 - Combustible y peajes con procedencia verificable, editables; modo manual ante errores o límites de API.
 - Costos de ayudantes, carga/descarga, materiales, desgaste, gastos fijos, tiempo propio y precio sugerido.
 - **Cotización profesional exportable en PDF o compartible**, sin revelar costos ni márgenes al cliente.
