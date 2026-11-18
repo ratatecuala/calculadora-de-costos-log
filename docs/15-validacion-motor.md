@@ -98,6 +98,12 @@ Severidad: **Alta** = puede llevar a cobrar de menos con datos válidos; **Media
 
 ## 6. Correcciones propuestas (NO aplicadas; requieren aprobación)
 
+> **Recomendaciones de la [revisión de ChatGPT del 18-11](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6970465877)** (no son aprobación del propietario):
+> - **C-3:** mantener la fórmula de margen sobre el precio de venta, P = C/(1−m), que coincide con docs/03 y con los casos dorados, y corregir **solo el texto** de la interfaz a «Margen objetivo (% del precio de venta)», con una ayuda clara. No cambiar la fórmula por confundir «margen» con «recargo sobre el costo».
+> - **C-1:** distinguir entre tratar un dato **opcional** inválido como faltante (`null`, con aviso) y **rechazar** una entrada **requerida** inválida. No ocultar valores negativos sin avisar.
+> - **C-1, C-2 y C-4** son correcciones defensivas y de presentación razonables, pero tocan `src/engine` y la interfaz: requieren autorización.
+> - Las **225 pruebas en verde incluyen 9 `it.fails`**, que documentan defectos **no corregidos**. El verde **no** significa que C-1 a C-4 estén resueltos.
+
 Verificadas en una copia aislada: con estos cambios, `tsc` queda sin errores, los 9 `it.fails` pasan a cumplirse (hay que cambiarlos a `it`) y las demás pruebas siguen en verde.
 
 ### 6.1 `src/engine/inputs.ts` (C-1a, b, f) — no cambia fórmulas
@@ -183,7 +189,7 @@ La sesión solo entrega km y minutos ya validados (`parseAmount` o `checkLegs` d
 
 ```diff
 -      <span className="field-label">Ganancia extra sobre el costo</span>
-+      <span className="field-label">Ganancia extra (como % del precio)</span>
++      <span className="field-label">Margen objetivo (% del precio de venta)</span>
 ```
 
 Alternativa que **sí cambia la fórmula** (solo con aprobación y nuevos casos dorados): P = C·(1 + m) + recargos.

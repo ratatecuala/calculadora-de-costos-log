@@ -100,7 +100,7 @@ Detalle en [13 · Staging](13-staging.md) §5. Se ejecutan con credenciales desd
 
 | Verificación | Resultado | Detalle |
 |---|---|---|
-| `npm test` (sin red) | **225/225**, typecheck y build sin errores | 154 previas + 46 de validación del motor + 25 de experiencia de usuario |
+| `npm test` (sin red) | **225/225**, typecheck y build sin errores | 154 previas + 46 de validación del motor + 25 de experiencia de usuario. **Incluye 9 `it.fails`** (defectos documentados y **no corregidos**) |
 | Recalculo independiente de los casos dorados (`scripts/verificar-casos-dorados.mjs`, aritmética racional, no importa el motor) | **64/64** coinciden con [03](03-motor-de-costos.md) | G1–G10 y escenarios A, B y C. Hallazgos de validación de entradas y textos (sin errores de fórmula) en [15](15-validacion-motor.md) |
 | `tests/engine.validation.test.ts` | 37 pruebas normales + **9 `it.fails`** que documentan defectos C-1 a C-3 | Pasan mientras el defecto exista; avisan cuando se corrija |
 | Experiencia de usuario en navegador local (Playwright: Pixel 7, iPhone 13, 360, 320, 768, 820, 1024, 1280, 1366 y 1440 px) | 10 hallazgos, **10 corregidos**; sin desplazamiento horizontal ni controles táctiles < 44 px | [14](14-qa-ux.md) |

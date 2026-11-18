@@ -20,6 +20,13 @@
 
 ## 1. Resumen ejecutivo
 
+> **Contraste posterior ([revisión de ChatGPT del 18-11](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6970465877)).** ChatGPT abrió directamente tres fuentes primarias que esta sesión no pudo abrir:
+> - **SII, catálogo de códigos de actividad** (https://www.sii.cl/catastro/codigos.htm): el transporte de carga por carretera figura como actividad **afecta a IVA**.
+> - **SII, pregunta frecuente 001_130_1204** (https://www.sii.cl/preguntas_frecuentes/impuestos_mensuales/001_130_1204.htm): **no** hay cambio de sujeto con retención del IVA del flete como regla general.
+> - **SERNAC, art. 30 de la Ley 19.496** (https://www.sernac.cl/portal/609/w3-propertyvalue-58774.html): al consumidor se le informa el **precio total con impuestos incluidos**.
+>
+> Esos tres puntos pasan de «vía buscador» a **verificados en la fuente por la revisión**. La **opción B** se considera una buena **dirección de producto**, pero los perfiles especiales, la emisión tributaria y los redondeos requieren **confirmación de un contador o del SII** antes de activar reglas automáticas. **No es una decisión aprobada.**
+
 - **El flete terrestre de carga dentro de Chile está afecto a IVA (19 %)** por las reglas generales; el SII lo ha sostenido desde antes de la Ley 21.420 (Oficio/JA 178 de 2001), y desde el 01-01-2023 la Ley 21.420 grava además todos los servicios salvo exención. *(VERIFICADO VÍA BUSCADOR; la tasa del 19 % (art. 14 DL 825) es POR VALIDAR en el texto vigente.)*
 - **La exención para quien «trabaja solo» (art. 12 E N° 12 DL 825) no alcanza a quienes explotan vehículos de transporte de carga**, según preguntas frecuentes del SII. Un fletero que trabaja solo con su camioneta **no** queda exento por eso. *(VERIFICADO VÍA BUSCADOR.)*
 - **Solo el flete internacional (del exterior a Chile y viceversa) está exento** (art. 12 E N° 2). El tramo nacional, incluido el flete de mercadería de exportación hasta el puerto de embarque, **sigue afecto**. *(VERIFICADO VÍA BUSCADOR.)*
@@ -195,7 +202,7 @@ Además de B, un interruptor «Mi precio ya incluye IVA». Se calcula `neto = ro
 
 ### 7.2 Recomendación
 
-**Opción B**, dejando **C** como mejora posterior solo si el uso real muestra que los transportistas piden totales redondos. Si se adopta C, mostrar al transportista (no al cliente) el aviso «el documento tributario puede diferir en $1 por redondeo». Mientras un contador no valide los perfiles, **mantener `verified: false`** y mostrar «Precio total» (no «Valor neto») en lugar del estado actual.
+**Opción B, como dirección de producto condicionada a validación tributaria** (contador o SII, según la revisión de ChatGPT), dejando **C** como mejora posterior solo si el uso real muestra que los transportistas piden totales redondos. Si se adopta C, mostrar al transportista (no al cliente) el aviso «el documento tributario puede diferir en $1 por redondeo». Mientras un contador no valide los perfiles, **mantener `verified: false`** y mostrar «Precio total» (no «Valor neto») en lugar del estado actual.
 
 ### 7.3 Datos que hay que preguntar al usuario
 
