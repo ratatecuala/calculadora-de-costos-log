@@ -31,7 +31,7 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 | Área | Estado |
 |---|---|
 | Calculadora y cotizador (motor de costos, precio, PDF, WhatsApp) | **Funciona** (local y staging) |
-| Experiencia en teléfono y en PC/notebook (A-49) | **Paridad verificada en local** del 320 al 1440 px: 10 problemas encontrados y corregidos ([14](docs/14-qa-ux.md)). **Staging aún muestra la versión anterior** hasta redesplegar |
+| Experiencia en teléfono y en PC/notebook (A-49) | **Paridad verificada en local** del 320 al 1440 px (10 problemas corregidos, [14](docs/14-qa-ux.md)) y **en staging redesplegado** el 18-11: PC 1440/1366 y teléfono Pixel 7/iPhone 13, **59/59** sin cuenta |
 | Validación independiente del motor (#24) | **Casos dorados 64/64** por recálculo independiente; sin errores de fórmula. Los 4 hallazgos de entradas y textos (C-1 a C-4) **corregidos** con tu aprobación (A-50), sin cambiar fórmulas ([15](docs/15-validacion-motor.md)) |
 | IVA en la cotización (#16) | La cotización muestra **«Precio total»** y la leyenda **«Esta cotización no es factura ni boleta.»** (A-51). Las reglas por tipo de transportista y de cliente (opción B) siguen **sin implementar**, a la espera de validación tributaria ([16](docs/16-iva-cotizaciones.md)) |
 | Distancias y tiempos de ruta | **Simulados**. La app lo indica en cada resultado. Google Routes **no está conectado** |
@@ -70,7 +70,8 @@ Detalle: [02 · Arquitectura](docs/02-arquitectura.md) y [13 · Staging](docs/13
 | RLS real en Supabase con dos usuarios y un visitante anónimo (`scripts/verificar-rls.mjs`) | **39/39** | Claude (ejecutadas) |
 | Numeración real en Supabase: concurrencia desde 2 dispositivos, importación y conflictos (`scripts/verificar-numeracion.mjs`) | **17/17** | Claude (ejecutadas) |
 | Cloudflare real: reserva, concurrencia estricta, apagado, reintentos, contador caído (`scripts/verificar-cloudflare.mjs`) | **8/8 y 2/2** | Claude (ejecutadas) |
-| Navegador real contra staging, móvil y escritorio (`scripts/e2e-staging.mjs`) | **41/41** (17-11, antes de las correcciones de experiencia de usuario; no repetido) | Claude (ejecutadas) |
+| Navegador real contra staging **sin cuenta**, PC y teléfono (`scripts/e2e-staging-anonimo.mjs`, versión del 18-11) | **59/59**: acceso privado, flujo completo, aviso de texto inválido, margen, «Precio total» y leyenda, PDF, controles ≥ 44 px, 0 errores, 0 dominios externos | Claude (ejecutadas) |
+| Navegador real contra staging **con cuentas** (`scripts/e2e-staging.mjs`) | **41/41** el 17-11. **No repetido** sobre la versión del 18-11: faltan las contraseñas de los usuarios de prueba, que estaban en el contenedor de una sesión anterior | Claude (ejecutadas) |
 | Revisión independiente del código | 7 auditorías, más la [revisión de los cinco frentes del 18-11](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6970465877) (sin bloqueos nuevos; PR #41 apto para tu decisión) | ChatGPT, **por inspección**: no reproduce las ejecuciones |
 
 Las credenciales de los scripts se leen siempre de archivos **fuera** del repositorio.

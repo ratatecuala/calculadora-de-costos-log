@@ -110,7 +110,9 @@ Detalle en [13 · Staging](13-staging.md) §5. Se ejecutan con credenciales desd
 | Ensayo local de respaldo y restauración (Postgres desechable, datos ficticios) | Ruta B **idéntica** al origen (`diff` = 0) | [17](17-supabase-seguridad-respaldo.md) §6. No tocó Supabase |
 | Auditoría de Supabase staging (solo lectura) | RLS 6/6, 17 políticas, `anon` sin privilegios de tabla, invariantes correctos | [17](17-supabase-seguridad-respaldo.md) §2 |
 
-**No repetido en esta ronda:** `scripts/e2e-staging.mjs` y los scripts contra Cloudflare. El staging **no** se redesplegó con las correcciones de experiencia de usuario, porque esta sesión no tiene el token de Cloudflare: hasta redesplegar, el staging muestra la versión anterior.
+**Staging redesplegado el 18-11-2026** con todos los cambios de esta ronda y verificado con `scripts/e2e-staging-anonimo.mjs`: **59/59** en PC 1440 y 1366 y en teléfono Pixel 7 e iPhone 13 (acceso privado, flujo anónimo completo, A-50, A-51, PDF, controles táctiles, 0 errores, 0 dominios externos).
+
+**Antes del redespliegue (histórico):** no se habían repetido `scripts/e2e-staging.mjs` ni los scripts contra Cloudflare. El staging **no** se redesplegó con las correcciones de experiencia de usuario, porque esta sesión no tiene el token de Cloudflare: hasta redesplegar, el staging muestra la versión anterior.
 
 **No probado todavía:**
 - el candado en **producción** (sí probado en staging real, plan gratuito, con proveedor simulado; ver [13](13-staging.md));

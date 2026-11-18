@@ -94,6 +94,26 @@ Sesiones reales (JWT emitidos por Supabase) de los usuarios A y B y un visitante
 6. **30 solicitudes simultáneas** del mismo usuario: **20 autorizadas, 10 rechazadas, 0 fallas del contador, Δ = 20**. Desde la quinta auditoría la prueba es **estricta**: calcula la cifra exacta esperada con el cupo real del origen (`originUsedToday` del estado administrativo) y, si el cupo del origen no alcanza, se declara no concluyente en vez de aprobarse.
 7. Durable Object caído (falla inyectada en el objeto real): `contador_no_disponible`, sin ruta, el proveedor no se consulta.
 
+### 5.4 bis. Redespliegue del 18-11-2026 y prueba sin cuenta: `scripts/e2e-staging-anonimo.mjs` → **59/59**
+
+- **Redespliegue:** versión con las correcciones de experiencia de usuario (docs/14), A-50, A-51 y el aviso de texto inválido. Mismo Worker, plan gratuito, proveedor **simulado**; sin cambios en el Durable Object, en Supabase ni en las variables.
+- **Rotación del acceso privado (`STAGING_BASIC_AUTH`)**, autorizada por el propietario:
+  - usuario y contraseña nuevos, aleatorios (32 caracteres);
+  - entregados al propietario como archivo adjunto privado, nunca en el chat, GitHub ni los registros;
+  - la contraseña anterior dejó de funcionar;
+  - `ADMIN_TOKEN` y `ORIGIN_HASH_SALT` no se tocaron.
+  - Verificado: sin credenciales o con credenciales incorrectas → **401** (también `/api/route`); con las nuevas → **200**.
+- **Prueba en navegador sin cuenta**, en PC 1440 y 1366 y en teléfono Pixel 7 e iPhone 13, **59/59**:
+  - acceso privado;
+  - ruta simulada, cotización, historial local y PDF sin costos internos;
+  - pestañas visibles y sin desplazamiento horizontal;
+  - aviso al escribir «-5000» en un campo;
+  - margen «12,5»;
+  - «Precio total» y leyenda en el documento, el PDF y WhatsApp;
+  - controles táctiles de al menos 44 px;
+  - 0 errores de página y 0 dominios externos.
+- **No repetido:** el flujo con cuentas (`scripts/e2e-staging.mjs`). Las contraseñas de los usuarios de prueba estaban en el contenedor de una sesión anterior, que ya no existe. Para repetirlo, el propietario debe autorizar restablecer esas contraseñas (solo usuarios de prueba, dominio `.invalid`) o entregar el archivo por un canal seguro.
+
 ### 5.4 Flujo completo en navegador: `scripts/e2e-staging.mjs` → **39/39** (móvil Pixel 7 y escritorio 1440)
 Desde la quinta auditoría incluye: al cerrar sesión no queda a la vista el vehículo de la cuenta y el borrador de la cotización queda vacío; otra cuenta en el **mismo navegador** no ve vehículos ni cotizaciones de la anterior.
 
