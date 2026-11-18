@@ -4,8 +4,8 @@
  * - Los valores esperados NO salen del motor: se recalcularon a mano y con
  *   `scripts/verificar-casos-dorados.mjs` (aritmética racional exacta, sin importar src/).
  * - `it(...)`: comportamiento correcto confirmado.
- * - `it.fails(...)`: error concreto (hallazgo C-n). Pasa MIENTRAS el error exista; cuando
- *   se corrija, Vitest lo marcará como fallido para que se cambie a `it(...)`.
+ * - Hallazgos C-1 a C-4: se documentaron con `it.fails(...)` y se corrigieron el 18-11 con
+ *   aprobación del propietario (A-50); desde entonces son `it(...)` y protegen la corrección.
  * - «No especificado»: documenta el comportamiento ACTUAL sin aprobarlo; requiere decisión.
  *
  * Todos los montos son ficticios.
@@ -428,7 +428,7 @@ describe('Comportamiento correcto confirmado', () => {
 });
 
 // =====================================================================================
-describe('Errores encontrados (it.fails: pasan mientras el error exista)', () => {
+describe('Errores encontrados y corregidos el 18-11 con aprobación del propietario (A-50)', () => {
   /** El motor debe rechazar la entrada (lanzar) o, si la acepta, no devolver un monto inválido. */
   const rejectsOrSane = (fn: () => Bounded) => {
     let b: Bounded;
@@ -454,37 +454,37 @@ describe('Errores encontrados (it.fails: pasan mientras el error exista)', () =>
   // y §3 en que null ≠ 0; con montos negativos o no finitos las cotas dejan de valer.
   // Hoy la interfaz filtra (parseAmount: finito y ≥ 0), pero el contrato del motor no.
 
-  it.fails('C-1a — peajes negativos: buildCostItems(…, tolls −5.000) da una partida de −5.000 (esperado: rechazo o faltante)', () => {
+  it('C-1a — peajes negativos: buildCostItems(…, tolls −5.000) da una partida de −5.000 (esperado: rechazo o faltante)', () => {
     // Actual: amount −5.000 → baja el costo. Nota: «otros» negativo sí se lleva a 0.
     expect(itemRejectsOrSane(() => amountOf(buildCostItems(10, 10, { ...FULL, tolls: -5000 }), 'peajes'))).toBe(true);
   });
 
-  it.fails('C-1b — precio de combustible negativo: −1.000 $/L da combustible −1.000 en 10 km a 10 km/L', () => {
+  it('C-1b — precio de combustible negativo: −1.000 $/L da combustible −1.000 en 10 km a 10 km/L', () => {
     expect(itemRejectsOrSane(() => amountOf(buildCostItems(10, 10, { ...FULL, fuelPricePerL: -1000 }), 'combustible'))).toBe(true);
   });
 
-  it.fails('C-1c — partida NaN: el costo sale NaN rotulado «estimado» y se muestra «$NaN»', () => {
+  it('C-1c — partida NaN: el costo sale NaN rotulado «estimado» y se muestra «$NaN»', () => {
     expect(rejectsOrSane(() => computeMeasures({ items: [item('a', 'desembolso', Number.NaN)], margin: 0.15 }).cost)).toBe(true);
   });
 
-  it.fails('C-1d — recargos NaN: el precio sugerido sale NaN', () => {
+  it('C-1d — recargos NaN: el precio sugerido sale NaN', () => {
     expect(rejectsOrSane(() => computeMeasures({ items: v4(), margin: 0.15, surcharges: Number.NaN }).suggested)).toBe(true);
   });
 
-  it.fails('C-1e — partida infinita: el precio sugerido sale Infinity («$∞») rotulado «estimado»', () => {
+  it('C-1e — partida infinita: el precio sugerido sale Infinity («$∞») rotulado «estimado»', () => {
     expect(rejectsOrSane(() => computeMeasures({ items: [item('a', 'desembolso', Number.POSITIVE_INFINITY)], margin: 0.15 }).suggested)).toBe(true);
   });
 
-  it.fails('C-1f — minutos de conducción negativos: −120 min, sin carga, a 1.500 $/h dan gastos fijos de −3.000', () => {
+  it('C-1f — minutos de conducción negativos: −120 min, sin carga, a 1.500 $/h dan gastos fijos de −3.000', () => {
     expect(itemRejectsOrSane(() => amountOf(buildCostItems(10, -120, { ...FULL, loadMinutes: 0 }), 'gastosFijos'))).toBe(true);
   });
 
-  it.fails('C-1g — precio elegido NaN: lo que queda sale NaN rotulado «estimado»', () => {
+  it('C-1g — precio elegido NaN: lo que queda sale NaN rotulado «estimado»', () => {
     expect(rejectsOrSane(() => computeMeasures({ items: v4(), margin: 0.15, price: Number.NaN }).afterTrip!)).toBe(true);
   });
 
   // C-2 — ceilTo(0) devuelve −0: con costo 0 completo la interfaz muestra «$-0» como precio sugerido.
-  it.fails('C-2 — costo 0 completo (0 km, todo declarado): el precio sugerido se muestra «$-0» (esperado «$0»)', () => {
+  it('C-2 — costo 0 completo (0 km, todo declarado): el precio sugerido se muestra «$-0» (esperado «$0»)', () => {
     const zero: TripParams = { ...FULL, helpers: 0, otherCosts: 0, tolls: 0, fixedPerHour: 0, ownerPerHour: 0, loadMinutes: 0 };
     const m = computeMeasures({ items: buildCostItems(0, 0, zero), margin: 0.15 });
     expect(m.complete).toBe(true);
@@ -494,9 +494,9 @@ describe('Errores encontrados (it.fails: pasan mientras el error exista)', () =>
   // C-3 — docs/03 §2 (4): m es margen SOBRE EL PRECIO (P = C/(1 − m)). La interfaz lo rotula
   // «Ganancia extra sobre el costo», que se lee como recargo sobre el costo (P = C·(1 + m)).
   // G1: el usuario espera ⌈42.752 × 1,15⌉ = 50.000 y la app sugiere 51.000.
-  it.fails('C-3 — el rótulo del margen y la fórmula del motor describen el mismo cálculo', () => {
+  it('C-3 — el rótulo del margen y la fórmula del motor describen el mismo cálculo', () => {
     const ui = readFileSync(new URL('../src/web/components/Calculator.tsx', import.meta.url), 'utf8');
-    const saysOverCost = /Ganancia extra sobre el costo/.test(ui);
+    const saysOverCost = /sobre el costo/.test(ui) && !/% del precio de venta/.test(ui);
     const engineIsMarkup = computeMeasures({ items: v4(), margin: 0.15 }).suggested.value === ceilTo(42752 * 1.15, 1000);
     expect(saysOverCost).toBe(engineIsMarkup);
   });
@@ -536,9 +536,8 @@ describe('No especificado (documenta el comportamiento ACTUAL; requiere decisió
     expect(amountOf(items, 'remuneracion')).toBe(18000); // 6.000 × 3 h, no 6.000 × 0,5 h
   });
 
-  it('NE-8 — carga negativa se lleva a 0 en el costo pero no en las horas que usa la comparación de la sesión', () => {
-    const items = buildCostItems(10, 60, { ...FULL, loadMinutes: -60 });
-    expect(amountOf(items, 'gastosFijos')).toBe(1500); // 1 h: la carga negativa se ignoró
+  it('NE-8 (resuelto por A-50) — carga y descarga es un dato requerido: un valor negativo se rechaza, no se lleva a 0 en silencio', () => {
+    expect(() => buildCostItems(10, 60, { ...FULL, loadMinutes: -60 })).toThrow();
   });
 
   it('NE-9 — sin tope de magnitud: montos sobre 2^53 se aceptan y pierden precisión al peso', () => {
@@ -550,5 +549,32 @@ describe('No especificado (documenta el comportamiento ACTUAL; requiere decisió
   it('NE-10 — precio elegido 0 o negativo se acepta: lo que queda sale negativo sin aviso del motor', () => {
     const m = computeMeasures({ items: v4(), margin: 0.15, price: -1 });
     expect(m.afterTrip!.value).toBe(-24224);
+  });
+});
+
+
+// =====================================================================================
+describe('A-50 — datos opcionales inválidos: faltante con aviso, nunca 0', () => {
+  it('peaje negativo → partida faltante marcada como inválida', () => {
+    const peajes = buildCostItems(10, 10, { ...FULL, tolls: -5000 }).find((i) => i.id === 'peajes')!;
+    expect(peajes.amount).toBeNull();
+    expect(peajes.invalid).toBe(true);
+  });
+  it('rendimiento NaN → combustible faltante marcado como inválido', () => {
+    const c = buildCostItems(10, 10, { ...FULL, kmPerL: Number.NaN }).find((i) => i.id === 'combustible')!;
+    expect(c.amount).toBeNull();
+    expect(c.invalid).toBe(true);
+  });
+  it('dato simplemente faltante (null) → faltante SIN marca de inválido', () => {
+    const peajes = buildCostItems(10, 10, { ...FULL, tolls: null }).find((i) => i.id === 'peajes')!;
+    expect(peajes.amount).toBeNull();
+    expect(peajes.invalid).toBeUndefined();
+  });
+  it('datos válidos → sin marca de inválido en ninguna partida', () => {
+    expect(buildCostItems(10, 10, FULL).some((i) => i.invalid)).toBe(false);
+  });
+  it('km o minutos inválidos (requeridos) → rechazo', () => {
+    expect(() => buildCostItems(Number.NaN, 10, FULL)).toThrow();
+    expect(() => buildCostItems(10, -1, FULL)).toThrow();
   });
 });

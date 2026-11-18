@@ -138,6 +138,9 @@ export function toClientQuote(job: JobRecord, fallbackIssuer?: BusinessProfile):
 
 const clp = (n: number) => `$${new Intl.NumberFormat('es-CL').format(n)}`;
 
+/** Leyenda fija aprobada por el propietario (A-51): la cotización no es un documento tributario. */
+export const QUOTE_LEGAL_NOTICE = 'Esta cotización no es factura ni boleta.';
+
 /** Texto para WhatsApp, construido solo desde la cotización al cliente. */
 export function whatsappText(q: ClientQuote): string {
   const lines = [
@@ -148,10 +151,11 @@ export function whatsappText(q: ClientQuote): string {
     q.serviceDate ? `Fecha del servicio: ${q.serviceDate}` : '',
     q.includes ? `Incluye: ${q.includes}` : '',
     q.taxAmount === null
-      ? `Valor neto: ${clp(q.netPrice)}`
+      ? `Precio total: ${clp(q.netPrice)}`
       : `Neto ${clp(q.netPrice)} + IVA ${clp(q.taxAmount)} = Total ${clp(q.total)}`,
     q.validUntil ? `Válida hasta: ${q.validUntil}` : '',
     q.conditions ? `Condiciones: ${q.conditions}` : '',
+    QUOTE_LEGAL_NOTICE,
   ];
   return lines.filter(Boolean).join('\n');
 }

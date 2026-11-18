@@ -2,7 +2,8 @@ import type { Bounded } from './types';
 
 /** Techo al múltiplo de `step` (política del precio sugerido). */
 export function ceilTo(value: number, step: number): number {
-  return Math.ceil(value / step - 1e-9) * step;
+  // `+ 0` convierte −0 en 0 (C-2, A-50).
+  return Math.ceil(value / step - 1e-9) * step + 0;
 }
 
 /**
@@ -33,5 +34,6 @@ export function displayThreshold(value: number): number {
 const clp = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 0 });
 
 export function formatClp(value: number): string {
-  return `$${clp.format(value)}`;
+  // −0 se muestra como 0 (C-2, A-50).
+  return `$${clp.format(value === 0 ? 0 : value)}`;
 }

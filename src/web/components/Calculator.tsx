@@ -334,6 +334,7 @@ function RouteCard(props: { title: string; rs: RouteState; computation: RouteCom
 function Breakdown({ computation }: { computation: RouteComputation | null }) {
   if (!computation) return null;
   const m = computation.measures;
+  const invalid = (computation?.items ?? []).filter((it) => it.invalid).map((it) => it.id);
   // Con costo parcial (cota inferior, que se muestra truncada) las partidas también se truncan,
   // para que su suma nunca supere el total mostrado (auditoría 2). Solo cambia la presentación.
   const shown = (v: number) => formatClp(m.cost.type === 'cotaInferior' ? Math.floor(v) : Math.round(v));
@@ -352,6 +353,7 @@ function Breakdown({ computation }: { computation: RouteComputation | null }) {
       {!m.complete ? (
         <p className="warn">
           <strong>Costo parcial.</strong> Falta: {missingText(m.missing)}. Puedes seguir cotizando, pero el costo real puede ser mayor.
+          {invalid.length ? <> Revisa: {missingText(invalid)} (el dato ingresado no es válido y no se usó).</> : null}
         </p>
       ) : null}
       {line('Lo que pagas en el viaje', m.D, 'combustible, peajes, ayudantes')}
@@ -374,7 +376,8 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
   return (
     <div className="card highlight">
       <h2 className="sec">Tu precio</h2>
-      <span className="field-label">Ganancia extra sobre el costo</span>
+      <span className="field-label">Margen objetivo (% del precio de venta)</span>
+      <p className="sub">Ejemplo: con 15 %, de cada $100 que cobras, $15 quedan como margen sobre tus costos.</p>
       <div className="segs">
         {[10, 15, 20].map((p) => (
           <button
@@ -394,7 +397,7 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
         </button>
       </div>
       {custom ? (
-        <NumberField label="Ganancia extra" suffix="%" value={pct} onChange={(v) => session.setMargin(Math.min(80, Math.max(0, v ?? 0)) / 100)} />
+        <NumberField label="Margen objetivo" suffix="%" decimals={2} value={Math.round(s.margin * 10000) / 100} onChange={(v) => session.setMargin(Math.min(80, Math.max(0, v ?? 0)) / 100)} />
       ) : null}
       {m ? (
         <div className="suggest">
@@ -406,7 +409,7 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
       )}
       {m && !m.complete ? <p className="sub">Precio indicativo: faltan datos, puede quedar corto.</p> : null}
       <NumberField
-        label="Precio que vas a cobrar (neto)"
+        label="Precio que vas a cobrar"
         suffix="$"
         value={s.chosenPrice}
         onChange={(v) => session.setChosenPrice(v)}
@@ -437,7 +440,7 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
           {!m.complete ? <p className="sub">Con datos faltantes estos montos son un máximo: no es una ganancia asegurada.</p> : null}
         </div>
       ) : null}
-      <p className="sub">IVA: se mostrará cuando se verifiquen las reglas tributarias (#16). Por ahora la cotización va en valor neto.</p>
+      <p className="sub">IVA: tu cliente verá este monto como «Precio total», sin desglose de IVA, hasta que se verifiquen las reglas tributarias (#16). Si tu servicio lleva IVA, considéralo en el precio.</p>
     </div>
   );
 }

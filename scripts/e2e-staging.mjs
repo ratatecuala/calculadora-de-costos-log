@@ -63,7 +63,7 @@ async function calculate(page, { fuel = '1250', kmPerL = '10' } = {}) {
   if (kmPerL) await page.getByLabel('Rendimiento').fill(kmPerL);
   await page.getByRole('button', { name: /Calcular ruta|Reintentar/ }).click();
   await page.getByText('Datos simulados.').first().waitFor({ timeout: 15000 });
-  await page.getByLabel('Precio que vas a cobrar (neto)').fill('60000');
+  await page.getByLabel('Precio que vas a cobrar').fill('60000');
   // Si el costo cambió después de un precio anterior (p. ej., otro vehículo), la app pide confirmarlo.
   const keep = page.getByRole('button', { name: 'Mantener este precio' });
   if (await keep.count()) await keep.click();

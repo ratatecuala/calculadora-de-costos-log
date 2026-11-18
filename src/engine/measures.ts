@@ -12,6 +12,8 @@ export interface MeasureInput {
 }
 
 export class InvalidMarginError extends Error {}
+/** Monto inválido que llega al motor sin pasar por `buildCostItems` (C-1, A-50). */
+export class InvalidAmountError extends Error {}
 
 function sumCategory(items: CostItem[], categories: ItemCategory[], lowerIsSafe: boolean): Bounded {
   let value = 0;
@@ -31,7 +33,14 @@ function sumCategory(items: CostItem[], categories: ItemCategory[], lowerIsSafe:
 export function computeMeasures(input: MeasureInput): Measures {
   const m = input.margin;
   if (!(m >= 0 && m <= 0.8)) throw new InvalidMarginError('El margen debe estar entre 0 % y 80 %');
-  const surcharges = Math.max(0, input.surcharges ?? 0);
+  const rawSurcharges = input.surcharges ?? 0;
+  if (!Number.isFinite(rawSurcharges)) throw new InvalidAmountError('Los recargos deben ser un número');
+  if (input.price != null && !Number.isFinite(input.price)) throw new InvalidAmountError('El precio debe ser un número');
+  for (const it of input.items) {
+    if (it.amount !== null && !(Number.isFinite(it.amount) && it.amount >= 0)) throw new InvalidAmountError(`Partida inválida: ${it.id}`);
+  }
+  // Recargos negativos: comportamiento no especificado (NE-1, docs/15); se mantienen en 0.
+  const surcharges = Math.max(0, rawSurcharges);
 
   const D = sumCategory(input.items, ['desembolso'], true);
   const W = sumCategory(input.items, ['desgaste'], true);
@@ -39,6 +48,7 @@ export function computeMeasures(input: MeasureInput): Measures {
   const R = sumCategory(input.items, ['remuneracion'], true);
   const cost = sumCategory(input.items, ['desembolso', 'desgaste', 'fijo', 'remuneracion'], true);
 
+  if (!Number.isFinite(cost.value / (1 - m) + surcharges)) throw new InvalidAmountError('Monto fuera de rango');
   // Válido como cota inferior del precio sugerido completo por monotonía del techo (§3C).
   const suggested: Bounded = {
     value: ceilTo(cost.value / (1 - m) + surcharges, 1000),

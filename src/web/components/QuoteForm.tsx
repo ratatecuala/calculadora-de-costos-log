@@ -95,7 +95,7 @@ export function QuoteForm({ session, repository, onSaved, onCancel }: Props) {
       <div className="card">
         <h2 className="sec">Nueva cotización</h2>
         <p className="sub">
-          Precio neto: <strong>{formatClp(price)}</strong>. Tu cliente no verá tus costos internos.
+          Precio total para tu cliente: <strong>{formatClp(price)}</strong>. Tu cliente no verá tus costos internos.
         </p>
         <label className="field">
           <span className="field-label">Cliente</span>

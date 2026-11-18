@@ -15,6 +15,11 @@ export interface CostItem {
   category: ItemCategory;
   /** `null` = dato faltante (nunca se reemplaza por 0). 0 solo si el usuario lo declaró. */
   amount: number | null;
+  /**
+   * `true` si el dato declarado era inválido (negativo o no numérico) y por eso se trata
+   * como faltante (C-1, A-50). La interfaz lo avisa: no se oculta en silencio.
+   */
+  invalid?: boolean;
 }
 
 /** §3C: un valor con faltantes es una cota, no una estimación. */

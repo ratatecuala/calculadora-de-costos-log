@@ -112,7 +112,7 @@ export function QuoteDocument({ q }: { q: ClientQuote }) {
       <div className="doc-total">
         {q.taxAmount === null ? (
           <div className="ln strong">
-            <span>Valor neto</span>
+            <span>Precio total</span>
             <span className="num">{formatClp(q.netPrice)}</span>
           </div>
         ) : (
@@ -133,6 +133,7 @@ export function QuoteDocument({ q }: { q: ClientQuote }) {
         )}
       </div>
       {q.validUntil ? <p className="sub">Válida hasta {formatDate(q.validUntil)}.</p> : null}
+      <p className="sub doc-legal">Esta cotización no es factura ni boleta.</p>
     </article>
   );
 }
