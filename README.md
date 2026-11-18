@@ -20,11 +20,11 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 | PR de trabajo | [#34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34): **abierto, sin merge**. Ahí están el código, las auditorías de ChatGPT y las decisiones escritas del propietario |
 | Punto de partida | **Siempre la punta (último commit) de la rama de desarrollo**, en su [historial](https://github.com/ratatecuala/calculadora-de-costos-log/commits/claude/determined-volta-q9xvli) |
 | Rama de trabajo de la sesión del 18-11 | `claude/nice-brown-hxu4m5`, adelantada a la rama de desarrollo por *fast-forward* al cerrar la sesión |
-| Último cambio de código | Correcciones de experiencia de usuario en teléfono y PC (docs/14), 18-11-2026. **El motor económico no cambió** desde A-47 |
+| Último cambio de código | 18-11-2026: A-50 (validación de entradas del motor y rótulo del margen, **sin cambiar fórmulas**: casos dorados 64/64), A-51 («Precio total» y leyenda), aviso de texto inválido en los campos y correcciones de experiencia de usuario (docs/14). Staging redesplegado con esa versión |
 | Auditorías de ChatGPT | 7 rondas sobre el flujo general, más una revisión focalizada de A-47: **aceptada técnicamente para staging, sin hallazgos P0/P1**. ChatGPT revisa **por inspección**; no ejecuta las pruebas |
 | `main` | Solo publica este README de continuidad. **El código y los documentos técnicos siguen en la rama del PR #34, que no está integrado.** Toda fusión requiere aprobación del propietario |
 | Conflicto con `main` | **Resuelto en la rama**: se integró `main` conservando el README de desarrollo (`main` solo tenía el README de portada) |
-| Siguiente acción | Decisiones del propietario de la sesión del 18-11 (abajo, «Riesgos y pendientes») y redespliegue de staging con las correcciones de experiencia de usuario |
+| Siguiente acción | Revisión de ChatGPT de lo hecho el 18-11; tu decisión sobre el PR #41 (portada); validación tributaria antes de la opción B de IVA; Doc-1 a Doc-6 y puntos «no especificado» del motor |
 
 **Cómo retomar:** leer este README → [AGENTS.md](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/AGENTS.md) (reglas y autorizaciones) → [07 · Decisiones](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/07-decisiones.md) → [13 · Staging](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/13-staging.md) → los últimos comentarios del PR #34.
 
@@ -69,11 +69,11 @@ Detalle: [02 · Arquitectura](https://github.com/ratatecuala/calculadora-de-cost
 | Recálculo independiente de los casos dorados (`scripts/verificar-casos-dorados.mjs`) | **64/64** | Claude (ejecutadas) |
 | Teléfono y PC en navegador local (10 tamaños de pantalla) | 10 hallazgos, 10 corregidos; montos idénticos antes y después (también tras A-50); cotización con «Precio total» y leyenda | Claude (ejecutadas) |
 | Ensayo local de respaldo y restauración (datos ficticios) | **Idéntica** (`diff` = 0). **No** equivale a un respaldo real ni a restaurar staging | Claude (ejecutadas) |
-| RLS real en Supabase con dos usuarios y un visitante anónimo (`scripts/verificar-rls.mjs`) | **39/39** | Claude (ejecutadas) |
-| Numeración real en Supabase: concurrencia desde 2 dispositivos, importación y conflictos (`scripts/verificar-numeracion.mjs`) | **17/17** | Claude (ejecutadas) |
+| RLS real en Supabase con dos usuarios y un visitante anónimo (`scripts/verificar-rls.mjs`) | **39/39** (repetida el 18-11, sin modificar datos existentes) | Claude (ejecutadas) |
+| Numeración real en Supabase: concurrencia desde 2 dispositivos, importación y conflictos (`scripts/verificar-numeracion.mjs`) | **17/17** (repetida el 18-11) | Claude (ejecutadas) |
 | Cloudflare real: reserva, concurrencia estricta, apagado, reintentos, contador caído (`scripts/verificar-cloudflare.mjs`) | **8/8 y 2/2** | Claude (ejecutadas) |
 | Navegador real contra staging **sin cuenta**, PC y teléfono (`scripts/e2e-staging-anonimo.mjs`, versión del 18-11) | **59/59**: acceso privado, flujo completo, aviso de texto inválido, margen, «Precio total» y leyenda, PDF, controles ≥ 44 px, 0 errores, 0 dominios externos | Claude (ejecutadas) |
-| Navegador real contra staging **con cuentas** (`scripts/e2e-staging.mjs`) | **41/41** el 17-11. **No repetido** sobre la versión del 18-11: faltan las contraseñas de los usuarios de prueba, que estaban en el contenedor de una sesión anterior | Claude (ejecutadas) |
+| Navegador real contra staging **con cuentas A y B**, PC y teléfono (`scripts/e2e-staging.mjs`, versión del 18-11) | **41/41**: inicio y cierre de sesión, cambio de cuenta, vehículos, cotizaciones, importación del historial local, otro dispositivo, enlaces públicos | Claude (ejecutadas) |
 | Revisión independiente del código | 7 auditorías, más la [revisión de los cinco frentes del 18-11](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6970465877) (sin bloqueos nuevos; PR #41 apto para tu decisión) | ChatGPT, **por inspección**: no reproduce las ejecuciones |
 
 Las credenciales de los scripts se leen siempre de archivos **fuera** del repositorio.
