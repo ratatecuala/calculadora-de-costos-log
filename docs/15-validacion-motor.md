@@ -50,6 +50,8 @@ Fuera de alcance: la política de IVA (qué perfiles, qué tasa, #16), rutas rea
 ## 4. Hallazgos
 
 > **Estado al 18-11-2026: C-1, C-2, C-3 (solo texto) y C-4 CORREGIDOS** con aprobación del propietario (A-50, docs/07). Las 9 pruebas `it.fails` pasaron a ser pruebas normales que protegen la corrección; NE-8 quedó resuelto (carga y descarga negativa se rechaza). Los casos dorados siguen en **64/64**: ninguna fórmula cambió. Las correcciones de documentación Doc-1 a Doc-6 y los puntos «no especificado» siguen **pendientes**.
+>
+> **Auditoría de `ff8286e` (P2, corregido):** al **escribir** «-5000» o «abc» en el formulario, el campo lo trataba igual que vacío y el aviso no aparecía. Ahora el propio campo muestra «No es un número válido… No se usó» (`aria-invalid`, `role=alert`); el campo vacío sigue significando «No lo sé». **Límites:** los recargos negativos (NE-1) y el precio elegido negativo (NE-10) **no** forman parte de C-1 y siguen sin decidir.
 
 Severidad: **Alta** = puede llevar a cobrar de menos con datos válidos; **Media** = contrato o texto que puede inducir a error en dinero; **Baja** = cosmético o latente.
 

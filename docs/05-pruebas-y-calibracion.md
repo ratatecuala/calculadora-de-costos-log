@@ -100,12 +100,13 @@ Detalle en [13 · Staging](13-staging.md) §5. Se ejecutan con credenciales desd
 
 | Verificación | Resultado | Detalle |
 |---|---|---|
-| `npm test` (sin red) | **236/236**, typecheck y build sin errores | 154 previas + 46 de validación del motor + 25 de experiencia de usuario + 11 de A-50/A-51. **Sin `it.fails` activos**: C-1 a C-4 corregidos (A-50) |
+| `npm test` (sin red) | **249/249**, typecheck y build sin errores | 154 previas + 46 de validación del motor + 25 de experiencia de usuario + 11 de A-50/A-51 + 13 de texto inválido en campos (auditoría de `ff8286e`). **Sin `it.fails` activos**: C-1 a C-4 corregidos (A-50) |
 | Recalculo independiente de los casos dorados (`scripts/verificar-casos-dorados.mjs`, aritmética racional, no importa el motor) | **64/64** coinciden con [03](03-motor-de-costos.md) | G1–G10 y escenarios A, B y C. Hallazgos de validación de entradas y textos (sin errores de fórmula) en [15](15-validacion-motor.md) |
 | `tests/engine.validation.test.ts` | 37 pruebas normales + **9 `it.fails`** que documentan defectos C-1 a C-3 | Pasan mientras el defecto exista; avisan cuando se corrija |
 | Experiencia de usuario en navegador local (Playwright: Pixel 7, iPhone 13, 360, 320, 768, 820, 1024, 1280, 1366 y 1440 px) | 10 hallazgos, **10 corregidos**; sin desplazamiento horizontal ni controles táctiles < 44 px | [14](14-qa-ux.md) |
 | Montos de la interfaz antes y después de las correcciones de experiencia de usuario y de A-50 (mismas entradas, PC y teléfono) | **Idénticos** ($25.106 / $1.224 / $26.330; sugerido $31.000) | Control del coordinador: ni el formato chileno ni A-50 alteran los valores |
 | Cotización generada en navegador (PC y teléfono) | «Precio total» y leyenda en el documento y en WhatsApp; margen 12,5 % mostrado como «12,5» | A-50 y A-51 |
+| Texto inválido en un campo (PC y teléfono) | «-5000» y «abc» → error en el campo (`aria-invalid`, `role=alert`); vacío → sin aviso («No lo sé»); corregido a «3500» → sin error | P2 de la auditoría de `ff8286e` |
 | Ensayo local de respaldo y restauración (Postgres desechable, datos ficticios) | Ruta B **idéntica** al origen (`diff` = 0) | [17](17-supabase-seguridad-respaldo.md) §6. No tocó Supabase |
 | Auditoría de Supabase staging (solo lectura) | RLS 6/6, 17 políticas, `anon` sin privilegios de tabla, invariantes correctos | [17](17-supabase-seguridad-respaldo.md) §2 |
 

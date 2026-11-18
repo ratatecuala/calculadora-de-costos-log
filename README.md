@@ -63,7 +63,7 @@ Detalle: [02 · Arquitectura](docs/02-arquitectura.md) y [13 · Staging](docs/13
 
 | Prueba | Resultado | Quién la ejecutó |
 |---|---|---|
-| `npm test` (sin red) | **236/236** (18-11-2026). Sin `it.fails` activos: los defectos C-1 a C-4 se corrigieron con tu aprobación (A-50) | Claude (ejecutadas) |
+| `npm test` (sin red) | **249/249** (18-11-2026). Sin `it.fails` activos: los defectos C-1 a C-4 se corrigieron con tu aprobación (A-50) | Claude (ejecutadas) |
 | Recálculo independiente de los casos dorados (`scripts/verificar-casos-dorados.mjs`) | **64/64** | Claude (ejecutadas) |
 | Teléfono y PC en navegador local (10 tamaños de pantalla) | 10 hallazgos, 10 corregidos; montos idénticos antes y después (también tras A-50); cotización con «Precio total» y leyenda | Claude (ejecutadas) |
 | Ensayo local de respaldo y restauración (datos ficticios) | **Idéntica** (`diff` = 0). **No** equivale a un respaldo real ni a restaurar staging | Claude (ejecutadas) |
@@ -82,9 +82,9 @@ Fuente: [07 · Decisiones](docs/07-decisiones.md). Una decisión está **APROBAD
 - **APROBADAS por escrito (PR #34):**
   - **A-47:** numeración de cotizaciones única, correlativa y atómica por cuenta, que conserva el número emitido.
   - **A-48:** este README como fuente de continuidad, actualizado con cada avance.
-- **Comunicadas el 18-11 en la sesión de Claude, pendientes de ratificación escrita en el PR #34 (ya implementadas):**
-  - **A-50:** margen sobre el precio de venta con rótulo corregido; validación de entradas; sin «$-0»; margen con decimales visible.
-  - **A-51:** «Precio total» y leyenda «Esta cotización no es factura ni boleta.»
+- **APROBADAS por escrito el 18-11 ([registro de ratificación en el PR #34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6971449761)), implementadas:**
+  - **A-50:** margen sobre el precio de venta con rótulo corregido; validación de entradas, con aviso en el campo si se escribe algo que no es número; sin «$-0»; margen con decimales visible. No incluye recargos ni precio negativos (NE-1 y NE-10, sin decidir).
+  - **A-51:** «Precio total» y leyenda «Esta cotización no es factura ni boleta.» **Transitorio:** no habilita cotizaciones comerciales reales hasta validar la política tributaria.
 - **APROBADA por escrito (PR #40 y PR #34):**
   - **A-49:** paridad teléfono y computador: mismas funciones, interfaz adaptable a cada pantalla.
 - **Comunicadas por el propietario, pendientes de ratificación escrita en el PR #34:**
