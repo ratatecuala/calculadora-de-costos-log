@@ -68,3 +68,9 @@ describe('H-08 · foco de teclado visible', () => {
     expect(rule(css, ':focus-visible')).toMatch(/outline:\s*2px solid var\(--blue\)/);
   });
 });
+
+describe('H-10 · etiquetas del historial', () => {
+  it('no se estiran a todo el ancho de la tarjeta', () => {
+    expect(rule(css, '.job > .tag')).toMatch(/align-self:\s*flex-start/);
+  });
+});

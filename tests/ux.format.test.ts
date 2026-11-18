@@ -62,3 +62,11 @@ describe('QuoteDocument', () => {
     expect(html).not.toContain('2026-11-');
   });
 });
+
+describe('H-09 · nombre del PDF', () => {
+  it('el título de la pestaña identifica la cotización y el cliente', async () => {
+    const { quoteDocumentTitle } = await import('../src/web/components/QuoteView');
+    expect(quoteDocumentTitle({ number: 7, clientName: '  María Pérez ' })).toBe('Cotización N° 0007 · María Pérez');
+    expect(quoteDocumentTitle({ number: 7, clientName: '' })).toBe('Cotización N° 0007');
+  });
+});

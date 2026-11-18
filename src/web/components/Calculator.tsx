@@ -74,7 +74,11 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles 
           <button type="button" className="link-btn" onClick={() => session.useManual('habitual')}>
             Prefiero ingresar los km a mano
           </button>
-          {s.habitual.message && s.habitual.status !== 'manual' ? <p className="notice">{s.habitual.message}</p> : null}
+          {s.habitual.message && s.habitual.status !== 'manual' ? (
+            <p className="notice" role="status">
+              {s.habitual.message}
+            </p>
+          ) : null}
         </div>
 
         <RouteCard title="Tu ruta" rs={s.habitual} computation={habitual} kind="habitual" session={session} mapsUrl={mapsUrl} />
@@ -264,7 +268,11 @@ function RouteCard(props: { title: string; rs: RouteState; computation: RouteCom
           <strong>Datos simulados.</strong> Estos kilómetros y minutos NO son reales: Google Routes aún no está conectado. Corrígelos con los de tu recorrido.
         </p>
       ) : null}
-      {rs.status === 'manual' && rs.message ? <p className="notice">{rs.message}</p> : null}
+      {rs.status === 'manual' && rs.message ? (
+        <p className="notice" role="status">
+          {rs.message}
+        </p>
+      ) : null}
       {rs.route?.warnings
         .filter((w) => w.code === 'coincidencia_parcial')
         .map((w) => (
@@ -446,7 +454,11 @@ function ComparisonCard(props: { session: QuoteSession; habitualReady: boolean; 
         {loading ? 'Comparando…' : 'Comparar sin peajes'}
       </button>
       {!habitualReady ? <p className="sub">Primero calcula la ruta habitual.</p> : null}
-      {s.comparison.message && s.comparison.status !== 'listo' ? <p className="notice">{s.comparison.message}</p> : null}
+      {s.comparison.message && s.comparison.status !== 'listo' ? (
+        <p className="notice" role="status">
+          {s.comparison.message}
+        </p>
+      ) : null}
       {s.comparison.status === 'listo' || s.comparison.status === 'manual' ? (
         <>
           <RouteCard title="Ruta sin peajes" rs={s.comparison} computation={comparison} kind="evitarPeajes" session={session} mapsUrl={null} />

@@ -57,8 +57,25 @@ export function QuoteView({ job, repository, onBack }: Props) {
   );
 }
 
+/**
+ * Título de la pestaña mientras se ve la cotización. El navegador lo usa como nombre del PDF
+ * («Guardar como PDF»); antes todos se llamaban «[Marca] · Cotizador de fletes» (QA UX, H-09).
+ */
+export function quoteDocumentTitle(q: Pick<ClientQuote, 'number' | 'clientName'>): string {
+  const number = `Cotización N° ${String(q.number).padStart(4, '0')}`;
+  return q.clientName.trim() ? `${number} · ${q.clientName.trim()}` : number;
+}
+
 /** Documento que ve el cliente (pantalla, PDF y enlace público). Solo recibe la ClientQuote. */
 export function QuoteDocument({ q }: { q: ClientQuote }) {
+  const title = quoteDocumentTitle(q);
+  useEffect(() => {
+    const previous = document.title;
+    document.title = title;
+    return () => {
+      document.title = previous;
+    };
+  }, [title]);
   return (
     <article className="doc">
       <header className="doc-head">

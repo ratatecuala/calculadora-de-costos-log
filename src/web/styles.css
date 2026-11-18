@@ -452,6 +452,10 @@ body {
   flex-direction: column;
   gap: 8px;
 }
+/* Las etiquetas «Costo parcial» / «datos simulados» no se estiran a todo el ancho (H-10). */
+.job > .tag {
+  align-self: flex-start;
+}
 select {
   min-height: 44px;
   border: 1px solid var(--field);
