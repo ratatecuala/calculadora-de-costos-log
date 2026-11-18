@@ -143,7 +143,7 @@ Fuera del documento del cliente (solo el transportista lo ve): aviso de que la a
 
 ## 6. Qué hace la app hoy (según el código)
 
-Fuentes leídas: `data/tax-rules.json`, `src/engine/tax.ts`, `src/shared/clientQuote.ts`, `src/web/components/QuoteView.tsx` (`QuoteDocument`), `PublicQuote.tsx`, `Calculator.tsx` (línea del IVA), `supabase/migrations/20261118000100_esquema_inicial.sql` (restricción del total).
+Fuentes leídas: `data/tax-rules.json`, `src/engine/tax.ts`, `src/shared/clientQuote.ts`, `src/web/components/QuoteView.tsx` (`QuoteDocument`), `PublicQuote.tsx`, `Calculator.tsx` (línea del IVA), `supabase/migrations/20261118000315_esquema_inicial.sql` (restricción del total).
 
 **Lo que está bien**
 

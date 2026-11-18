@@ -75,7 +75,7 @@ El Worker guardaba el *stub* del Durable Object entre solicitudes. En Workers, u
 ## 5. Resultados de pruebas
 
 ### 5.1 Automáticas (sin red): `npm test`
-140 pruebas en verde (las 117 anteriores, adaptadas a la interfaz asíncrona, más conversores de la nube, piezas de staging del Worker, la regresión del *stub* y las regresiones de la quinta auditoría).
+**225 pruebas en verde** al 18-11-2026 (incluye la validación independiente del motor, [15](15-validacion-motor.md), y las regresiones de experiencia de usuario, [14](14-qa-ux.md)). Historial: 140 tras la quinta auditoría, 154 con A-47.
 
 ### 5.2 RLS real con dos usuarios: `scripts/verificar-rls.mjs` → **39/39**
 Sesiones reales (JWT emitidos por Supabase) de los usuarios A y B y un visitante anónimo, con la clave publicable:
@@ -112,9 +112,11 @@ Anónimo (ruta simulada → costos → precio → cotización → historial loca
 
 ## 7. Pasos manuales del propietario
 
+> **Actualización 18-11-2026:** auditoría de solo lectura, lista de ajustes de Auth con su ruta en el panel, checklist completo de Google OAuth y orden recomendado en [17 · Supabase: seguridad y respaldo](17-supabase-seguridad-respaldo.md) §3, §7 y §8. Verificado: la protección de contraseñas filtradas **solo existe en el plan Pro** (punto 3).
+
 1. **Google OAuth** (para «Continuar con Google»): en un proyecto de Google Cloud **del propietario**, crear un cliente OAuth «Aplicación web» con la URI de redirección `https://<ref>.supabase.co/auth/v1/callback`; en Supabase → Authentication → Providers → Google, pegar el ID y el secreto del cliente. En Authentication → URL Configuration, agregar la URL del Worker de staging a *Redirect URLs*. Alcances: `openid`, `email`, `profile`. No requiere facturación de Google Cloud, pero es una cuenta y una credencial nuevas: decisión del propietario.
 2. **Cerrar el registro abierto de staging:** hoy Supabase permite registrarse por correo (con confirmación). Recomendado: desactivar el registro de nuevos usuarios por correo en Authentication mientras sea staging.
-3. **Protección de contraseñas filtradas** (aviso del asesor): habilitarla en Authentication si el plan lo permite.
+3. **Protección de contraseñas filtradas** (aviso del asesor): **requiere plan Pro** según la documentación oficial. En el plan gratuito: registro cerrado y contraseñas largas (mínimo 12) para los usuarios de prueba (docs/17 §3).
 4. **MFA** en las cuentas de Supabase y Cloudflare del propietario.
 5. **Rotar o revocar** el token de Cloudflare entregado a Claude cuando termine la revisión (§9).
 6. Antes de cualquier lanzamiento: decidir plan de Supabase (el gratuito **se pausa** tras ~1 semana de baja actividad y **no tiene respaldos automáticos**), dominio y aviso de privacidad (#17).
@@ -139,29 +141,14 @@ Anónimo (ruta simulada → costos → precio → cotización → historial loca
 
 ## 10. Respaldo y restauración (Supabase gratuito)
 
-El plan gratuito **no tiene respaldos automáticos descargables**. Procedimiento (documentación oficial «Backup and Restore using the CLI»), **PREPARADO, no ejecutado**: requiere la contraseña de la base, que solo tiene el propietario, y Docker.
+El plan gratuito **no tiene respaldos descargables**. El procedimiento completo está en [17 · Supabase: seguridad y respaldo](17-supabase-seguridad-respaldo.md) §5 y §6:
 
-**Respaldo** (en la máquina del propietario; guardar los archivos **cifrados** fuera del repositorio):
-
-```bash
-supabase db dump --db-url "$DB_URL" -f roles.sql --role-only
-```
-
-```bash
-supabase db dump --db-url "$DB_URL" -f schema.sql
-```
-
-```bash
-supabase db dump --db-url "$DB_URL" -f data.sql --use-copy --data-only -x "storage.buckets_vectors" -x "storage.vector_indexes"
-```
-
-**Restauración** en un proyecto **nuevo** (simulacro mensual recomendado):
-
-```bash
-psql --single-transaction --variable ON_ERROR_STOP=1 --file roles.sql --file schema.sql --command 'SET session_replication_role = replica' --file data.sql --dbname "$NEW_DB_URL"
-```
-
-**Verificación:** contar filas en ambos proyectos (`select count(*)` de `auth.users`, `profiles`, `vehicles`, `jobs`, `client_quotes`, `quote_shares`) y ejecutar `scripts/verificar-rls.mjs` contra el proyecto restaurado. El esquema también se puede reconstruir desde cero con las migraciones del repositorio. Lo que **no** viaja en el respaldo: configuración de Auth (proveedores, URLs), claves de API.
+- **Respaldo:** `scripts/respaldo-supabase.sh` (modo `cli` con la CLI de Supabase y Docker, o `pgdump` con cliente PostgreSQL **17**), cifrado con `age`, siempre **fuera** del repositorio. **PREPARADO**: el primer respaldo real lo ejecuta el propietario, porque requiere la contraseña de la base.
+- **Restauración recomendada (ruta B):** esquema desde las **migraciones del repositorio** y solo los **datos** del respaldo. La ruta oficial completa (`roles.sql` + `schema.sql` + `data.sql`) **amplía los privilegios** en un proyecto nuevo (hallazgo H2 de docs/17), así que no se usa sin pasar después la verificación.
+- **Verificación:** `scripts/verificar-restauracion.sql` en origen y destino, con `diff` igual a cero (conteos, huellas, numeración e invariantes de privilegios), y luego `scripts/verificar-rls.mjs`.
+- **Ensayado localmente el 18-11-2026** (Postgres 16 con un *stub* de Supabase y datos ficticios): ruta B **idéntica** al origen. No se tocó Supabase.
+- **Migraciones:** los archivos del repositorio se renombraron a las versiones aplicadas en staging (`20261118000315`, `…000924`, `…022422`); el contenido ya era idéntico (md5). Así un `supabase db push` futuro no intenta reaplicarlas.
+- Lo que **no** viaja en el respaldo: configuración de Auth (proveedores, URLs), claves de API y claves JWT.
 
 ## 10 bis. Aislamiento entre sesiones en el navegador (quinta auditoría)
 
@@ -174,7 +161,7 @@ psql --single-transaction --variable ON_ERROR_STOP=1 --file roles.sql --file sch
 
 ## 10 ter. Numeración de cotizaciones (A-47, aprobada)
 
-Migración [`20261118000300_numeracion_atomica.sql`](../supabase/migrations/20261118000300_numeracion_atomica.sql), aplicada en staging el 18-11-2026.
+Migración [`20261118022422_numeracion_atomica.sql`](../supabase/migrations/20261118022422_numeracion_atomica.sql), aplicada en staging el 18-11-2026.
 
 - **Número interno** (`jobs.number`): único por cuenta (`unique (owner_id, number)`). Lo asigna la base dentro de `create_job_with_quote`, con un contador por cuenta (`quote_counters`) bloqueado con `FOR UPDATE` en la misma transacción que guarda la cotización. La función que asigna vive en un esquema `private`, no expuesto por la API; el contador no se puede leer ni escribir por REST.
 - **Número emitido** (`jobs.issued_number`): el que figura en el documento del cliente (`client_quotes.number`). En cotizaciones nuevas es igual al interno.
