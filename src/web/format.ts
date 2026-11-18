@@ -64,6 +64,17 @@ export function formatDate(value: string): string {
 }
 
 /** Lee un número escrito por el usuario; vacío = no lo sabe (null). Acepta «1.050» o «12,5». */
+/** Mensaje para un texto escrito que no es un número válido (A-50, auditoría de ff8286e). */
+export const INVALID_NUMBER_MESSAGE = 'No es un número válido (por ejemplo, negativo o con letras). No se usó: corrígelo o bórralo.';
+
+/**
+ * Distingue «vacío» (= no lo sé, sin error) de «texto escrito que no es un número válido».
+ * Devuelve el mensaje de error o `null` si el texto está vacío o es válido.
+ */
+export function invalidAmountText(text: string): string | null {
+  return text.trim() !== '' && parseAmount(text) === null ? INVALID_NUMBER_MESSAGE : null;
+}
+
 export function parseAmount(text: string): number | null {
   const t = text.trim().replace(/\$/g, '').replace(/\s/g, '');
   if (t === '') return null;

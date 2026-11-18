@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { formatInputNumber, parseAmount } from '../format';
+import { formatInputNumber, invalidAmountText, parseAmount } from '../format';
 
 interface Props {
   label: string;
@@ -22,10 +22,12 @@ const toText = formatInputNumber;
 /** Campo numérico que acepta «1.050», «12,5» o vacío (= no lo sé). */
 export function NumberField({ label, value, onChange, suffix, hint, placeholder, tag, compact, decimals = 2, error }: Props) {
   const id = useId();
+  const [text, setText] = useState(toText(value, decimals));
+  // Un texto escrito que no es un número válido se avisa en el campo (A-50): no se confunde con «No lo sé».
+  const shownError = error ?? invalidAmountText(text) ?? undefined;
   // Nombre accesible = etiqueta + unidad; la ayuda y el error van como descripción (QA UX, H-07).
   const labelledBy = [`${id}-etiqueta`, suffix ? `${id}-unidad` : null].filter(Boolean).join(' ');
-  const describedBy = [error ? `${id}-error` : null, hint ? `${id}-ayuda` : null].filter(Boolean).join(' ') || undefined;
-  const [text, setText] = useState(toText(value, decimals));
+  const describedBy = [shownError ? `${id}-error` : null, hint ? `${id}-ayuda` : null].filter(Boolean).join(' ') || undefined;
   useEffect(() => {
     const parsed = parseAmount(text);
     if (parsed !== value) setText(toText(value, decimals));
@@ -43,7 +45,7 @@ export function NumberField({ label, value, onChange, suffix, hint, placeholder,
           id={id}
           aria-labelledby={labelledBy}
           aria-describedby={describedBy}
-          aria-invalid={error ? true : undefined}
+          aria-invalid={shownError ? true : undefined}
           inputMode="decimal"
           value={text}
           placeholder={placeholder ?? 'No lo sé'}
@@ -64,9 +66,9 @@ export function NumberField({ label, value, onChange, suffix, hint, placeholder,
           </span>
         ) : null}
       </span>
-      {error ? (
-        <span id={`${id}-error`} className="field-error">
-          {error}
+      {shownError ? (
+        <span id={`${id}-error`} className="field-error" role={error ? undefined : 'alert'}>
+          {shownError}
         </span>
       ) : null}
       {hint ? (
