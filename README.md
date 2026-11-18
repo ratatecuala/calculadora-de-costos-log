@@ -16,10 +16,11 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 |---|---|
 | Rama de desarrollo | `claude/determined-volta-q9xvli` |
 | PR de trabajo | [#34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34): **abierto, sin merge**. Ahí están el código, las auditorías de ChatGPT y las decisiones escritas del propietario |
-| Commit de referencia | `c041af8` (numeración atómica). Ver el historial de la rama para lo más reciente |
-| Auditorías de ChatGPT | 7 rondas. La séptima cerró la sexta **sin hallazgos P0/P1 nuevos**. ChatGPT revisa **por inspección**; no ejecuta las pruebas |
-| `main` | Vacío (solo el commit inicial). Nada se integra sin aprobación del propietario |
-| Siguiente acción | Revisión de la numeración y de este README; decisiones operativas pendientes (abajo) |
+| Punto de partida | **Siempre la punta (último commit) de la rama de desarrollo**, en su [historial](https://github.com/ratatecuala/calculadora-de-costos-log/commits/claude/determined-volta-q9xvli) |
+| Último cambio de código | `c041af8`: numeración atómica (A-47). Los commits posteriores son de documentación |
+| Auditorías de ChatGPT | 7 rondas sobre el flujo general, más una revisión focalizada de A-47: **aceptada técnicamente para staging, sin hallazgos P0/P1**. ChatGPT revisa **por inspección**; no ejecuta las pruebas |
+| `main` | Solo publica este README de continuidad. **El código y los documentos técnicos siguen en la rama del PR #34, que no está integrado.** Toda fusión requiere aprobación del propietario |
+| Siguiente acción | Decisiones operativas pendientes del propietario (abajo) |
 
 **Cómo retomar:** leer este README → [AGENTS.md](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/AGENTS.md) (reglas y autorizaciones) → [07 · Decisiones](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/07-decisiones.md) → [13 · Staging](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/13-staging.md) → los últimos comentarios del PR #34.
 
