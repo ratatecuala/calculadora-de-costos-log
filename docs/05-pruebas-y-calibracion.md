@@ -96,14 +96,29 @@ Detalle en [13 · Staging](13-staging.md) §5. Se ejecutan con credenciales desd
 | `scripts/verificar-numeracion.mjs` (Supabase real, dos dispositivos de A y la cuenta B) | **17/17**: concurrencia, importación repetida y simultánea, conflicto de número, documento histórico, cambios prohibidos, cuentas independientes |
 | `scripts/e2e-staging.mjs` (navegador, móvil y escritorio) | **41/41** (incluye aislamiento entre sesiones y número emitido conservado al copiar) |
 
+### Verificaciones del 18-11-2026 (sin servicios externos, salvo consultas de solo lectura a Supabase)
+
+| Verificación | Resultado | Detalle |
+|---|---|---|
+| `npm test` (sin red) | **225/225**, typecheck y build sin errores | 154 previas + 46 de validación del motor + 25 de experiencia de usuario |
+| Recalculo independiente de los casos dorados (`scripts/verificar-casos-dorados.mjs`, aritmética racional, no importa el motor) | **64/64** coinciden con [03](03-motor-de-costos.md) | G1–G10 y escenarios A, B y C. Hallazgos de validación de entradas y textos (sin errores de fórmula) en [15](15-validacion-motor.md) |
+| `tests/engine.validation.test.ts` | 37 pruebas normales + **9 `it.fails`** que documentan defectos C-1 a C-3 | Pasan mientras el defecto exista; avisan cuando se corrija |
+| Experiencia de usuario en navegador local (Playwright: Pixel 7, iPhone 13, 360, 320, 768, 820, 1024, 1280, 1366 y 1440 px) | 10 hallazgos, **10 corregidos**; sin desplazamiento horizontal ni controles táctiles < 44 px | [14](14-qa-ux.md) |
+| Montos de la interfaz antes y después de las correcciones de experiencia de usuario (mismas entradas, PC y teléfono) | **Idénticos** ($25.106 / $1.224 / $26.330 / $31.000) | Control del coordinador: el formato chileno de los campos no altera los valores |
+| Ensayo local de respaldo y restauración (Postgres desechable, datos ficticios) | Ruta B **idéntica** al origen (`diff` = 0) | [17](17-supabase-seguridad-respaldo.md) §6. No tocó Supabase |
+| Auditoría de Supabase staging (solo lectura) | RLS 6/6, 17 políticas, `anon` sin privilegios de tabla, invariantes correctos | [17](17-supabase-seguridad-respaldo.md) §2 |
+
+**No repetido en esta ronda:** `scripts/e2e-staging.mjs` y los scripts contra Cloudflare. El staging **no** se redesplegó con las correcciones de experiencia de usuario, porque esta sesión no tiene el token de Cloudflare: hasta redesplegar, el staging muestra la versión anterior.
+
 **No probado todavía:**
 - el candado en **producción** (sí probado en staging real, plan gratuito, con proveedor simulado; ver [13](13-staging.md));
 - el inicio de sesión **con Google** (falta el cliente OAuth del propietario); se probó con usuarios de prueba por contraseña;
-- el respaldo y la restauración de Supabase (procedimiento preparado; requiere la contraseña de la base del propietario);
+- el respaldo **real** de Supabase (ensayado solo localmente; requiere la contraseña de la base del propietario y un cliente PostgreSQL 17 o Docker);
 - la confirmación de direcciones: qué ubicación interpretó Google y la comprobación con la línea recta quedan pendientes para el experimento de #19;
 - el abuso real: el identificador anónimo del navegador se puede reemplazar, y lo contienen el límite por origen y el techo global;
 - Google Routes real (no autorizado);
-- la verificación independiente de los casos dorados (#24);
-- la accesibilidad con lector de pantalla.
+- la planilla de casos dorados hecha **por una persona** (§3F de [03](03-motor-de-costos.md)); el recálculo independiente por script ya coincide 64/64;
+- la accesibilidad con un lector de pantalla real (sí se revisaron nombres accesibles, foco y anuncios con Playwright);
+- impresión del PDF desde un teléfono físico.
 
 El flujo completo se verificó en navegador (móvil y escritorio) contra el servidor local, sin solicitudes externas.

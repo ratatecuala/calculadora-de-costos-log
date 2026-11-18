@@ -17,10 +17,12 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 | Rama de desarrollo | `claude/determined-volta-q9xvli` |
 | PR de trabajo | [#34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34): **abierto, sin merge**. Ahí están el código, las auditorías de ChatGPT y las decisiones escritas del propietario |
 | Punto de partida | **Siempre la punta (último commit) de la rama de desarrollo**, en su [historial](https://github.com/ratatecuala/calculadora-de-costos-log/commits/claude/determined-volta-q9xvli) |
-| Último cambio de código | `c041af8`: numeración atómica (A-47). Los commits posteriores son de documentación |
+| Rama de trabajo de la sesión del 18-11 | `claude/nice-brown-hxu4m5`, adelantada a la rama de desarrollo por *fast-forward* al cerrar la sesión |
+| Último cambio de código | Correcciones de experiencia de usuario en teléfono y PC (docs/14), 18-11-2026. **El motor económico no cambió** desde A-47 |
 | Auditorías de ChatGPT | 7 rondas sobre el flujo general, más una revisión focalizada de A-47: **aceptada técnicamente para staging, sin hallazgos P0/P1**. ChatGPT revisa **por inspección**; no ejecuta las pruebas |
 | `main` | Solo publica este README de continuidad. **El código y los documentos técnicos siguen en la rama del PR #34, que no está integrado.** Toda fusión requiere aprobación del propietario |
-| Siguiente acción | Decisiones operativas pendientes del propietario (abajo) |
+| Conflicto con `main` | **Resuelto en la rama**: se integró `main` conservando el README de desarrollo (`main` solo tenía el README de portada) |
+| Siguiente acción | Decisiones del propietario de la sesión del 18-11 (abajo, «Riesgos y pendientes») y redespliegue de staging con las correcciones de experiencia de usuario |
 
 **Cómo retomar:** leer este README → [AGENTS.md](AGENTS.md) (reglas y autorizaciones) → [07 · Decisiones](docs/07-decisiones.md) → [13 · Staging](docs/13-staging.md) → los últimos comentarios del PR #34.
 
@@ -29,6 +31,9 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 | Área | Estado |
 |---|---|
 | Calculadora y cotizador (motor de costos, precio, PDF, WhatsApp) | **Funciona** (local y staging) |
+| Experiencia en teléfono y en PC/notebook (A-49) | **Paridad verificada en local** del 320 al 1440 px: 10 problemas encontrados y corregidos ([14](docs/14-qa-ux.md)). **Staging aún muestra la versión anterior** hasta redesplegar |
+| Validación independiente del motor (#24) | **Casos dorados 64/64** por recálculo independiente; sin errores de fórmula; 4 hallazgos de entradas y textos **pendientes de tu aprobación** ([15](docs/15-validacion-motor.md)) |
+| IVA en la cotización (#16) | Hoy: IVA opcional sobre el neto. **Propuesta** de presentación según el tipo de transportista y de cliente, **sin implementar** ([16](docs/16-iva-cotizaciones.md)) |
 | Distancias y tiempos de ruta | **Simulados**. La app lo indica en cada resultado. Google Routes **no está conectado** |
 | Uso sin cuenta (historial en el navegador) | **Funciona**, con aviso de que no hay respaldo en la nube |
 | Cuentas, vehículos y cotizaciones en la nube (Supabase) | **Funciona en staging** con usuarios de prueba (correo y contraseña, solo staging) |
@@ -36,7 +41,7 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 | Enlace público de la cotización (sin costos internos, revocable) | **Funciona en staging** |
 | Numeración de cotizaciones única por cuenta (A-47) | **Funciona en staging**: la asigna la base de forma atómica |
 | Contador de consultas e interruptor de emergencia (Cloudflare) | **Funciona en staging** |
-| Respaldo y restauración de Supabase | **Preparado, no ejecutado**: requiere la contraseña de la base del propietario |
+| Respaldo y restauración de Supabase | **Script cifrado y ensayado en local** (restauración idéntica). El primer respaldo real lo hace el propietario: requiere la contraseña de la base ([17](docs/17-supabase-seguridad-respaldo.md)) |
 | Producción pública, facturación, planes de pago | **No existen ni están autorizados** |
 
 **Staging:** privado (usuario y contraseña), en los planes **gratuitos** de Cloudflare Workers y Supabase. Su URL y los identificadores de las cuentas **no se publican** en este repositorio.
@@ -58,11 +63,14 @@ Detalle: [02 · Arquitectura](docs/02-arquitectura.md) y [13 · Staging](docs/13
 
 | Prueba | Resultado | Quién la ejecutó |
 |---|---|---|
-| `npm test` (sin red) | **154/154** | Claude (ejecutadas) |
+| `npm test` (sin red) | **225/225** (18-11-2026) | Claude (ejecutadas) |
+| Recálculo independiente de los casos dorados (`scripts/verificar-casos-dorados.mjs`) | **64/64** | Claude (ejecutadas) |
+| Teléfono y PC en navegador local (10 tamaños de pantalla) | 10 hallazgos, 10 corregidos; montos idénticos antes y después | Claude (ejecutadas) |
+| Ensayo local de respaldo y restauración | **Idéntica** (`diff` = 0) | Claude (ejecutadas) |
 | RLS real en Supabase con dos usuarios y un visitante anónimo (`scripts/verificar-rls.mjs`) | **39/39** | Claude (ejecutadas) |
 | Numeración real en Supabase: concurrencia desde 2 dispositivos, importación y conflictos (`scripts/verificar-numeracion.mjs`) | **17/17** | Claude (ejecutadas) |
 | Cloudflare real: reserva, concurrencia estricta, apagado, reintentos, contador caído (`scripts/verificar-cloudflare.mjs`) | **8/8 y 2/2** | Claude (ejecutadas) |
-| Navegador real contra staging, móvil y escritorio (`scripts/e2e-staging.mjs`) | **41/41** | Claude (ejecutadas) |
+| Navegador real contra staging, móvil y escritorio (`scripts/e2e-staging.mjs`) | **41/41** (17-11, antes de las correcciones de experiencia de usuario; no repetido) | Claude (ejecutadas) |
 | Revisión independiente del código | 7 auditorías | ChatGPT, **por inspección**: no reproduce las ejecuciones |
 
 Las credenciales de los scripts se leen siempre de archivos **fuera** del repositorio.
@@ -74,7 +82,7 @@ Fuente: [07 · Decisiones](docs/07-decisiones.md). Una decisión está **APROBAD
 - **APROBADAS por escrito (PR #34):**
   - **A-47:** numeración de cotizaciones única, correlativa y atómica por cuenta, que conserva el número emitido.
   - **A-48:** este README como fuente de continuidad, actualizado con cada avance.
-- **APROBADA por escrito (PR #40):**
+- **APROBADA por escrito (PR #40 y PR #34):**
   - **A-49:** paridad teléfono y computador: mismas funciones, interfaz adaptable a cada pantalla.
 - **Comunicadas por el propietario, pendientes de ratificación escrita en el PR #34:**
   - A-21 a A-29: diseño v4, criterios funcionales y separación de la cotización.
@@ -83,16 +91,21 @@ Fuente: [07 · Decisiones](docs/07-decisiones.md). Una decisión está **APROBAD
 
 ## Riesgos y pendientes
 
-- **Decisiones del propietario:**
+- **Decisiones pendientes de la sesión del 18-11 (detalle en cada documento):**
+  - **Motor (15):** C-3, el margen se aplica sobre el **precio** (P = C/(1−m)), pero la pantalla dice «Ganancia extra sobre el costo». Opciones: corregir el texto o cambiar la fórmula. También: validar entradas negativas o no numéricas (C-1), el «$-0» (C-2), el margen con decimales (C-4) y las correcciones Doc-1 a Doc-6 de docs/03. **Ninguna fórmula se cambió.**
+  - **IVA (16):** opción A, B (recomendada) o B+C; leyenda «no es factura ni boleta»; perfil tributario del transportista y tipo de cliente. Validación por un contador o GPT Deep Research (sii.cl no fue accesible desde la sesión).
+  - **Supabase (17):** plan antes de usuarios reales, frecuencia y lugar de los respaldos, registro por correo cuando exista Google y privilegios por defecto.
+  - **Experiencia de usuario (14):** filtro del historial, precio fijo en el teléfono y propuestas menores.
+- **Decisiones del propietario (anteriores):**
   - Google OAuth (crear el cliente).
-  - Cerrar el registro por correo en staging y activar la protección de contraseñas filtradas.
+  - Cerrar el registro por correo en staging. La protección de contraseñas filtradas **requiere el plan Pro** (verificado en docs/17).
   - Plan de Supabase antes de lanzar: el gratuito **se pausa** con poca actividad y **no tiene respaldos automáticos**.
   - Dominio y nombre comercial.
 - **Antes de usar Google Routes real:**
   - autorización expresa;
   - plan de prueba con cupos y credenciales;
   - las cuotas **no garantizan gasto cero**.
-- **Pendientes técnicos y legales:** IVA (#16), verificación independiente de los casos dorados (#24), confirmación de direcciones (#19) y aviso de privacidad (#17).
+- **Pendientes técnicos y legales:** decisión de IVA (#16, propuesta lista), planilla humana de casos dorados (#24, recálculo por script ya hecho), confirmación de direcciones (#19), aviso de privacidad (#17) y redespliegue de staging con las correcciones de experiencia de usuario (requiere el token de Cloudflare).
 
 ## Límites de autorización
 
@@ -121,6 +134,10 @@ Reglas completas en [AGENTS.md](AGENTS.md).
 | [10 · Diseño UX/UI v4](docs/10-diseno-ux.md) | Diseño aprobado |
 | [11 · Auditoría Google Maps](docs/11-auditoria-google-maps.md) | Costos y condiciones de Google |
 | [13 · Staging](docs/13-staging.md) | Recursos, RLS, pruebas reales, interruptores, respaldo y pasos manuales |
+| [14 · QA de experiencia de usuario](docs/14-qa-ux.md) | Teléfono y PC/notebook: hallazgos, correcciones y paridad por flujo |
+| [15 · Validación del motor](docs/15-validacion-motor.md) | Recálculo independiente, hallazgos y decisiones (#24) |
+| [16 · IVA en las cotizaciones](docs/16-iva-cotizaciones.md) | Normativa chilena, documento tributario vs cotización y propuesta (#16) |
+| [17 · Supabase: seguridad y respaldo](docs/17-supabase-seguridad-respaldo.md) | Auditoría, ajustes de Auth, respaldo y restauración, Google OAuth (#35) |
 
 ## Probar localmente (sin cuentas ni servicios externos)
 
