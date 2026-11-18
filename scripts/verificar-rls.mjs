@@ -41,6 +41,8 @@ check('dos sesiones reales distintas', A.id !== B.id);
 
 // ---------- Datos de A ----------
 const marker = `rls-${Date.now()}`;
+// Número libre y alto para la fila de prueba (la numeración es única por cuenta, A-47).
+const testNumber = 900000 + Math.floor(Math.random() * 90000);
 await A.c.from('profiles').upsert({ id: A.id, business_name: `Negocio A ${marker}` });
 const { data: veh, error: vehErr } = await A.c
   .from('vehicles')
@@ -54,13 +56,13 @@ check('A marca su vehículo como predeterminado', !defErr, defErr?.message);
 const internal = { costEstimate: 41234, costType: 'estimado', margin: 0.15, engineVersion: 'motor-1.0.1', vehicle: { kmPerL: 11, wearPerKm: 40 } };
 const { data: job, error: jobErr } = await A.c
   .from('jobs')
-  .insert({ number: 1, quote_date: '2026-11-18', client_name: `Cliente ${marker}`, net_price: 60000, internal, waypoints: [] })
+  .insert({ number: testNumber, issued_number: testNumber, quote_date: '2026-11-18', client_name: `Cliente ${marker}`, net_price: 60000, internal, waypoints: [] })
   .select()
   .single();
 check('A crea un trabajo con costos internos', !jobErr && job?.owner_id === A.id, jobErr?.message);
 const { data: cq, error: cqErr } = await A.c
   .from('client_quotes')
-  .insert({ job_id: job.id, number: 1, issued_at: '2026-11-18', client_name: `Cliente ${marker}`, net_price: 60000, total: 60000 })
+  .insert({ job_id: job.id, number: testNumber, issued_at: '2026-11-18', client_name: `Cliente ${marker}`, net_price: 60000, total: 60000 })
   .select()
   .single();
 check('A crea la cotización al cliente', !cqErr, cqErr?.message);
@@ -87,7 +89,7 @@ check('B no BORRA el vehículo de A', (await del('vehicles', veh.id)).length ===
 check('B no BORRA el trabajo de A', (await del('jobs', job.id)).length === 0);
 check('B no BORRA la cotización de A', (await del('client_quotes', cq.id)).length === 0);
 
-const { error: insForeign } = await B.c.from('jobs').insert({ owner_id: A.id, number: 9, quote_date: '2026-11-18', client_name: 'x', net_price: 1, internal: {} });
+const { error: insForeign } = await B.c.from('jobs').insert({ owner_id: A.id, number: 9, issued_number: 9, quote_date: '2026-11-18', client_name: 'x', net_price: 1, internal: {} });
 check('B no INSERTA filas a nombre de A', !!insForeign, insForeign?.message);
 const { error: cqForeign } = await B.c.from('client_quotes').insert({ job_id: job.id, number: 9, issued_at: '2026-11-18', client_name: 'x', net_price: 1, total: 1 });
 check('B no cuelga una cotización del trabajo de A', !!cqForeign, cqForeign?.message);

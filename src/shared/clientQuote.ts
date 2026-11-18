@@ -14,7 +14,14 @@ export type JobStatus = 'borrador' | 'enviada' | 'aceptada' | 'rechazada' | 'rea
 /** Registro interno del trabajo (solo para el transportista). */
 export interface JobRecord {
   id: string;
+  /** Número INTERNO, único por cuenta (en la nube lo asigna la base; A-47). */
   number: number;
+  /**
+   * Número EMITIDO: el que figura en el documento que recibió el cliente. Solo difiere del
+   * interno en cotizaciones importadas cuyo número ya estaba ocupado en la cuenta. Nunca se
+   * cambia después de emitir. Ausente = igual al interno.
+   */
+  issuedNumber?: number;
   createdAt: string;
   clientName: string;
   serviceDescription: string;
@@ -109,7 +116,8 @@ export function toClientQuote(job: JobRecord, fallbackIssuer?: BusinessProfile):
   const taxAmount = job.tax ? job.tax.amount : null;
   const issuer = job.issuer ?? fallbackIssuer ?? { name: '', phone: '', email: '' };
   return {
-    number: job.number,
+    // El documento muestra SIEMPRE el número emitido (A-47).
+    number: job.issuedNumber ?? job.number,
     issuedAt: job.createdAt,
     businessName: issuer.name,
     businessPhone: issuer.phone,

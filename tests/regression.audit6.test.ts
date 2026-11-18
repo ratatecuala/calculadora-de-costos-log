@@ -43,7 +43,7 @@ function fakeClient(token: string, calls: Call[], opts: { sessionUser?: () => st
     from: (table: string) => builder(table),
     rpc: async (fn: string) => {
       calls.push({ token, op: `rpc.${fn}` });
-      return { data: 'id-nube', error: null };
+      return { data: { id: 'id-nube', number: 5, issued_number: 5 }, error: null };
     },
     auth: {
       getSession: async () => ({ data: { session: { access_token: token, user: { id: opts.sessionUser?.() ?? 'A' } } } }),

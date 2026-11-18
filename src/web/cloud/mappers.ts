@@ -42,6 +42,7 @@ export interface JobRow {
   id: string;
   local_id: string | null;
   number: number;
+  issued_number: number | null;
   quote_date: string;
   client_name: string;
   service_description: string;
@@ -64,6 +65,7 @@ export function jobFromRow(r: JobRow): JobRecord {
   return {
     id: r.id,
     number: r.number,
+    ...(r.issued_number !== null && r.issued_number !== undefined && r.issued_number !== r.number ? { issuedNumber: r.issued_number } : {}),
     createdAt: r.quote_date,
     clientName: r.client_name,
     serviceDescription: r.service_description,
@@ -88,7 +90,10 @@ export function jobToRow(job: JobRecord, localId: string | null) {
   return {
     id: localId ? null : job.id,
     local_id: localId,
+    // Indicativo: la base asigna el número interno. Al importar, `issued_number` es el número
+    // que ya vio el cliente y se conserva en el documento.
     number: job.number,
+    issued_number: job.issuedNumber ?? job.number,
     quote_date: job.createdAt,
     client_name: job.clientName,
     service_description: job.serviceDescription,

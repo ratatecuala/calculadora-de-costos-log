@@ -77,7 +77,14 @@ export class CloudQuoteRepository implements QuoteRepository {
     this.ensureCurrent();
     const { data, error } = await this.supabase.rpc('create_job_with_quote', jobWithQuotePayload(job, null));
     if (error || !data) throw new CloudError(SAVE_FAILED, error);
-    return { ...job, id: data as string };
+    // El número lo asigna la base, de forma atómica (A-47): se usa el que devuelve.
+    const saved = data as { id: string; number: number; issued_number: number };
+    return {
+      ...job,
+      id: saved.id,
+      number: saved.number,
+      ...(saved.issued_number !== saved.number ? { issuedNumber: saved.issued_number } : { issuedNumber: undefined }),
+    };
   }
 
   async update(id: string, patch: JobPatch): Promise<JobRecord> {
@@ -88,6 +95,7 @@ export class CloudQuoteRepository implements QuoteRepository {
     return jobFromRow(data[0] as JobRow);
   }
 
+  /** Solo indicativo para armar el registro: el número definitivo lo asigna la base al guardar. */
   async nextNumber(): Promise<number> {
     const { data, error } = await this.supabase.from('jobs').select('number').order('number', { ascending: false }).limit(1);
     if (error) throw new CloudError(LOAD_FAILED, error);

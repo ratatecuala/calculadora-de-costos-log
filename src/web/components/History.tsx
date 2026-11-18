@@ -63,7 +63,9 @@ export function History({ repository, onOpen, banner }: Props) {
           <div className="job" key={job.id}>
             <div className="ln">
               <span className="sub">
-                N° {String(job.number).padStart(4, '0')} · {job.createdAt}
+                N° {String(job.number).padStart(4, '0')}
+                {job.issuedNumber !== undefined && job.issuedNumber !== job.number ? ` (emitida como N° ${String(job.issuedNumber).padStart(4, '0')})` : ''} ·{' '}
+                {job.createdAt}
               </span>
               <strong className="num">{formatClp(job.netPrice)}</strong>
             </div>

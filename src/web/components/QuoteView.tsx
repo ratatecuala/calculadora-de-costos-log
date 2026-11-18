@@ -44,6 +44,12 @@ export function QuoteView({ job, repository, onBack }: Props) {
         ) : null}
       </div>
       <p className="sub no-print">Para el PDF, elige «Guardar como PDF» en la ventana de impresión.</p>
+      {job.issuedNumber !== undefined && job.issuedNumber !== job.number ? (
+        <p className="notice no-print">
+          En tu historial es la N° {String(job.number).padStart(4, '0')}. El documento conserva el número con que se emitió al cliente: N°{' '}
+          {String(job.issuedNumber).padStart(4, '0')}.
+        </p>
+      ) : null}
       {repository instanceof CloudQuoteRepository ? <SharePanel repository={repository} jobId={job.id} /> : null}
       <QuoteDocument q={q} />
     </div>
