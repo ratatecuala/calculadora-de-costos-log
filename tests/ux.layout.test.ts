@@ -38,6 +38,18 @@ describe('H-01 · navegación en teléfonos', () => {
   });
 });
 
+describe('H-05 · calculadora en anchos intermedios', () => {
+  it('entre 760 y 1099 px usa dos columnas: costos a la derecha, precio bajo el recorrido', () => {
+    const block = mediaBlock('(min-width: 760px) and (max-width: 1099px)');
+    expect(rule(block, '.layout:not(.single)')).toMatch(/grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
+    expect(rule(block, '.layout:not(.single) > .col:nth-child(2)')).toMatch(/grid-row:\s*1 \/ span 2/);
+    expect(rule(block, '.layout:not(.single) > .col:nth-child(3)')).toMatch(/grid-column:\s*1;[\s\S]*grid-row:\s*2/);
+  });
+  it('desde 1100 px se mantienen las tres columnas del diseño v4', () => {
+    expect(rule(mediaBlock('(min-width: 1100px)'), '.layout')).toMatch(/repeat\(3, minmax\(0, 1fr\)\)/);
+  });
+});
+
 describe('H-03 · áreas táctiles de al menos 44 px', () => {
   const minHeight = (selector: string) => Number(/min-height:\s*(\d+)px/.exec(rule(css, selector))?.[1] ?? 0);
   it.each(['.link-btn', '.fold summary', '.fold-card summary', '.check', '.btn2.small', 'select', '.field-compact .field-input', '.seg', '.nav'])(
