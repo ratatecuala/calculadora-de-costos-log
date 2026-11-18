@@ -25,7 +25,7 @@ Refs #
 - [ ] Si cambia el motor: casos dorados actualizados o sin cambios justificados, `engineVersion` y CHANGELOG actualizados
 - [ ] Si cambia un dataset: fuente, fecha y licencia citadas
 - [ ] Documentación y registro de decisiones actualizados, si corresponde
-- [ ] Accesibilidad revisada, si cambia la interfaz
+- [ ] Accesibilidad revisada y verificada en teléfono **y** escritorio (A-49), si cambia la interfaz
 
 ## Revisión
 - [ ] Revisado por ChatGPT

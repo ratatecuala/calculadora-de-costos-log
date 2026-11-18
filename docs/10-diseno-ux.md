@@ -24,6 +24,7 @@
 | Radios | Tarjetas 12 px; botones y campos 10 px; botones de 48–52 px de alto |
 
   Un ajuste de contraste por accesibilidad no cuenta como rediseño.
+- **Paridad teléfono/computador (A-49, aprobada):** la app se diseña para usarse **plenamente en teléfonos y en computadores (PC/notebook)**, con las mismas funciones principales (cálculo, cotización, PDF, historial, vehículos, cuenta y sincronización). Teléfono: controles táctiles cómodos (≥ 44 px) y sin desplazamiento horizontal. Computador: diseño que aprovecha el ancho, con navegación por teclado y foco visible. Maquetar *mobile-first* es una técnica de CSS y **no** implica prioridad funcional ni comercial del móvil. Sin rediseñar la v4.
 - En móvil, una experiencia fluida con **formulario y resultados en una pantalla desplazable** para la calculadora; no exigir una pantalla por pregunta. En escritorio, **formulario + mapa/alternativas + desglose/precio/cotización** en columnas.
 
 ## 2. Pantallas
@@ -39,7 +40,7 @@
 | Cotización para cliente | Datos autorizados, precio, IVA si corresponde, condiciones, vigencia, PDF, WhatsApp, enlace protegido | Referencia (A-21) |
 | Mis trabajos | Borradores/enviadas/aceptadas/realizadas/rechazadas y pagos confirmados por separado | Referencia (A-21) |
 | Errores y datos parciales | Falta rendimiento/TAG/fijos; comparación indeterminada; mapa fallido; límite agotado y modo manual | Referencia (A-21) |
-| Escritorio | Misma experiencia en 3 columnas, sin duplicar cálculos ni reglas | Referencia (A-21) |
+| Escritorio (PC/notebook) | Misma experiencia y **mismas funciones** que en el teléfono, aprovechando el ancho (columnas), sin duplicar cálculos ni reglas | Referencia (A-21); paridad **aprobada** (A-49) |
 
 **Importante:** el mockup no es código funcional ni evidencia de que Google admita mapas con varias polilíneas, peajes exactos o cobertura de tráfico en toda ruta.
 

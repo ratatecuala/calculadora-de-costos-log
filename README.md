@@ -2,7 +2,9 @@
 
 > **Nombre comercial:** PENDIENTE DE DECISIÓN (#13). El nombre técnico del repositorio no es la marca.
 
-Herramienta web **gratuita** para **transportistas independientes y fletes livianos en Chile**: calcula cuánto cuesta un traslado, ayuda a decidir el precio y genera una **cotización profesional** para el cliente sin revelarle los costos internos. Pensada primero para el teléfono.
+Herramienta web **gratuita** para **transportistas independientes y fletes livianos en Chile**: calcula cuánto cuesta un traslado, ayuda a decidir el precio y genera una **cotización profesional** para el cliente sin revelarle los costos internos.
+
+**Para teléfono y computador por igual (A-49):** diseñada para utilizarse plenamente tanto en teléfonos como en computadores (PC o notebook), con interfaz adaptable (*responsive*) a cada tamaño de pantalla y **las mismas funciones** en ambos: cálculo, cotización, PDF, historial, vehículos y cuenta. En el teléfono, controles táctiles cómodos; en el computador, un diseño que aprovecha el ancho de la pantalla. Maquetar «primero para móvil» es solo una técnica de CSS: **no** significa que el escritorio sea secundario.
 
 ---
 
@@ -72,6 +74,8 @@ Fuente: [07 · Decisiones](docs/07-decisiones.md). Una decisión está **APROBAD
 - **APROBADAS por escrito (PR #34):**
   - **A-47:** numeración de cotizaciones única, correlativa y atómica por cuenta, que conserva el número emitido.
   - **A-48:** este README como fuente de continuidad, actualizado con cada avance.
+- **APROBADA por escrito (PR #40):**
+  - **A-49:** paridad teléfono y computador: mismas funciones, interfaz adaptable a cada pantalla.
 - **Comunicadas por el propietario, pendientes de ratificación escrita en el PR #34:**
   - A-21 a A-29: diseño v4, criterios funcionales y separación de la cotización.
   - A-31 a A-45: Google Routes Essentials, política de cupo, fases 1 a 3 y «Mi vehículo».

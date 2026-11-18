@@ -176,6 +176,14 @@ Escritas por el propietario en GitHub ([comentario en el PR #34](https://github.
 | A-47 | **Numeración de cotizaciones:** secuencia propia por cuenta, **única, correlativa y segura ante concurrencia**, asignada **atómicamente en Supabase** (no «máximo + 1» en el navegador), con unicidad por dueño en la base. Al copiar cotizaciones locales se conservan `local_id` y la idempotencia; si el número local está ocupado, se asigna un **número interno nuevo**. **Nunca** se cambia el número de un documento ya emitido: se guarda el número emitido por separado y el documento lo sigue mostrando | **APROBADO**. Implementado y probado en staging ([13](13-staging.md) §10 ter) |
 | A-48 | **README como fuente de contexto:** README principal en español con estado real, «Estado para retomar en otro chat», pruebas ejecutadas o revisadas, decisiones, riesgos y límites; **actualizado con cada avance material**; publicado en la portada de `main` mediante un **PR exclusivamente documental**, sin fusionar el PR #34 | **APROBADO**. Regla permanente en [AGENTS.md](../AGENTS.md) §10 |
 
+## Decisión del 18-11-2026 aprobada por escrito en el PR #40
+
+Escrita por el propietario en GitHub ([comentario en el PR #40](https://github.com/ratatecuala/calculadora-de-costos-log/pull/40#issuecomment-6968872592)) y repetida en el [PR #34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6968930515): **APROBADA**.
+
+| ID | Decisión | Estado |
+|---|---|---|
+| A-49 | **Paridad teléfono y computador:** el cotizador se diseña para usarse **plenamente en teléfonos y en PC/notebook**, con interfaz adaptable y las **mismas funciones principales** (cálculo, cotización, PDF, historial, vehículos, cuentas y sincronización). Teléfono: controles táctiles cómodos. Computador: diseño que aprovecha el ancho. *Mobile-first* como técnica de maquetación **no** implica prioridad funcional ni comercial del móvil. Sin rehacer el diseño v4 ni agregar funciones nuevas | **APROBADA** (18-11-2026). Se reemplaza «Pensada primero para el teléfono» en el README |
+
 **Implementación de A-47 (decisiones menores, revisables):**
 - Un número local **libre** se conserva tal cual, así que la secuencia puede saltar hasta ese número.
 - Los números de cotizaciones borradas **no se reutilizan**.
