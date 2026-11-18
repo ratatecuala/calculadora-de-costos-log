@@ -65,15 +65,15 @@ Detalle: [02 · Arquitectura](https://github.com/ratatecuala/calculadora-de-cost
 
 | Prueba | Resultado | Quién la ejecutó |
 |---|---|---|
-| `npm test` (sin red) | **225/225** (18-11-2026) | Claude (ejecutadas) |
+| `npm test` (sin red) | **225/225** (18-11-2026). **Incluye 9 `it.fails`** que documentan defectos del motor **no corregidos** (C-1 a C-3, docs/15): el verde no significa que estén resueltos | Claude (ejecutadas) |
 | Recálculo independiente de los casos dorados (`scripts/verificar-casos-dorados.mjs`) | **64/64** | Claude (ejecutadas) |
 | Teléfono y PC en navegador local (10 tamaños de pantalla) | 10 hallazgos, 10 corregidos; montos idénticos antes y después | Claude (ejecutadas) |
-| Ensayo local de respaldo y restauración | **Idéntica** (`diff` = 0) | Claude (ejecutadas) |
+| Ensayo local de respaldo y restauración (datos ficticios) | **Idéntica** (`diff` = 0). **No** equivale a un respaldo real ni a restaurar staging | Claude (ejecutadas) |
 | RLS real en Supabase con dos usuarios y un visitante anónimo (`scripts/verificar-rls.mjs`) | **39/39** | Claude (ejecutadas) |
 | Numeración real en Supabase: concurrencia desde 2 dispositivos, importación y conflictos (`scripts/verificar-numeracion.mjs`) | **17/17** | Claude (ejecutadas) |
 | Cloudflare real: reserva, concurrencia estricta, apagado, reintentos, contador caído (`scripts/verificar-cloudflare.mjs`) | **8/8 y 2/2** | Claude (ejecutadas) |
 | Navegador real contra staging, móvil y escritorio (`scripts/e2e-staging.mjs`) | **41/41** (17-11, antes de las correcciones de experiencia de usuario; no repetido) | Claude (ejecutadas) |
-| Revisión independiente del código | 7 auditorías | ChatGPT, **por inspección**: no reproduce las ejecuciones |
+| Revisión independiente del código | 7 auditorías, más la [revisión de los cinco frentes del 18-11](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6970465877) (sin bloqueos nuevos; PR #41 apto para tu decisión) | ChatGPT, **por inspección**: no reproduce las ejecuciones |
 
 Las credenciales de los scripts se leen siempre de archivos **fuera** del repositorio.
 
@@ -94,8 +94,8 @@ Fuente: [07 · Decisiones](https://github.com/ratatecuala/calculadora-de-costos-
 ## Riesgos y pendientes
 
 - **Decisiones pendientes de la sesión del 18-11 (detalle en cada documento):**
-  - **Motor (15):** C-3, el margen se aplica sobre el **precio** (P = C/(1−m)), pero la pantalla dice «Ganancia extra sobre el costo». Opciones: corregir el texto o cambiar la fórmula. También: validar entradas negativas o no numéricas (C-1), el «$-0» (C-2), el margen con decimales (C-4) y las correcciones Doc-1 a Doc-6 de docs/03. **Ninguna fórmula se cambió.**
-  - **IVA (16):** opción A, B (recomendada) o B+C; leyenda «no es factura ni boleta»; perfil tributario del transportista y tipo de cliente. Validación por un contador o GPT Deep Research (sii.cl no fue accesible desde la sesión).
+  - **Motor (15):** C-3, el margen se aplica sobre el **precio** (P = C/(1−m)), pero la pantalla dice «Ganancia extra sobre el costo». Opciones: corregir el texto o cambiar la fórmula. **ChatGPT recomienda corregir solo el texto** («Margen objetivo (% del precio de venta)»). También: validar entradas negativas o no numéricas (C-1), el «$-0» (C-2), el margen con decimales (C-4) y las correcciones Doc-1 a Doc-6 de docs/03. **Ninguna fórmula se cambió.**
+  - **IVA (16):** opción A, B (recomendada como dirección de producto, **condicionada a validación de un contador o del SII**) o B+C; leyenda «no es factura ni boleta»; perfil tributario del transportista y tipo de cliente. Validación por un contador o GPT Deep Research (sii.cl no fue accesible desde la sesión).
   - **Supabase (17):** plan antes de usuarios reales, frecuencia y lugar de los respaldos, registro por correo cuando exista Google y privilegios por defecto.
   - **Experiencia de usuario (14):** filtro del historial, precio fijo en el teléfono y propuestas menores.
 - **Decisiones del propietario (anteriores):**
