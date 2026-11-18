@@ -1,0 +1,145 @@
+# Calculadora y cotizador de fletes — nombre pendiente
+
+> **Versión de portada.** El desarrollo vive en la rama `claude/determined-volta-q9xvli` ([PR #34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34)); los enlaces apuntan a esa rama hasta que el propietario autorice integrarla a `main`.
+
+> **Nombre comercial:** PENDIENTE DE DECISIÓN (#13). El nombre técnico del repositorio no es la marca.
+
+Herramienta web **gratuita** para **transportistas independientes y fletes livianos en Chile**: calcula cuánto cuesta un traslado, ayuda a decidir el precio y genera una **cotización profesional** para el cliente sin revelarle los costos internos. Pensada primero para el teléfono.
+
+---
+
+## Estado para retomar en otro chat
+
+**Actualizado: 18-11-2026.** Esta sección es el punto de continuidad: un chat o colaborador nuevo debe poder seguir desde aquí sin memorias privadas.
+
+| Dato | Valor |
+|---|---|
+| Rama de desarrollo | `claude/determined-volta-q9xvli` |
+| PR de trabajo | [#34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34): **abierto, sin merge**. Ahí están el código, las auditorías de ChatGPT y las decisiones escritas del propietario |
+| Commit de referencia | `c041af8` (numeración atómica). Ver el historial de la rama para lo más reciente |
+| Auditorías de ChatGPT | 7 rondas. La séptima cerró la sexta **sin hallazgos P0/P1 nuevos**. ChatGPT revisa **por inspección**; no ejecuta las pruebas |
+| `main` | Vacío (solo el commit inicial). Nada se integra sin aprobación del propietario |
+| Siguiente acción | Revisión de la numeración y de este README; decisiones operativas pendientes (abajo) |
+
+**Cómo retomar:** leer este README → [AGENTS.md](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/AGENTS.md) (reglas y autorizaciones) → [07 · Decisiones](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/07-decisiones.md) → [13 · Staging](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/13-staging.md) → los últimos comentarios del PR #34.
+
+## Estado real
+
+| Área | Estado |
+|---|---|
+| Calculadora y cotizador (motor de costos, precio, PDF, WhatsApp) | **Funciona** (local y staging) |
+| Distancias y tiempos de ruta | **Simulados**. La app lo indica en cada resultado. Google Routes **no está conectado** |
+| Uso sin cuenta (historial en el navegador) | **Funciona**, con aviso de que no hay respaldo en la nube |
+| Cuentas, vehículos y cotizaciones en la nube (Supabase) | **Funciona en staging** con usuarios de prueba (correo y contraseña, solo staging) |
+| Inicio de sesión con Google | **Preparado, bloqueado**: falta el cliente OAuth en el Google Cloud del propietario |
+| Enlace público de la cotización (sin costos internos, revocable) | **Funciona en staging** |
+| Numeración de cotizaciones única por cuenta (A-47) | **Funciona en staging**: la asigna la base de forma atómica |
+| Contador de consultas e interruptor de emergencia (Cloudflare) | **Funciona en staging** |
+| Respaldo y restauración de Supabase | **Preparado, no ejecutado**: requiere la contraseña de la base del propietario |
+| Producción pública, facturación, planes de pago | **No existen ni están autorizados** |
+
+**Staging:** privado (usuario y contraseña), en los planes **gratuitos** de Cloudflare Workers y Supabase. Su URL y los identificadores de las cuentas **no se publican** en este repositorio.
+
+## Arquitectura (alto nivel)
+
+- **Navegador:** React + TypeScript + Vite. El motor de costos es puro y aislado (`src/engine`), sin red ni base de datos.
+- **Cloudflare Worker:** sirve la app y `/api/route`. Las rutas pasan por un **contador de presupuesto** en un Durable Object: reserva antes de consultar, cierra ante falla, tiene interruptor en caliente y no repite consultas al editar costos o precios.
+- **Supabase:**
+  - Auth y Postgres con **RLS por dueño** en todas las tablas.
+  - `jobs` guarda los costos internos; `client_quotes` guarda **solo** lo que ve el cliente.
+  - Los enlaces públicos usan tokens de 256 bits, de los que se guarda solo el hash.
+  - Las migraciones están en [`supabase/migrations/`](https://github.com/ratatecuala/calculadora-de-costos-log/tree/claude/determined-volta-q9xvli/supabase/migrations/).
+- **Google Routes Essentials:** proveedor elegido. Está **desconectado** hasta que el propietario lo autorice. La política de cupo es: objetivo de 7.000 consultas al mes, corte en 8.000, y 3 comparaciones al día y 10 al mes por usuario.
+
+Detalle: [02 · Arquitectura](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/02-arquitectura.md) y [13 · Staging](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/13-staging.md).
+
+## Pruebas
+
+| Prueba | Resultado | Quién la ejecutó |
+|---|---|---|
+| `npm test` (sin red) | **154/154** | Claude (ejecutadas) |
+| RLS real en Supabase con dos usuarios y un visitante anónimo (`scripts/verificar-rls.mjs`) | **39/39** | Claude (ejecutadas) |
+| Numeración real en Supabase: concurrencia desde 2 dispositivos, importación y conflictos (`scripts/verificar-numeracion.mjs`) | **17/17** | Claude (ejecutadas) |
+| Cloudflare real: reserva, concurrencia estricta, apagado, reintentos, contador caído (`scripts/verificar-cloudflare.mjs`) | **8/8 y 2/2** | Claude (ejecutadas) |
+| Navegador real contra staging, móvil y escritorio (`scripts/e2e-staging.mjs`) | **41/41** | Claude (ejecutadas) |
+| Revisión independiente del código | 7 auditorías | ChatGPT, **por inspección**: no reproduce las ejecuciones |
+
+Las credenciales de los scripts se leen siempre de archivos **fuera** del repositorio.
+
+## Decisiones
+
+Fuente: [07 · Decisiones](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/07-decisiones.md). Una decisión está **APROBADA** cuando el propietario la deja por escrito en GitHub.
+
+- **APROBADAS por escrito (PR #34):**
+  - **A-47:** numeración de cotizaciones única, correlativa y atómica por cuenta, que conserva el número emitido.
+  - **A-48:** este README como fuente de continuidad, actualizado con cada avance.
+- **Comunicadas por el propietario, pendientes de ratificación escrita en el PR #34:**
+  - A-21 a A-29: diseño v4, criterios funcionales y separación de la cotización.
+  - A-31 a A-45: Google Routes Essentials, política de cupo, fases 1 a 3 y «Mi vehículo».
+  - A-46: staging gratuito en Cloudflare y Supabase.
+
+## Riesgos y pendientes
+
+- **Decisiones del propietario:**
+  - Google OAuth (crear el cliente).
+  - Cerrar el registro por correo en staging y activar la protección de contraseñas filtradas.
+  - Plan de Supabase antes de lanzar: el gratuito **se pausa** con poca actividad y **no tiene respaldos automáticos**.
+  - Dominio y nombre comercial.
+- **Antes de usar Google Routes real:**
+  - autorización expresa;
+  - plan de prueba con cupos y credenciales;
+  - las cuotas **no garantizan gasto cero**.
+- **Pendientes técnicos y legales:** IVA (#16), verificación independiente de los casos dorados (#24), confirmación de direcciones (#19) y aviso de privacidad (#17).
+
+## Límites de autorización
+
+**No autorizado sin orden expresa del propietario:**
+- merge a `main`;
+- producción pública;
+- Google Routes real;
+- facturación o planes de pago;
+- crear cuentas o servicios nuevos;
+- publicar secretos;
+- cambiar las fórmulas del motor.
+
+Reglas completas en [AGENTS.md](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/AGENTS.md).
+
+## Documentación
+
+| Archivo | Contenido |
+|---|---|
+| [AGENTS.md](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/AGENTS.md) | Reglas de trabajo y autorización para todos los agentes |
+| [01 · Alcance](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/01-alcance.md) | Funciones gratuitas, flujo y exclusiones |
+| [02 · Arquitectura](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/02-arquitectura.md) | Arquitectura, política de consultas e implementación |
+| [03 · Motor de costos](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/03-motor-de-costos.md) | Fórmulas, cotas y casos dorados |
+| [05 · Pruebas](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/05-pruebas-y-calibracion.md) | Pruebas automáticas y reales |
+| [06 · Seguridad y privacidad](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/06-seguridad-y-privacidad.md) | Datos, cotizaciones compartidas y control de cargos |
+| [07 · Decisiones](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/07-decisiones.md) | Registro de decisiones y su estado |
+| [10 · Diseño UX/UI v4](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/10-diseno-ux.md) | Diseño aprobado |
+| [11 · Auditoría Google Maps](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/11-auditoria-google-maps.md) | Costos y condiciones de Google |
+| [13 · Staging](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/13-staging.md) | Recursos, RLS, pruebas reales, interruptores, respaldo y pasos manuales |
+
+## Probar localmente (sin cuentas ni servicios externos)
+
+Requiere Node 20 o superior.
+
+```bash
+npm install
+```
+
+```bash
+npm test
+```
+
+```bash
+npm run dev
+```
+
+La app abre en `http://localhost:5173`, con rutas **simuladas** y el historial guardado solo en el navegador.
+
+## Cómo se mantiene este README
+
+Es una **regla permanente** (A-48, ver [AGENTS.md](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/AGENTS.md) §10):
+- Cada avance material (función, decisión, arquitectura, despliegue, prueba, bloqueo o hito) actualiza este README en el mismo PR o commit.
+- La versión de la portada de GitHub (`main`) se sincroniza con un **PR exclusivamente documental**, que fusiona solo el propietario.
+- No hay monitorización automática: lo actualiza el agente cada vez que trabaja en el repositorio.
