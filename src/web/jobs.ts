@@ -29,7 +29,8 @@ export function buildJobRecord(
 ): JobRecord | null {
   const s = session.getSnapshot();
   const computation = session.computation('habitual');
-  if (!computation || s.chosenPrice === null) return null;
+  // Quinta auditoría (P2): la confirmación del precio también se exige en el último paso.
+  if (!computation || s.chosenPrice === null || session.priceNeedsConfirmation()) return null;
   const keep = session.retainable('habitual');
   const m = computation.measures;
   return {

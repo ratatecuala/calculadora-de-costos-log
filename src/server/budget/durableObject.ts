@@ -77,8 +77,8 @@ export class RouteBudgetDurableObject {
         return Response.json({ enabled: await this.ledger.isServiceEnabled() });
       }
       if (request.method === 'POST' && url.pathname === '/status') {
-        const body = (await request.json()) as { now: string };
-        return Response.json(await this.ledger.status(new Date(body.now)));
+        const body = (await request.json()) as { now: string; originKey?: string };
+        return Response.json(await this.ledger.status(new Date(body.now), body.originKey));
       }
       return new Response('No encontrado', { status: 404 });
     } catch {
@@ -114,8 +114,8 @@ export class DurableObjectBudgetGate implements BudgetGate, ServiceSwitch {
     if (!res.ok) throw new Error(`Contador respondió ${res.status}`);
   }
 
-  async status(now: Date): Promise<BudgetStatus> {
-    const res = await this.stub.fetch('https://budget/status', { method: 'POST', body: JSON.stringify({ now: now.toISOString() }) });
+  async status(now: Date, originKey?: string): Promise<BudgetStatus> {
+    const res = await this.stub.fetch('https://budget/status', { method: 'POST', body: JSON.stringify({ now: now.toISOString(), originKey }) });
     if (!res.ok) throw new Error(`Contador respondió ${res.status}`);
     return (await res.json()) as BudgetStatus;
   }

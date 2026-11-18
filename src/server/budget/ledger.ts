@@ -48,6 +48,10 @@ export interface BudgetStatus {
   operationalAllowanceToday: number;
   operationalMonthly: number;
   emergencyMonthly: number;
+  perUserDaily: number;
+  perOriginDaily: number;
+  /** Reservas de hoy del origen de quien consulta (si se indicó); sirve para pruebas exactas. */
+  originUsedToday: number | null;
 }
 
 export interface QuotaSnapshot {
@@ -106,10 +110,11 @@ export class BudgetLedger implements BudgetGate, ServiceSwitch {
     return this.exclusive(() => this.storage.putAll({ [SWITCH_KEY]: enabled ? 0 : 1 }));
   }
 
-  status(now: Date): Promise<BudgetStatus> {
+  status(now: Date, originKey?: string): Promise<BudgetStatus> {
     return this.exclusive(async () => {
       const p = periodKeys(now);
-      const values = await this.storage.getMany([SWITCH_KEY, `g:${p.month}`]);
+      const originDayKey = originKey ? `o:${p.day}:${originKey}` : null;
+      const values = await this.storage.getMany([SWITCH_KEY, `g:${p.month}`, ...(originDayKey ? [originDayKey] : [])]);
       return {
         enabled: (values.get(SWITCH_KEY) ?? 0) !== 1,
         month: p.month,
@@ -117,6 +122,9 @@ export class BudgetLedger implements BudgetGate, ServiceSwitch {
         operationalAllowanceToday: operationalAllowance(this.policy, p.dayOfMonth, p.daysInMonth),
         operationalMonthly: this.policy.operationalMonthly,
         emergencyMonthly: this.policy.emergencyMonthly,
+        perUserDaily: this.policy.perUserDaily,
+        perOriginDaily: this.policy.perOriginDaily,
+        originUsedToday: originDayKey ? (values.get(originDayKey) ?? 0) : null,
       };
     });
   }

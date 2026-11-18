@@ -24,6 +24,19 @@ let client: SupabaseClient | null = null;
 
 export const cloudConfig: CloudConfig | null = readCloudConfig(import.meta.env as Record<string, string | boolean | undefined>);
 
+/**
+ * Cliente FIJADO a la sesión de una cuenta (quinta auditoría, P1): todas sus solicitudes usan
+ * ese token aunque en el cliente compartido se cierre sesión o entre otra cuenta. Se usa para
+ * operaciones largas, como copiar el historial local, que deben quedar a nombre de quien las inició.
+ */
+export function createBoundClient(accessToken: string, config: CloudConfig | null = cloudConfig, fetchImpl?: typeof fetch): SupabaseClient | null {
+  if (!config) return null;
+  return createClient(config.url, config.publishableKey, {
+    accessToken: async () => accessToken,
+    ...(fetchImpl ? { global: { fetch: fetchImpl } } : {}),
+  });
+}
+
 export function getSupabase(): SupabaseClient | null {
   if (!cloudConfig) return null;
   client ??= createClient(cloudConfig.url, cloudConfig.publishableKey, {

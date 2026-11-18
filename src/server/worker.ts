@@ -15,7 +15,7 @@ import { DurableObjectBudgetGate, RouteBudgetDurableObject } from './budget/dura
 import { readServerConfig, type ServerConfig } from './config';
 import { createRouteService } from './createRouteService';
 import type { RouteProvider } from './providers/types';
-import { handleRouteRequest } from './routeHandler';
+import { handleRouteRequest, pseudonymize } from './routeHandler';
 
 export interface WorkerEnv {
   ASSETS: { fetch(request: Request): Promise<Response> };
@@ -57,6 +57,12 @@ function sameToken(a: string, b: string): boolean {
   return diff === 0;
 }
 
+/** Seudónimo del origen de quien consulta el estado (misma regla que el contador; no se guarda la IP). */
+async function adminOriginKey(request: Request, env: WorkerEnv): Promise<string> {
+  const config = readServerConfig(stringEnv(env));
+  return `o:${await pseudonymize(request.headers.get('CF-Connecting-IP') ?? 'desconocido', config.originSalt)}`;
+}
+
 async function handleAdmin(request: Request, env: WorkerEnv): Promise<Response> {
   const token = typeof env['ADMIN_TOKEN'] === 'string' ? env['ADMIN_TOKEN'] : '';
   if (token.length < 32) return new Response('No encontrado', { status: 404 });
@@ -65,7 +71,7 @@ async function handleAdmin(request: Request, env: WorkerEnv): Promise<Response> 
   const gate = budgetGate(env);
   try {
     if (request.method === 'GET')
-      return Response.json(await gate.status(new Date()), {
+      return Response.json(await gate.status(new Date(), await adminOriginKey(request, env)), {
         headers: { 'Cache-Control': 'no-store' },
       });
     if (request.method !== 'POST') return new Response('Método no permitido', { status: 405 });

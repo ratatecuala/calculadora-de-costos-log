@@ -75,7 +75,7 @@ El Worker guardaba el *stub* del Durable Object entre solicitudes. En Workers, u
 ## 5. Resultados de pruebas
 
 ### 5.1 Automáticas (sin red): `npm test`
-133 pruebas en verde (las 117 anteriores, adaptadas a la interfaz asíncrona, más conversores de la nube, piezas de staging del Worker y la regresión del *stub*).
+140 pruebas en verde (las 117 anteriores, adaptadas a la interfaz asíncrona, más conversores de la nube, piezas de staging del Worker, la regresión del *stub* y las regresiones de la quinta auditoría).
 
 ### 5.2 RLS real con dos usuarios: `scripts/verificar-rls.mjs` → **39/39**
 Sesiones reales (JWT emitidos por Supabase) de los usuarios A y B y un visitante anónimo, con la clave publicable:
@@ -91,10 +91,12 @@ Sesiones reales (JWT emitidos por Supabase) de los usuarios A y B y un visitante
 3. Servicio apagado (interruptor en caliente): rutas y comparaciones responden `servicio_apagado`, **Δ = 0**.
 4. Apagado **durante** una consulta: el reintento queda bloqueado (Δ = 1, solo la reserva inicial).
 5. Comparaciones: 3 al día; la cuarta se rechaza sin reservar.
-6. **30 solicitudes simultáneas** del mismo usuario: **20 autorizadas, 10 rechazadas, Δ = 20** (nunca se supera el límite).
+6. **30 solicitudes simultáneas** del mismo usuario: **20 autorizadas, 10 rechazadas, 0 fallas del contador, Δ = 20**. Desde la quinta auditoría la prueba es **estricta**: calcula la cifra exacta esperada con el cupo real del origen (`originUsedToday` del estado administrativo) y, si el cupo del origen no alcanza, se declara no concluyente en vez de aprobarse.
 7. Durable Object caído (falla inyectada en el objeto real): `contador_no_disponible`, sin ruta, el proveedor no se consulta.
 
-### 5.4 Flujo completo en navegador: `scripts/e2e-staging.mjs` → **33/33** (móvil Pixel 7 y escritorio 1440)
+### 5.4 Flujo completo en navegador: `scripts/e2e-staging.mjs` → **39/39** (móvil Pixel 7 y escritorio 1440)
+Desde la quinta auditoría incluye: al cerrar sesión no queda a la vista el vehículo de la cuenta y el borrador de la cotización queda vacío; otra cuenta en el **mismo navegador** no ve vehículos ni cotizaciones de la anterior.
+
 Anónimo (ruta simulada → costos → precio → cotización → historial local → impresión sin costos internos); copia del historial local a la cuenta (1 copia, sin duplicados); vehículo y cotización en la cuenta; enlace público; cerrar sesión (no quedan datos de la cuenta a la vista); volver a entrar (se recuperan); estado y pago persisten tras recargar; **otro dispositivo** recupera vehículo y cotización; **usuario B no ve nada de A**; enlace público sin costos y revocable; sin errores de página; **0 solicitudes a dominios externos**.
 
 ## 6. Cómo verificar el entorno de pruebas
@@ -161,9 +163,17 @@ psql --single-transaction --variable ON_ERROR_STOP=1 --file roles.sql --file sch
 
 **Verificación:** contar filas en ambos proyectos (`select count(*)` de `auth.users`, `profiles`, `vehicles`, `jobs`, `client_quotes`, `quote_shares`) y ejecutar `scripts/verificar-rls.mjs` contra el proyecto restaurado. El esquema también se puede reconstruir desde cero con las migraciones del repositorio. Lo que **no** viaja en el respaldo: configuración de Auth (proveedores, URLs), claves de API.
 
+## 10 bis. Aislamiento entre sesiones en el navegador (quinta auditoría)
+
+- **Vehículos:** `src/web/vehicleList.ts` liga la lista a una identidad. Al entrar, salir o cambiar de cuenta la lista se vacía al instante, las cargas iniciadas por la identidad anterior se descartan aunque lleguen tarde, y una carga fallida deja la lista vacía.
+- **Borrador de la cotización:** se reinicia al cerrar sesión o al cambiar de una cuenta a otra; se conserva al pasar de anónimo a una cuenta (es quien estaba cotizando).
+- **Copia del historial local:** usa un cliente **fijado al token** de la cuenta que la inició (`createBoundClient`), así nada puede quedar a nombre de otra cuenta aunque la sesión cambie; además comprueba la identidad antes de cada paso y no se marca como completa si la sesión cambió.
+- **Precio:** la confirmación se exige también en el último paso de guardado (`buildJobRecord`).
+
 ## 11. Limitaciones conocidas
 
-- **Números de cotización:** al copiar el historial local, cada cotización conserva su número (el cliente ya pudo recibirlo), así que pueden repetirse números en la cuenta. Decisión pendiente del propietario.
+- **Números de cotización:** al copiar el historial local, cada cotización conserva su número (el cliente ya pudo recibirlo), así que pueden repetirse números en la cuenta. Además, `nextNumber()` calcula «máximo + 1» en el navegador, sin garantía de unicidad entre pestañas simultáneas. Decisión pendiente del propietario; resolver antes de uso comercial (p. ej., numeración asignada por la base).
+- **Origen de red:** el egreso del proxy de pruebas usa varias IP, así que el límite por origen (40/día) se reparte entre ellas; el límite por usuario y el techo global sí se verificaron con cifras exactas.
 - **Deduplicación del doble clic** en Cloudflare: por isolate; dos clics simultáneos atendidos por isolates distintos reservan dos veces (el límite y el contador siguen correctos).
 - **Datos de prueba** en staging: usuarios `prueba-a`/`prueba-b` con cotizaciones y vehículos ficticios creados por las pruebas.
 - **Archivos incrustados** en el Worker (ver §4).

@@ -79,6 +79,7 @@ Se ejecutan con `npm test` (Vitest), sin red ni servicios externos.
 | `tests/regression.audit2.test.ts` | Segunda auditoría de ChatGPT: reintento explícito tras error del servicio o del contador (consume una reserva nueva y conserva los km escritos); sin repetición con cupo o límites agotados; interruptor en caliente en el contador y en el Worker (mismo isolate), ruta de administración con token; deduplicación estable; confirmación del precio al cambiar el costo; errores de guardado visibles. **Las pruebas de los dos P1 fallaban con la versión auditada** (4 de 4) |
 | `tests/regression.review3.test.ts` | Tercera revisión de ChatGPT: modo manual elegido durante una consulta pendiente (la respuesta tardía no lo reemplaza); reintento fallido conserva lo escrito; rotación de la clave de Google del mismo largo en el mismo isolate (con `fetch` falso); reconfirmar el precio ante cambios de parámetros o vehículo aunque el costo redondeado no cambie. **Fallaban con la versión revisada** (5 de 5; la sexta es un control) |
 | `tests/cloud.mappers.test.ts` | Conversión app ↔ Supabase: la fila de `client_quotes` tiene exactamente los 16 campos de la lista blanca y ningún costo; ida y vuelta de trabajos; valores faltantes siguen siendo `null` |
+| `tests/regression.audit5.test.ts` | Quinta auditoría: vehículos de otra cuenta que llegan tarde se descartan y una carga fallida deja la lista vacía; reglas de reinicio del borrador; la copia del historial se detiene si cambia la sesión y no se marca completa; el cliente fijado envía siempre el token de quien inició la copia; el guardado exige el precio confirmado. **Las 3 regresiones de código existente fallaban con `514ceda`** |
 | `tests/staging.worker.test.ts` | Staging protegido (401 sin credenciales), encabezados de seguridad, estado administrativo, falla inyectada del contador, marcas del simulador, archivos incrustados y la regresión del *stub* del Durable Object (hallazgo en Cloudflare real) |
 
 ### Pruebas contra servicios reales (staging, 18-11-2026)
@@ -88,9 +89,9 @@ Detalle en [13 · Staging](13-staging.md) §5. Se ejecutan con credenciales desd
 | Script | Resultado |
 |---|---|
 | `scripts/verificar-rls.mjs` (Supabase real, dos usuarios y anónimo) | **39/39** |
-| `scripts/verificar-cloudflare.mjs principal` (Worker y Durable Object reales) | **8/8** (incluye 30 simultáneas → exactamente 20 autorizadas) |
+| `scripts/verificar-cloudflare.mjs principal` (Worker y Durable Object reales) | **8/8** (concurrencia estricta: 30 simultáneas → exactamente 20 autorizadas, 10 rechazadas, 0 fallas, Δ=20) |
 | `scripts/verificar-cloudflare.mjs falla` (contador caído en el objeto real) | **2/2** |
-| `scripts/e2e-staging.mjs` (navegador, móvil y escritorio) | **33/33** |
+| `scripts/e2e-staging.mjs` (navegador, móvil y escritorio) | **39/39** (incluye aislamiento entre sesiones en el mismo navegador) |
 
 **No probado todavía:**
 - el candado en **producción** (sí probado en staging real, plan gratuito, con proveedor simulado; ver [13](13-staging.md));

@@ -10,7 +10,7 @@ Herramienta web para **transportistas independientes y fletes livianos en Chile*
 
 | Elemento | Estado |
 |---|---|
-| Etapa actual | E0: redefinición del producto, UX/UI y validaciones técnicas |
+| Etapa actual | Prototipo en **staging privado** (18-11-2026), en revisión en el PR #34. Sin lanzamiento |
 | Aplicación | Prototipo funcional con **datos de ruta simulados**. **Staging privado** (Cloudflare Workers + Supabase, planes gratuitos) desde el 18-11-2026, protegido con usuario y contraseña ([13](docs/13-staging.md)). **Sin producción** |
 | Diseño | **Diseño v4 completo aprobado** (16-11-2026): blanco, azul sobrio y grafito, navegación móvil y escritorio de tres columnas ([guía UX](docs/10-diseno-ux.md)) |
 | Arquitectura | Implementada en staging: Worker + Durable Object (contador) y Supabase con RLS ([02](docs/02-arquitectura.md), [13](docs/13-staging.md), #35). Pendiente de aprobación para lanzamiento |
@@ -67,7 +67,7 @@ La comparación detallada entre categorías de vehículos para clientes y el eva
 - Ningún gasto, despliegue, API de pago o integración a `main` se activa sin autorización explícita.
 - GitHub es la fuente técnica; Trello solo se organiza posteriormente y con autorización.
 
-**Hecho:** diseño UX/UI v4 aprobado y backlog actualizado (16-11-2026). **Ahora:** aprobar la arquitectura y los costos de servicios, y luego pedir autorización de programación. **Finalmente:** lanzar la herramienta gratuita con aprobación y validar uso real antes de evaluar Pro.
+**Hecho:** diseño v4 aprobado (16-11-2026); prototipo con datos de ruta simulados y staging privado en Cloudflare + Supabase (18-11-2026, [13](docs/13-staging.md)). **Ahora:** auditoría de ChatGPT del PR #34, decisiones pendientes del propietario (Google OAuth, numeración de cotizaciones, plan de Supabase) y plan de prueba de Google Routes. **Finalmente:** lanzar la herramienta gratuita **solo con aprobación** y validar uso real antes de evaluar Pro.
 
 
 ## Probar localmente (datos simulados)
@@ -76,7 +76,7 @@ Requiere Node 20 o superior. No usa cuentas, claves ni servicios externos.
 
 ```bash
 npm install
-npm test        # 133 pruebas sin red: candado de consumo, motor, sesión, SKU, secretos, auditorías, vehículos, nube y Worker
+npm test        # 140 pruebas sin red: candado de consumo, motor, sesión, SKU, secretos, auditorías, vehículos, nube y Worker
 npm run dev     # abre http://localhost:5173
 ```
 

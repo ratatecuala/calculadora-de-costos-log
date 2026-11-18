@@ -56,6 +56,8 @@ if (mode === 'falla') {
   await admin('POST', { enabled: true });
   const s0 = await admin();
   console.log(`Estado inicial: ${JSON.stringify(s0)}`);
+  const originLeft = s0.perOriginDaily - (s0.originUsedToday ?? 0);
+  if (originLeft < 7) console.log(`   Aviso: quedan ${originLeft} reservas hoy para este origen; los casos 1–5 necesitan 6.`);
   check('políticas vigentes: objetivo 7.000 y corte 8.000', s0.operationalMonthly === 7000 && s0.emergencyMonthly === 8000);
 
   // 1. Una solicitud reserva exactamente 1.
@@ -106,19 +108,27 @@ if (mode === 'falla') {
     `ok=${okCmp}, Δ=${after - before}`,
   );
 
-  // 6. Concurrencia: 30 solicitudes SIMULTÁNEAS del mismo usuario (límite 20/día).
-  const conc = client();
-  before = await used();
-  const all = await Promise.all(Array.from({ length: 30 }, (_, i) => route(conc, { origin: A, destination: dest(`conc-${i}-${Date.now()}`) })));
-  after = await used();
-  const ok = all.filter((x) => x.json.status === 'ok').length;
-  const denied = all.filter((x) => x.json.reason === 'limite_usuario').length;
-  const failed = all.filter((x) => x.json.reason === 'contador_no_disponible').length;
-  check(
-    '6. 30 simultáneas: nunca más de 20 autorizadas y el contador suma exactamente las autorizadas',
-    ok <= 20 && after - before === ok && ok + denied + failed === 30,
-    `autorizadas=${ok}, rechazadas por límite=${denied}, contador caído=${failed}, Δ=${after - before}`,
-  );
+  // 6. Concurrencia ESTRICTA (quinta auditoría, P2): 30 solicitudes SIMULTÁNEAS del mismo usuario.
+  // Cifra exacta esperada = min(límite por usuario, cupo restante del origen hoy).
+  const st = await admin();
+  const expected = Math.min(st.perUserDaily, st.perOriginDaily - (st.originUsedToday ?? st.perOriginDaily));
+  if (expected < 1) {
+    check('6. concurrencia: NO CONCLUYENTE (cupo diario del origen agotado; repetir mañana)', false, `origen=${st.originUsedToday}/${st.perOriginDaily}`);
+  } else {
+    const conc = client();
+    before = await used();
+    const all = await Promise.all(Array.from({ length: 30 }, (_, i) => route(conc, { origin: A, destination: dest(`conc-${i}-${Date.now()}`) })));
+    after = await used();
+    const ok = all.filter((x) => x.json.status === 'ok').length;
+    const denied = all.filter((x) => x.json.reason === 'limite_usuario').length;
+    const failed = all.filter((x) => x.json.reason === 'contador_no_disponible').length;
+    check(
+      `6. 30 simultáneas: exactamente ${expected} autorizadas, ${30 - expected} rechazadas, 0 fallas del contador y Δ=${expected}`,
+      ok === expected && denied === 30 - expected && failed === 0 && after - before === expected,
+      `autorizadas=${ok}, rechazadas=${denied}, contador caído=${failed}, Δ=${after - before}, límite usuario=${st.perUserDaily}, origen usado=${st.originUsedToday}/${st.perOriginDaily}`,
+    );
+    if (expected < st.perUserDaily) console.log(`   Nota: el cupo del origen limitó la prueba a ${expected}; para probar el límite de usuario (20) repetir con el cupo del origen libre.`);
+  }
 
   const s1 = await admin();
   console.log(`Estado final: ${JSON.stringify(s1)}`);

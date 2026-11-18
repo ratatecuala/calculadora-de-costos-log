@@ -147,7 +147,7 @@ function sanitize(route: RouteResult): RouteResult {
 }
 
 /** Seudónimo del origen de red: no se guarda la IP. */
-async function pseudonymize(value: string, salt: string): Promise<string> {
+export async function pseudonymize(value: string, salt: string): Promise<string> {
   const data = new TextEncoder().encode(`${salt}:${value}`);
   const digest = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(digest).slice(0, 12), (b) => b.toString(16).padStart(2, '0')).join('');

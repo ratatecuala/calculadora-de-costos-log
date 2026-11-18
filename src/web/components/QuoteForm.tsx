@@ -67,7 +67,11 @@ export function QuoteForm({ session, repository, onSaved, onCancel }: Props) {
         number: await repository.nextNumber(),
         createdAt: new Date().toISOString().slice(0, 10),
       });
-      if (!job) return; // la ruta dejó de estar vigente
+      if (!job) {
+        // La ruta dejó de estar vigente o el costo cambió y el precio no se confirmó.
+        setFailure('El costo cambió o la ruta ya no está vigente. Vuelve a «Cotizar», revisa y confirma tu precio.');
+        return;
+      }
       await repository.saveBusiness(business);
       const saved = await repository.create(job);
       onSaved(saved);

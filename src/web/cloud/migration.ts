@@ -5,6 +5,10 @@
  * - Verificación: después de copiar se consulta la nube; solo si TODO está, se marca como
  *   migrado para ese usuario.
  * - La copia local NUNCA se borra aquí: el modo sin cuenta sigue teniendo su historial.
+ * - Identidad estable (quinta auditoría, P1): `supabase` debe ser un cliente FIJADO a la sesión
+ *   de `userId` (createBoundClient), así nada puede grabarse a nombre de otra cuenta. Además,
+ *   si la sesión de la app cambia a mitad de camino (`isCurrentUser()` = false), la copia se
+ *   detiene y no se marca como completa.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { QuoteRepository } from '../storage';
@@ -58,8 +62,16 @@ export async function migrateLocalToCloud(args: {
   localQuotes: QuoteRepository;
   localVehicles: VehicleRepository;
   store: KeyValueStore;
+  /** ¿La app sigue con la sesión de `userId`? Se consulta antes de cada paso. */
+  isCurrentUser: () => boolean;
 }): Promise<MigrationResult> {
-  const { supabase, userId, localQuotes, localVehicles, store } = args;
+  const { supabase, userId, localQuotes, localVehicles, store, isCurrentUser } = args;
+  const ensureSameUser = () => {
+    if (!isCurrentUser()) {
+      throw new CloudError('La sesión cambió durante la copia y se detuvo. Lo copiado quedó en la cuenta que la inició; no se borró nada.');
+    }
+  };
+  ensureSameUser();
   const jobs = (await localQuotes.list()).filter((j) => UUID.test(j.id));
   const vehicles = (await localVehicles.list()).filter((v) => UUID.test(v.id));
   const localDefault = await localVehicles.getDefaultId();
@@ -67,6 +79,7 @@ export async function migrateLocalToCloud(args: {
   // 1. Vehículos (sin duplicados por local_id).
   let vehiclesCopied = 0;
   if (vehicles.length) {
+    ensureSameUser();
     const { data, error } = await supabase
       .from('vehicles')
       .upsert(
@@ -80,6 +93,7 @@ export async function migrateLocalToCloud(args: {
 
   // 2. Predeterminado: solo si la cuenta todavía no tiene uno.
   if (localDefault) {
+    ensureSameUser();
     const { data: current } = await supabase.from('vehicles').select('id').eq('is_default', true).maybeSingle();
     if (!current) {
       const { data: match } = await supabase.from('vehicles').select('id').eq('local_id', localDefault).maybeSingle();
@@ -90,6 +104,7 @@ export async function migrateLocalToCloud(args: {
   // 3. Datos comerciales: solo si la cuenta no tiene.
   const localBusiness = await localQuotes.getBusiness();
   if (localBusiness.name || localBusiness.phone || localBusiness.email) {
+    ensureSameUser();
     const { data: profile } = await supabase.from('profiles').select('business_name').maybeSingle();
     if (!profile || !(profile as { business_name: string }).business_name) {
       await supabase.from('profiles').upsert({
@@ -105,6 +120,7 @@ export async function migrateLocalToCloud(args: {
   let jobsCopied = 0;
   let jobsAlreadyThere = 0;
   for (const job of jobs) {
+    ensureSameUser();
     const { data, error } = await supabase.rpc('create_job_with_quote', jobWithQuotePayload(job, job.id));
     if (error) throw new CloudError(`Se copiaron ${jobsCopied} cotizaciones y luego falló la conexión. Puedes reintentar: no se duplicarán. No se borró nada.`, error);
     if (data) jobsCopied += 1;
@@ -119,6 +135,7 @@ export async function migrateLocalToCloud(args: {
   const vehicleIds = new Set((cloudVehicles as Array<{ local_id: string }>).map((r) => r.local_id));
   const verified = jobs.every((j) => jobIds.has(j.id)) && vehicles.every((v) => vehicleIds.has(v.id));
 
+  ensureSameUser(); // no marcar como completa una copia si la sesión ya es otra
   if (verified) {
     const log = readLog(store);
     log[userId] = { at: new Date().toISOString(), jobs: jobs.map((j) => j.id), vehicles: vehicles.map((v) => v.id) };

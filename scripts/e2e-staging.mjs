@@ -154,6 +154,22 @@ for (const [deviceName, device, user, tag] of [
   await logout(page);
   txt = await jobsText(page);
   check(`${deviceName}: al cerrar sesión no se ven datos de la cuenta`, !txt.includes(`Cuenta ${stamp}`) && txt.includes('solo en este navegador'));
+  // Quinta auditoría (P1): ni vehículos ni borrador de la cuenta quedan a la vista.
+  await page.getByRole('button', { name: 'Mi vehículo' }).click();
+  await page.waitForTimeout(800);
+  check(`${deviceName}: al cerrar sesión no se ve el vehículo de la cuenta`, (await page.getByText(`Camioneta ${stamp}`).count()) === 0);
+  await page.getByRole('button', { name: 'Cotizar', exact: true }).click();
+  check(`${deviceName}: al cerrar sesión el borrador de la cotización queda vacío`, (await page.getByLabel('Desde (A)').inputValue()) === '');
+  // Otra cuenta en el MISMO navegador no ve nada de A.
+  await login(page, users.b);
+  txt = await jobsText(page);
+  await page.getByRole('button', { name: 'Mi vehículo' }).click();
+  await page.waitForTimeout(1500);
+  check(
+    `${deviceName}: B en el mismo navegador no ve vehículos ni cotizaciones de A`,
+    (await page.getByText(`Camioneta ${stamp}`).count()) === 0 && !txt.includes(`Cuenta ${stamp}`),
+  );
+  await logout(page);
 
   await login(page, user);
   txt = await jobsText(page);

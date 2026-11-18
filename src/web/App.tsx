@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { JobRecord } from '../shared/clientQuote';
 import type { VehicleProfile } from '../shared/vehicle';
 import { httpRouteClient } from './api';
 import { AuthStore } from './cloud/auth';
-import { cloudConfig, getSupabase } from './cloud/client';
+import { cloudConfig, createBoundClient, getSupabase } from './cloud/client';
 import { migrateLocalToCloud, pendingLocalData, type PendingLocalData } from './cloud/migration';
 import { CloudQuoteRepository } from './cloud/quotes';
 import { CloudVehicleRepository } from './cloud/vehicles';
@@ -16,6 +16,7 @@ import { QuoteView } from './components/QuoteView';
 import { VehiclesView } from './components/VehiclesView';
 import { QuoteSession } from './session';
 import { browserQuoteRepository, type QuoteRepository } from './storage';
+import { shouldResetDraft, VehicleListLoader } from './vehicleList';
 import { browserVehicleRepository, MemoryKeyValueStore, type KeyValueStore, type VehicleRepository } from './vehicleRepository';
 
 type View =
@@ -58,7 +59,8 @@ function browserStore(): KeyValueStore {
 }
 
 function MainApp() {
-  const session = useMemo(() => new QuoteSession(httpRouteClient), []);
+  // El borrador de la cotización se reinicia al cerrar sesión o cambiar de cuenta (quinta auditoría).
+  const [session, setSession] = useState(() => new QuoteSession(httpRouteClient));
   const localVehicles = useMemo(() => browserVehicleRepository(), []);
   const localQuotes = useMemo(() => browserQuoteRepository(), []);
   const store = useMemo(() => browserStore(), []);
@@ -79,41 +81,44 @@ function MainApp() {
   }, [userId, localVehicles, localQuotes]);
 
   const [view, setView] = useState<View>({ name: 'cotizar' });
-  const [vehicles, setVehicles] = useState<VehicleProfile[]>([]);
-  const [defaultVehicleId, setDefaultVehicleId] = useState<string | null>(null);
-  const [loadFailure, setLoadFailure] = useState<string | null>(null);
+  // Lista de vehículos ligada a la identidad vigente: nunca muestra la de otra cuenta.
+  const vehicleList = useMemo(() => new VehicleListLoader(), []);
+  const vehicleState = useSyncExternalStore(vehicleList.subscribe, vehicleList.getSnapshot);
+  const vehicles: VehicleProfile[] = vehicleState.vehicles;
+  const defaultVehicleId = vehicleState.defaultId;
+  const loadFailure = vehicleState.failure;
   const [pending, setPending] = useState<PendingLocalData | null>(null);
   const [migration, setMigration] = useState<{ busy: boolean; message: string | null }>({ busy: false, message: null });
   const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot);
   // La franja depende del proveedor que realmente respondió (auditoría): no se afirma «simulado» con datos reales.
   const simulated = [snapshot.habitual.route, snapshot.comparison.route].some((r) => r?.source === 'simulado');
 
-  const refreshVehicles = useCallback(async () => {
-    try {
-      const [list, defaultId] = await Promise.all([vehicleRepository.list(), vehicleRepository.getDefaultId()]);
-      setVehicles(list);
-      setDefaultVehicleId(defaultId);
-      setLoadFailure(null);
-      return { list, defaultId };
-    } catch (e) {
-      setLoadFailure(e instanceof Error ? e.message : 'No se pudieron cargar tus vehículos.');
-      return { list: [] as VehicleProfile[], defaultId: null };
+  const refreshVehicles = useCallback(() => vehicleList.refresh(), [vehicleList]);
+
+  // Cambio de identidad (entrar, salir o cambiar de cuenta): reiniciar el borrador cuando
+  // corresponde y no mostrar una cotización de la otra fuente de datos.
+  const previousUser = useRef<string | null | undefined>(undefined);
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+  useEffect(() => {
+    if (shouldResetDraft(previousUser.current, userId)) {
+      const fresh = new QuoteSession(httpRouteClient);
+      sessionRef.current = fresh;
+      setSession(fresh);
     }
-  }, [vehicleRepository]);
-
-  // Al abrir o al cambiar de cuenta: carga vehículos y aplica el predeterminado si la cotización no tiene uno.
-  useEffect(() => {
-    void refreshVehicles().then(({ list, defaultId }) => {
-      const preferred = list.find((v) => v.id === defaultId);
-      if (preferred && !session.getSnapshot().vehicle) session.selectVehicle(preferred);
-    });
-  }, [refreshVehicles, session]);
-
-  // Cambio de cuenta (entrar/salir): no mostrar una cotización de la otra fuente de datos.
-  useEffect(() => {
+    previousUser.current = userId;
     setView((v) => (v.name === 'ver' || v.name === 'nueva' ? { name: 'trabajos' } : v));
-    if (!userId) session.selectVehicle(null);
-  }, [userId, session]);
+  }, [userId]);
+
+  // Al abrir o al cambiar de identidad: lista vacía al instante, carga de la identidad nueva y,
+  // si la cotización no tiene vehículo, aplicar el predeterminado (solo con datos vigentes).
+  useEffect(() => {
+    void vehicleList.switchTo(userId ?? 'local', vehicleRepository).then((result) => {
+      if (!result) return;
+      const preferred = result.vehicles.find((v) => v.id === result.defaultId);
+      if (preferred && !sessionRef.current.getSnapshot().vehicle) sessionRef.current.selectVehicle(preferred);
+    });
+  }, [userId, vehicleRepository, vehicleList]);
 
   // ¿Queda historial del navegador sin copiar a esta cuenta?
   const refreshPending = useCallback(async () => {
@@ -132,11 +137,23 @@ function MainApp() {
   }, [refreshPending]);
 
   const migrate = async () => {
-    const supabase = getSupabase();
-    if (!supabase || !userId) return;
+    const shared = getSupabase();
+    if (!shared || !userId) return;
     setMigration({ busy: true, message: null });
     try {
-      const r = await migrateLocalToCloud({ supabase, userId, localQuotes, localVehicles, store });
+      // Toda la copia queda fijada a la sesión de quien la inició (quinta auditoría, P1).
+      const { data } = await shared.auth.getSession();
+      const token = data.session?.user.id === userId ? data.session.access_token : null;
+      const bound = token ? createBoundClient(token) : null;
+      if (!bound) throw new Error('No se pudo confirmar tu sesión. Vuelve a ingresar e inténtalo de nuevo.');
+      const r = await migrateLocalToCloud({
+        supabase: bound,
+        userId,
+        localQuotes,
+        localVehicles,
+        store,
+        isCurrentUser: () => auth.getSnapshot().user?.id === userId,
+      });
       setMigration({
         busy: false,
         message: r.verified
