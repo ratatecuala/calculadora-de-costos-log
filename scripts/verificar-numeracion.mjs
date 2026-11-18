@@ -115,14 +115,18 @@ check('el contador no se puede leer ni manipular por la API', !!counterRead, cou
 // Los números de cotizaciones borradas no se reutilizan (A-47), y esta misma prueba borra lo que
 // crea: el siguiente número de B puede ser mayor que su máximo visible + 1. Lo que se exige es
 // que la secuencia de B sea propia (no la de A), correlativa y sin reutilizar números.
+// Independencia: los guardados de B no consumen números de A (A sigue correlativa entre un
+// guardado anterior y otro posterior a los de B). No se compara el orden absoluto entre cuentas:
+// una cuenta B legítima puede tener un contador mayor que el de A.
 const bBefore = await maxOf(B.c);
-const aMax = await maxOf(A1.c);
+const aPrev = await save(A1.c, {}, 'A antes de B');
 const b1 = await save(B.c, {}, 'B');
 const b2 = await save(B.c, {}, 'B');
+const aNext = await save(A1.c, {}, 'A después de B');
 check(
-  'la cuenta B tiene su propia secuencia (correlativa, sin reutilizar números)',
-  b1.number > bBefore && b2.number === b1.number + 1 && b1.number < aMax,
-  `B=${b1.number},${b2.number}; máximo visible previo de B=${bBefore}; A=${aMax}`,
+  'la cuenta B tiene su propia secuencia (correlativa, sin reutilizar números, sin consumir números de A)',
+  b1.number > bBefore && b2.number === b1.number + 1 && aNext.number === aPrev.number + 1,
+  `B=${b1.number},${b2.number}; máximo visible previo de B=${bBefore}; A=${aPrev.number}→${aNext.number}`,
 );
 
 // 8. Enlace público muestra el número emitido.

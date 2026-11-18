@@ -46,21 +46,30 @@ const testNumber = 900000 + Math.floor(Math.random() * 90000);
 // No modifica datos existentes: el perfil de A solo se crea si todavía no existe.
 const { data: existingProfile } = await A.c.from('profiles').select('id').eq('id', A.id).maybeSingle();
 if (!existingProfile) await A.c.from('profiles').insert({ id: A.id, business_name: `Negocio A ${marker}` });
-const { data: veh, error: vehErr } = await A.c
+// El script marca un vehículo temporal como predeterminado (eso desmarca los demás de A).
+// Se guarda el predeterminado original y se restaura SIEMPRE al final, aunque la prueba falle.
+const { data: defaultsBefore } = await A.c.from('vehicles').select('id').eq('is_default', true);
+const originalDefault = defaultsBefore?.[0]?.id ?? null;
+let veh = null;
+let job = null;
+try {
+const { data: vehRow, error: vehErr } = await A.c
   .from('vehicles')
   .insert({ name: `Vehículo RLS ${marker}`, type: 'camioneta', fuel: 'gasolina', km_per_l: 11, wear_per_km: 40 })
   .select()
   .single();
+veh = vehRow;
 check('A crea un vehículo', !vehErr && veh?.owner_id === A.id, vehErr?.message);
 const { error: defErr } = await A.c.rpc('set_default_vehicle', { p_vehicle_id: veh.id });
 check('A marca su vehículo como predeterminado', !defErr, defErr?.message);
 
 const internal = { costEstimate: 41234, costType: 'estimado', margin: 0.15, engineVersion: 'motor-1.0.1', vehicle: { kmPerL: 11, wearPerKm: 40 } };
-const { data: job, error: jobErr } = await A.c
+const { data: jobRow, error: jobErr } = await A.c
   .from('jobs')
   .insert({ number: testNumber, issued_number: testNumber, quote_date: '2026-11-18', client_name: `Cliente ${marker}`, net_price: 60000, internal, waypoints: [] })
   .select()
   .single();
+job = jobRow;
 check('A crea un trabajo con costos internos', !jobErr && job?.owner_id === A.id, jobErr?.message);
 const { data: cq, error: cqErr } = await A.c
   .from('client_quotes')
@@ -139,6 +148,21 @@ const { data: cqGone } = await A.c.from('client_quotes').select('id').eq('id', c
 check('la cotización se borró en cascada', cqGone.length === 0);
 const { data: delVeh } = await A.c.from('vehicles').delete().eq('id', veh.id).select('id');
 check('A puede borrar su vehículo', delVeh.length === 1);
+veh = null;
+job = null;
+} finally {
+  // Limpieza de respaldo si la prueba se interrumpió, y restauración del predeterminado original.
+  if (job) await A.c.from('jobs').delete().eq('id', job.id);
+  if (veh) await A.c.from('vehicles').delete().eq('id', veh.id);
+  const { error: restoreErr } = await A.c.rpc('set_default_vehicle', { p_vehicle_id: originalDefault });
+  const { data: defaultsAfter } = await A.c.from('vehicles').select('id').eq('is_default', true);
+  const after = (defaultsAfter ?? []).map((v) => v.id);
+  check(
+    'el vehículo predeterminado de A queda igual que antes de la prueba',
+    !restoreErr && (originalDefault === null ? after.length === 0 : after.length === 1 && after[0] === originalDefault),
+    restoreErr?.message ?? `antes: ${originalDefault ? 'uno' : 'ninguno'}; después: ${after.length}`,
+  );
+}
 
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} verificaciones correctas`);

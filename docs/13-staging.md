@@ -129,6 +129,10 @@ Sesiones reales (JWT emitidos por Supabase) de los usuarios A y B y un visitante
 - **Ajustes de los scripts (no de la app):**
   - `verificar-numeracion.mjs` exigía que los números empezaran en «máximo visible + 1». Eso deja de cumplirse cuando la propia prueba borró cotizaciones antes, porque los números borrados no se reutilizan (A-47). Ahora exige números **únicos, correlativos y posteriores al máximo**, y que B tenga una secuencia **propia y correlativa**. Con la condición antigua fallaban 1 de 17 verificaciones, y siempre por esa suposición.
   - `verificar-rls.mjs` ya **no sobrescribe** el perfil comercial existente de A. Su vehículo de prueba se llama «Vehículo RLS …», para no confundirse con el vehículo ficticio «Camioneta A».
+  - **Revisión de ChatGPT de `8ee1de0`, corregida:**
+    - `verificar-rls.mjs` guarda el vehículo predeterminado de A antes de la prueba y lo **restaura siempre** en un `finally`, también si la prueba se interrumpe, y verifica que quedó igual (nueva verificación: **40/40**).
+    - En `verificar-numeracion.mjs`, la independencia de B ya no compara órdenes absolutos entre cuentas. Comprueba que los guardados de B no consumen números de A: A sigue correlativa antes y después.
+    - Validado con una ejecución de cada script y huellas md5 de **todas** las tablas antes y después, incluido el vehículo predeterminado: **idénticas**. Solo avanzan los contadores de numeración.
 - **Datos existentes intactos**, verificado con huellas md5 antes y después: el perfil de A, los 13 vehículos (incluida «Camioneta A»), los 23 trabajos, sus cotizaciones y los 11 enlaces previos son idénticos.
 - **Datos que sí cambiaron:**
   - el e2e agregó datos ficticios nuevos: 2 vehículos y 4 cotizaciones con sello de tiempo;
