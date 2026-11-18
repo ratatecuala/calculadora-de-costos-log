@@ -24,7 +24,7 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 | Auditorías de ChatGPT | 7 rondas sobre el flujo general, más una revisión focalizada de A-47: **aceptada técnicamente para staging, sin hallazgos P0/P1**. ChatGPT revisa **por inspección**; no ejecuta las pruebas |
 | `main` | Solo publica este README de continuidad. **El código y los documentos técnicos siguen en la rama del PR #34, que no está integrado.** Toda fusión requiere aprobación del propietario |
 | Conflicto con `main` | **Resuelto en la rama**: se integró `main` conservando el README de desarrollo (`main` solo tenía el README de portada) |
-| Siguiente acción | Revisión de ChatGPT de lo hecho el 18-11; tu decisión sobre el PR #41 (portada); validación tributaria antes de la opción B de IVA; Doc-1 a Doc-6 y puntos «no especificado» del motor |
+| Siguiente acción | Tus pasos: ejecutar el encargo de Deep Research sobre IVA (docs/18), crear el cliente OAuth de Google en modo *Testing* (docs/17 §7) y hacer el primer respaldo real (docs/17 §5). Luego Claude contrasta el informe de IVA y verifica Google OAuth |
 
 **Cómo retomar:** leer este README → [AGENTS.md](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/AGENTS.md) (reglas y autorizaciones) → [07 · Decisiones](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/07-decisiones.md) → [13 · Staging](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/13-staging.md) → los últimos comentarios del PR #34.
 
@@ -88,6 +88,10 @@ Fuente: [07 · Decisiones](https://github.com/ratatecuala/calculadora-de-costos-
 - **APROBADAS por escrito el 18-11 ([registro de ratificación en el PR #34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6971449761)), implementadas:**
   - **A-50:** margen sobre el precio de venta con rótulo corregido; validación de entradas, con aviso en el campo si se escribe algo que no es número; sin «$-0»; margen con decimales visible. No incluye recargos ni precio negativos (NE-1 y NE-10, sin decidir).
   - **A-51:** «Precio total» y leyenda «Esta cotización no es factura ni boleta.» **Transitorio:** no habilita cotizaciones comerciales reales hasta validar la política tributaria.
+- **APROBADAS el 18-11 ([registro de decisiones en el PR #34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6972739332)):**
+  - **A-52:** Supabase en plan gratuito con respaldo propio. El primer respaldo real lo ejecutas tú.
+  - **A-53:** Google OAuth en modo *Testing*. Tú creas el cliente OAuth.
+  - **A-54:** validación del IVA con GPT Deep Research ([encargo](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/18-encargo-deep-research-iva.md)).
 - **APROBADA por escrito (PR #40 y PR #34):**
   - **A-49:** paridad teléfono y computador: mismas funciones, interfaz adaptable a cada pantalla.
 - **Comunicadas por el propietario, pendientes de ratificación escrita en el PR #34:**
@@ -97,16 +101,13 @@ Fuente: [07 · Decisiones](https://github.com/ratatecuala/calculadora-de-costos-
 
 ## Riesgos y pendientes
 
-- **Decisiones pendientes de la sesión del 18-11 (detalle en cada documento):**
+- **Pendientes (detalle en cada documento):**
   - **Motor (15):** C-1 a C-4 **resueltos** (A-50). Siguen pendientes las correcciones Doc-1 a Doc-6 de docs/03 y los puntos «no especificado» (descuentos, empates, topes, etc.).
-  - **IVA (16):** leyenda y «Precio total» **implementados** (A-51). Pendiente: validación tributaria (contador o SII) antes de implementar la opción B (perfil tributario del transportista y tipo de cliente).
-  - **Supabase (17):** plan antes de usuarios reales, frecuencia y lugar de los respaldos, registro por correo cuando exista Google y privilegios por defecto.
+  - **IVA (16, A-54):** «Precio total» y leyenda implementados (A-51). La opción B espera el informe de **GPT Deep Research** ([encargo](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/18-encargo-deep-research-iva.md)), que ejecutas tú.
+  - **Supabase (17, A-52):** se queda en el plan gratuito con respaldo propio. Pendiente el **primer respaldo real**, que haces tú porque requiere la contraseña de la base, y elegir el segundo lugar donde guardar los respaldos.
+  - **Google OAuth (A-53):** pendiente que **crees el cliente** en modo *Testing*. El registro por correo queda abierto mientras Google esté en *Testing*; antes de abrir al público se cerrará con un *hook*. La protección de contraseñas filtradas **requiere el plan Pro**.
   - **Experiencia de usuario (14):** filtro del historial, precio fijo en el teléfono y propuestas menores.
-- **Decisiones del propietario (anteriores):**
-  - Google OAuth (crear el cliente).
-  - Cerrar el registro por correo en staging. La protección de contraseñas filtradas **requiere el plan Pro** (verificado en docs/17).
-  - Plan de Supabase antes de lanzar: el gratuito **se pausa** con poca actividad y **no tiene respaldos automáticos**.
-  - Dominio y nombre comercial.
+  - **Antes de lanzar:** dominio, nombre comercial y aviso de privacidad (#17).
 - **Antes de usar Google Routes real:**
   - autorización expresa;
   - plan de prueba con cupos y credenciales;
@@ -144,6 +145,7 @@ Reglas completas en [AGENTS.md](https://github.com/ratatecuala/calculadora-de-co
 | [15 · Validación del motor](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/15-validacion-motor.md) | Recálculo independiente, hallazgos y decisiones (#24) |
 | [16 · IVA en las cotizaciones](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/16-iva-cotizaciones.md) | Normativa chilena, documento tributario vs cotización y propuesta (#16) |
 | [17 · Supabase: seguridad y respaldo](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/17-supabase-seguridad-respaldo.md) | Auditoría, ajustes de Auth, respaldo y restauración, Google OAuth (#35) |
+| [18 · Encargo de Deep Research sobre IVA](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/18-encargo-deep-research-iva.md) | Preguntas para validar la tributación antes de la opción B (#16, A-54) |
 
 ## Probar localmente (sin cuentas ni servicios externos)
 
