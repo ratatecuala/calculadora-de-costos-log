@@ -78,14 +78,14 @@ export function History({ repository, onOpen, banner }: Props) {
             {job.internal.costType !== 'estimado' ? <span className="tag tag-missing">Costo parcial</span> : null}
             {job.internal.routeSource === 'simulado' ? <span className="tag tag-warn">Calculada con datos simulados</span> : null}
             <div className="row-gap">
-              <select aria-label="Estado" value={job.status} onChange={(e) => void update(job, { status: e.target.value as JobStatus })}>
+              <select aria-label={`Estado de la cotización N° ${String(job.number).padStart(4, '0')}`} value={job.status} onChange={(e) => void update(job, { status: e.target.value as JobStatus })}>
                 {Object.entries(STATUS_LABEL).map(([k, v]) => (
                   <option key={k} value={k}>
                     {v}
                   </option>
                 ))}
               </select>
-              <select aria-label="Pago" value={job.payment} onChange={(e) => void update(job, { payment: e.target.value as JobRecord['payment'] })}>
+              <select aria-label={`Pago de la cotización N° ${String(job.number).padStart(4, '0')}`} value={job.payment} onChange={(e) => void update(job, { payment: e.target.value as JobRecord['payment'] })}>
                 <option value="pendiente">Pago pendiente</option>
                 <option value="recibido">Pago recibido</option>
               </select>

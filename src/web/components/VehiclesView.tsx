@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { formatClp } from '../../engine/rounding';
 import { FUEL_LABEL, VEHICLE_TYPE_LABEL, type FuelType, type VehicleInput, type VehicleProfile, type VehicleType } from '../../shared/vehicle';
 import { VehicleValidationError, type VehicleRepository } from '../vehicleRepository';
@@ -22,6 +22,12 @@ export function VehiclesView({ repository, vehicles, defaultId, onChanged, onUse
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
+  // Tras un intento fallido, el foco va al primer campo con error (QA UX, H-07).
+  const formRef = useRef<HTMLFormElement>(null);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    if (attempt > 0) formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [attempt]);
 
   const run = async (action: () => Promise<unknown>) => {
     setFailure(null);
@@ -41,20 +47,41 @@ export function VehiclesView({ repository, vehicles, defaultId, onChanged, onUse
     setErrors({});
     const ok = await run(() => (editing.id ? repository.update(editing.id, editing.input) : repository.create(editing.input)));
     if (ok) setEditing(null);
+    else setAttempt((n) => n + 1);
   };
 
   if (editing) {
     const set = (patch: Partial<VehicleInput>) => setEditing({ ...editing, input: { ...editing.input, ...patch } });
     return (
       <div className="layout single">
-        <div className="card">
+        {/* Formulario real: Enter guarda, como en cualquier formulario (QA UX, H-07). */}
+        <form
+          ref={formRef}
+          className="card"
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            void save();
+          }}
+        >
           <h2 className="sec">{editing.id ? 'Editar vehículo' : 'Nuevo vehículo'}</h2>
           <label className="field">
             <span className="field-label">Nombre para identificarlo</span>
             <span className="field-input">
-              <input value={editing.input.name} maxLength={40} placeholder="Ej.: Camioneta blanca" onChange={(e) => set({ name: e.target.value })} />
+              <input
+                value={editing.input.name}
+                maxLength={40}
+                placeholder="Ej.: Camioneta blanca"
+                aria-invalid={errors.name ? true : undefined}
+                aria-describedby={errors.name ? 'vehiculo-nombre-error' : undefined}
+                onChange={(e) => set({ name: e.target.value })}
+              />
             </span>
-            {errors.name ? <span className="field-error">{errors.name}</span> : null}
+            {errors.name ? (
+              <span id="vehiculo-nombre-error" className="field-error">
+                {errors.name}
+              </span>
+            ) : null}
           </label>
           <span className="field-label">Tipo</span>
           <div className="segs" role="group" aria-label="Tipo de vehículo">
@@ -73,34 +100,40 @@ export function VehiclesView({ repository, vehicles, defaultId, onChanged, onUse
             ))}
           </div>
           <div className="grid2">
-            <div>
-              <NumberField label="Rendimiento" suffix="km/L" value={editing.input.kmPerL} onChange={(v) => set({ kmPerL: v })} hint="Si no lo sabes, déjalo vacío" />
-              {errors.kmPerL ? <span className="field-error">{errors.kmPerL}</span> : null}
-            </div>
-            <div>
-              <NumberField
-                label="Desgaste estimado"
-                suffix="$/km"
-                value={editing.input.wearPerKm}
-                onChange={(v) => set({ wearPerKm: v })}
-                hint="Neumáticos, aceite y mantención"
-              />
-              {errors.wearPerKm ? <span className="field-error">{errors.wearPerKm}</span> : null}
-            </div>
+            <NumberField
+              label="Rendimiento"
+              suffix="km/L"
+              value={editing.input.kmPerL}
+              onChange={(v) => set({ kmPerL: v })}
+              hint="Si no lo sabes, déjalo vacío"
+              error={errors.kmPerL}
+            />
+            <NumberField
+              label="Desgaste estimado"
+              suffix="$/km"
+              value={editing.input.wearPerKm}
+              onChange={(v) => set({ wearPerKm: v })}
+              hint="Neumáticos, aceite y mantención"
+              error={errors.wearPerKm}
+            />
           </div>
           <p className="sub">No usamos valores de referencia: si dejas un dato vacío, el costo del viaje se mostrará como parcial hasta que lo completes.</p>
-          {failure ? <p className="warn">{failure}</p> : null}
+          {failure ? (
+            <p className="warn" role="alert">
+              {failure}
+            </p>
+          ) : null}
           <div className="row-gap">
             {vehicles.length > 0 ? (
               <button type="button" className="btn2" onClick={() => setEditing(null)}>
                 Cancelar
               </button>
             ) : null}
-            <button type="button" className="btn" onClick={() => void save()}>
+            <button type="submit" className="btn">
               Guardar vehículo
             </button>
           </div>
-        </div>
+        </form>
       </div>
     );
   }

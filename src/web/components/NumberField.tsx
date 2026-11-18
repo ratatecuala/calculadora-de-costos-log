@@ -13,13 +13,18 @@ interface Props {
   compact?: boolean;
   /** Decimales a MOSTRAR (el valor interno no se redondea). */
   decimals?: number;
+  /** Mensaje de validación: se asocia al campo (aria-invalid y aria-describedby). */
+  error?: string;
 }
 
 const toText = formatInputNumber;
 
 /** Campo numérico que acepta «1.050», «12,5» o vacío (= no lo sé). */
-export function NumberField({ label, value, onChange, suffix, hint, placeholder, tag, compact, decimals = 2 }: Props) {
+export function NumberField({ label, value, onChange, suffix, hint, placeholder, tag, compact, decimals = 2, error }: Props) {
   const id = useId();
+  // Nombre accesible = etiqueta + unidad; la ayuda y el error van como descripción (QA UX, H-07).
+  const labelledBy = [`${id}-etiqueta`, suffix ? `${id}-unidad` : null].filter(Boolean).join(' ');
+  const describedBy = [error ? `${id}-error` : null, hint ? `${id}-ayuda` : null].filter(Boolean).join(' ') || undefined;
   const [text, setText] = useState(toText(value, decimals));
   useEffect(() => {
     const parsed = parseAmount(text);
@@ -29,13 +34,16 @@ export function NumberField({ label, value, onChange, suffix, hint, placeholder,
   }, [value]);
   return (
     <label className={compact ? 'field field-compact' : 'field'} htmlFor={id}>
-      <span className={compact ? 'visually-hidden' : 'field-label'}>
+      <span id={`${id}-etiqueta`} className={compact ? 'visually-hidden' : 'field-label'}>
         {label}
         {tag ? <span className="tag tag-neutral">{tag}</span> : null}
       </span>
       <span className="field-input">
         <input
           id={id}
+          aria-labelledby={labelledBy}
+          aria-describedby={describedBy}
+          aria-invalid={error ? true : undefined}
           inputMode="decimal"
           value={text}
           placeholder={placeholder ?? 'No lo sé'}
@@ -50,9 +58,22 @@ export function NumberField({ label, value, onChange, suffix, hint, placeholder,
             if (value !== null && parseAmount(formatted) === value) setText(formatted);
           }}
         />
-        {suffix ? <span className="field-suffix">{suffix}</span> : null}
+        {suffix ? (
+          <span id={`${id}-unidad`} className="field-suffix">
+            {suffix}
+          </span>
+        ) : null}
       </span>
-      {hint ? <span className="field-hint">{hint}</span> : null}
+      {error ? (
+        <span id={`${id}-error`} className="field-error">
+          {error}
+        </span>
+      ) : null}
+      {hint ? (
+        <span id={`${id}-ayuda`} className="field-hint">
+          {hint}
+        </span>
+      ) : null}
     </label>
   );
 }
