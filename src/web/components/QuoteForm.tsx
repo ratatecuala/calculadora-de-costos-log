@@ -3,6 +3,7 @@ import { formatClp } from '../../engine/rounding';
 import type { BusinessProfile, JobRecord } from '../../shared/clientQuote';
 import { VEHICLE_TYPE_LABEL } from '../../shared/vehicle';
 import { buildJobRecord } from '../jobs';
+import { Fold } from './Fold';
 import { saveQuote } from '../saveQuote';
 import type { QuoteSession } from '../session';
 import type { QuoteRepository } from '../storage';
@@ -33,14 +34,20 @@ export function QuoteForm({ session, repository, onSaved, onCancel }: Props) {
   const [business, setBusiness] = useState<BusinessProfile>({ name: '', phone: '', email: '' });
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // «Tus datos» parte abierto si no hay datos guardados; escribir en él ya no lo cierra (QA UX, H-02).
+  const [businessLoaded, setBusinessLoaded] = useState<{ hadName: boolean } | null>(null);
   useEffect(() => {
     let alive = true;
     repository
       .getBusiness()
       .then((b) => {
-        if (alive) setBusiness(b);
+        if (!alive) return;
+        setBusiness(b);
+        setBusinessLoaded({ hadName: b.name.trim() !== '' });
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (alive) setBusinessLoaded({ hadName: false });
+      });
     return () => {
       alive = false;
     };
@@ -105,14 +112,13 @@ export function QuoteForm({ session, repository, onSaved, onCancel }: Props) {
         <Text label="Servicio" value={form.serviceDescription} onChange={set('serviceDescription')} />
         <Text label="Incluye" value={form.includes} onChange={set('includes')} />
         <Text label="Condiciones" value={form.conditions} onChange={set('conditions')} placeholder="Carga máxima, esperas, pisos…" />
-        <details className="fold" open={!business.name}>
-          <summary>Tus datos (aparecen en la cotización)</summary>
+        <Fold key={businessLoaded ? 'cargado' : 'cargando'} summary="Tus datos (aparecen en la cotización)" defaultOpen={!businessLoaded?.hadName}>
           <div className="grid2">
             <Text label="Nombre comercial" value={business.name} onChange={(e) => setBusiness({ ...business, name: e.target.value })} />
             <Text label="Teléfono" value={business.phone} onChange={(e) => setBusiness({ ...business, phone: e.target.value })} />
             <Text label="Correo" value={business.email} onChange={(e) => setBusiness({ ...business, email: e.target.value })} />
           </div>
-        </details>
+        </Fold>
         {!repository.persistent ? <p className="warn">Este navegador no permite guardar: la cotización se perderá al cerrar la pestaña.</p> : null}
         {failure ? (
           <p className="warn" role="alert">

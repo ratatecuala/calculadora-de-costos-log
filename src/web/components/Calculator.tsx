@@ -7,6 +7,7 @@ import { VEHICLE_TYPE_LABEL, type VehicleProfile } from '../../shared/vehicle';
 import { buildWaypoints } from '../../shared/waypoints';
 import { boundedText, formatKm, formatMinutes, missingText, ROLE_LABEL, signedBoundedText, SOURCE_LABEL } from '../format';
 import type { QuoteSession, RouteComputation, RouteState } from '../session';
+import { Fold } from './Fold';
 import { NumberField } from './NumberField';
 
 interface Props {
@@ -50,8 +51,7 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles 
           <h2 className="sec">Recorrido</h2>
           <TextField label="Desde (A)" value={s.inputs.origin} onChange={(v) => session.setInputs({ origin: v })} placeholder="Calle y número, comuna" />
           <TextField label="Hasta (B)" value={s.inputs.destination} onChange={(v) => session.setInputs({ destination: v })} placeholder="Calle y número, comuna" />
-          <details className="fold" open={s.inputs.startAtBase || s.inputs.returnToBase}>
-            <summary>Base y regreso (opcional)</summary>
+          <Fold summary="Base y regreso (opcional)" defaultOpen={s.inputs.startAtBase || s.inputs.returnToBase}>
             <label className="check">
               <input type="checkbox" checked={s.inputs.startAtBase} onChange={(e) => session.setInputs({ startAtBase: e.target.checked })} />
               Salgo desde mi base
@@ -63,7 +63,7 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles 
             {s.inputs.startAtBase || s.inputs.returnToBase ? (
               <TextField label="Dirección de tu base" value={s.inputs.base} onChange={(v) => session.setInputs({ base: v })} placeholder="Calle y número, comuna" />
             ) : null}
-          </details>
+          </Fold>
           <button type="button" className="btn" disabled={loading} onClick={() => void session.calculateRoute()}>
             {loading
               ? 'Calculando…'
@@ -123,15 +123,14 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles 
             />
             <NumberField label="Carga y descarga" suffix="min" value={s.params.loadMinutes} placeholder="0" onChange={(v) => session.setParams({ loadMinutes: v ?? 0 })} />
           </div>
-          <details className="fold">
-            <summary>Opciones avanzadas</summary>
+          <Fold summary="Opciones avanzadas">
             <div className="grid2">
               <NumberField label="Parte de tus gastos fijos" suffix="$/h" value={s.params.fixedPerHour} onChange={(v) => session.setParams({ fixedPerHour: v })} hint="Seguro, permiso, patente" />
               <NumberField label="Lo que quieres ganar por tu trabajo" suffix="$/h" value={s.params.ownerPerHour} onChange={(v) => session.setParams({ ownerPerHour: v })} hint="Es tu meta, no un gasto" />
               <NumberField label="Otros gastos" suffix="$" value={s.params.otherCosts} placeholder="0" onChange={(v) => session.setParams({ otherCosts: v ?? 0 })} hint="Estacionamiento, materiales" />
               <NumberField label="Recargos al precio" suffix="$" value={s.surcharges} placeholder="0" onChange={(v) => session.setSurcharges(v ?? 0)} hint="Urgencia, pisos, etc." />
             </div>
-          </details>
+          </Fold>
         </div>
         <Breakdown computation={habitual} />
       </section>
@@ -441,8 +440,7 @@ function ComparisonCard(props: { session: QuoteSession; habitualReady: boolean; 
   const loading = s.comparison.status === 'cargando';
   const left = s.quota ? `Te quedan ${s.quota.comparisonsLeftToday} hoy y ${s.quota.comparisonsLeftMonth} este mes.` : 'Hasta 3 al día y 10 al mes.';
   return (
-    <details className="card fold-card">
-      <summary className="sec">Comparar con ruta sin peajes (opcional)</summary>
+    <Fold className="card fold-card" summaryClassName="sec" summary="Comparar con ruta sin peajes (opcional)">
       <p className="sub">Usa 1 consulta adicional. {left}</p>
       <button type="button" className="btn2" disabled={!habitualReady || loading} onClick={() => void session.compareWithoutTolls()}>
         {loading ? 'Comparando…' : 'Comparar sin peajes'}
@@ -468,7 +466,7 @@ function ComparisonCard(props: { session: QuoteSession; habitualReady: boolean; 
           {cmp ? <p className="conclusion">{comparisonText(cmp)}</p> : null}
         </>
       ) : null}
-    </details>
+    </Fold>
   );
 }
 

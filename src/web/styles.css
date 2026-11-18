@@ -281,19 +281,20 @@ body {
   min-height: 44px;
   padding: 11px 0;
 }
-.fold[open] {
+.fold-body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+.fold-card .fold-body {
+  gap: 12px;
+  margin-top: 12px;
 }
 .fold-card summary {
   cursor: pointer;
   min-height: 44px;
   padding: 14px 0;
   margin: -12px 0;
-}
-.fold-card[open] {
-  gap: 12px;
 }
 .check {
   display: flex;
