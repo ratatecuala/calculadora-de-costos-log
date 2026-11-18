@@ -112,6 +112,8 @@ Detalle en [13 · Staging](13-staging.md) §5. Se ejecutan con credenciales desd
 
 **Staging redesplegado el 18-11-2026** con todos los cambios de esta ronda y verificado con `scripts/e2e-staging-anonimo.mjs`: **59/59** en PC 1440 y 1366 y en teléfono Pixel 7 e iPhone 13 (acceso privado, flujo anónimo completo, A-50, A-51, PDF, controles táctiles, 0 errores, 0 dominios externos).
 
+**Con cuentas, sobre la versión del 18-11** (tras restablecer las contraseñas de los 2 usuarios de prueba, autorizado): `scripts/e2e-staging.mjs` **41/41** (PC y teléfono), `scripts/verificar-numeracion.mjs` **17/17**, `scripts/verificar-rls.mjs` **39/39**. Los datos existentes no cambiaron (huellas md5 antes y después). Detalle en [13](13-staging.md) §5.4 bis.
+
 **Antes del redespliegue (histórico):** no se habían repetido `scripts/e2e-staging.mjs` ni los scripts contra Cloudflare. El staging **no** se redesplegó con las correcciones de experiencia de usuario, porque esta sesión no tiene el token de Cloudflare: hasta redesplegar, el staging muestra la versión anterior.
 
 **No probado todavía:**

@@ -64,7 +64,10 @@ const before = await maxOf(A1.c);
 const conc = await Promise.all(Array.from({ length: 20 }, (_, i) => save(i % 2 ? A2.c : A1.c, {}, `Concurrente-${i}`)));
 const nums = conc.map((r) => r.number).sort((x, y) => x - y);
 const unique = new Set(nums).size === nums.length;
-const contiguous = nums[0] === before + 1 && nums[nums.length - 1] === before + 20;
+// Correlativos entre sí y posteriores al máximo previo. No se exige empezar en «máximo + 1»: los
+// números de cotizaciones borradas (incluidas las de ejecuciones anteriores de esta prueba) no se
+// reutilizan (A-47), así que el contador puede ir por delante del máximo visible.
+const contiguous = nums[0] > before && nums[nums.length - 1] === nums[0] + 19;
 check('20 guardados simultáneos (2 dispositivos): números únicos y correlativos', unique && contiguous, `${nums[0]}…${nums[nums.length - 1]} (máximo previo ${before})`);
 check('cotizaciones nuevas: número emitido = número interno', conc.every((r) => r.issued_number === r.number));
 
@@ -109,9 +112,18 @@ const { error: counterRead } = await A1.c.from('quote_counters').select('*');
 check('el contador no se puede leer ni manipular por la API', !!counterRead, counterRead?.message);
 
 // 7. Secuencias independientes por cuenta.
+// Los números de cotizaciones borradas no se reutilizan (A-47), y esta misma prueba borra lo que
+// crea: el siguiente número de B puede ser mayor que su máximo visible + 1. Lo que se exige es
+// que la secuencia de B sea propia (no la de A), correlativa y sin reutilizar números.
 const bBefore = await maxOf(B.c);
+const aMax = await maxOf(A1.c);
 const b1 = await save(B.c, {}, 'B');
-check('la cuenta B tiene su propia secuencia', b1.number === bBefore + 1, `B=${b1.number}`);
+const b2 = await save(B.c, {}, 'B');
+check(
+  'la cuenta B tiene su propia secuencia (correlativa, sin reutilizar números)',
+  b1.number > bBefore && b2.number === b1.number + 1 && b1.number < aMax,
+  `B=${b1.number},${b2.number}; máximo visible previo de B=${bBefore}; A=${aMax}`,
+);
 
 // 8. Enlace público muestra el número emitido.
 const { data: token } = await A1.c.rpc('create_quote_share', { p_quote_id: (await A1.c.from('client_quotes').select('id').eq('job_id', imp.id).single()).data.id });

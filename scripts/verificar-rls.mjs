@@ -43,10 +43,12 @@ check('dos sesiones reales distintas', A.id !== B.id);
 const marker = `rls-${Date.now()}`;
 // Número libre y alto para la fila de prueba (la numeración es única por cuenta, A-47).
 const testNumber = 900000 + Math.floor(Math.random() * 90000);
-await A.c.from('profiles').upsert({ id: A.id, business_name: `Negocio A ${marker}` });
+// No modifica datos existentes: el perfil de A solo se crea si todavía no existe.
+const { data: existingProfile } = await A.c.from('profiles').select('id').eq('id', A.id).maybeSingle();
+if (!existingProfile) await A.c.from('profiles').insert({ id: A.id, business_name: `Negocio A ${marker}` });
 const { data: veh, error: vehErr } = await A.c
   .from('vehicles')
-  .insert({ name: 'Camioneta A', type: 'camioneta', fuel: 'gasolina', km_per_l: 11, wear_per_km: 40 })
+  .insert({ name: `Vehículo RLS ${marker}`, type: 'camioneta', fuel: 'gasolina', km_per_l: 11, wear_per_km: 40 })
   .select()
   .single();
 check('A crea un vehículo', !vehErr && veh?.owner_id === A.id, vehErr?.message);

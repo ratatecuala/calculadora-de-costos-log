@@ -112,7 +112,28 @@ Sesiones reales (JWT emitidos por Supabase) de los usuarios A y B y un visitante
   - «Precio total» y leyenda en el documento, el PDF y WhatsApp;
   - controles táctiles de al menos 44 px;
   - 0 errores de página y 0 dominios externos.
-- **No repetido:** el flujo con cuentas (`scripts/e2e-staging.mjs`). Las contraseñas de los usuarios de prueba estaban en el contenedor de una sesión anterior, que ya no existe. Para repetirlo, el propietario debe autorizar restablecer esas contraseñas (solo usuarios de prueba, dominio `.invalid`) o entregar el archivo por un canal seguro.
+- **Contraseñas de los usuarios de prueba restablecidas** (autorización del propietario, 18-11):
+  - solo los **2 usuarios ficticios** (dominio `.invalid`, proveedor `email`), verificados antes por id y correo en el proyecto de staging;
+  - se cambió únicamente su hash de contraseña: un hash bcrypt calculado localmente, sin que la contraseña saliera del contenedor;
+  - contraseñas entregadas al propietario como archivo adjunto privado;
+  - las nuevas inician sesión y una contraseña incorrecta se rechaza;
+  - no se borró ninguna cuenta ni se tocaron otros servicios.
+- **Pruebas completas con cuentas, sobre la versión del 18-11:**
+
+  | Prueba | Resultado |
+  |---|---|
+  | `scripts/e2e-staging.mjs` (PC 1440 y teléfono Pixel 7) | **41/41**: anónimo, PDF sin costos, copia del historial local (1 copia, número emitido conservado), vehículo y cotización en la cuenta, enlace público, cerrar sesión, **B en el mismo navegador no ve nada de A**, volver a entrar, estado y pago persisten, **otro dispositivo**, enlace sin costos y revocable, 0 errores, 0 dominios externos |
+  | `scripts/verificar-numeracion.mjs` (Supabase real) | **17/17**: 20 guardados simultáneos desde 2 dispositivos (únicos y correlativos), importación repetida y simultánea (1 copia, sin huecos), número ocupado → interno nuevo con el emitido intacto, números y documentos inalterables, contador inaccesible, **B con secuencia propia**, enlace con el número emitido |
+  | `scripts/verificar-rls.mjs` (Supabase real) | **39/39**: B no lee, modifica, borra ni inserta datos de A; el anónimo no accede a ninguna tabla; el enlace devuelve solo los 16 campos autorizados y deja de funcionar al revocarlo |
+
+- **Ajustes de los scripts (no de la app):**
+  - `verificar-numeracion.mjs` exigía que los números empezaran en «máximo visible + 1». Eso deja de cumplirse cuando la propia prueba borró cotizaciones antes, porque los números borrados no se reutilizan (A-47). Ahora exige números **únicos, correlativos y posteriores al máximo**, y que B tenga una secuencia **propia y correlativa**. Con la condición antigua fallaban 1 de 17 verificaciones, y siempre por esa suposición.
+  - `verificar-rls.mjs` ya **no sobrescribe** el perfil comercial existente de A. Su vehículo de prueba se llama «Vehículo RLS …», para no confundirse con el vehículo ficticio «Camioneta A».
+- **Datos existentes intactos**, verificado con huellas md5 antes y después: el perfil de A, los 13 vehículos (incluida «Camioneta A»), los 23 trabajos, sus cotizaciones y los 11 enlaces previos son idénticos.
+- **Datos que sí cambiaron:**
+  - el e2e agregó datos ficticios nuevos: 2 vehículos y 4 cotizaciones con sello de tiempo;
+  - los scripts borraron sus propias cotizaciones de prueba;
+  - los contadores de numeración de A y B avanzaron, porque los números borrados no se reutilizan.
 
 ### 5.4 Flujo completo en navegador: `scripts/e2e-staging.mjs` → **39/39** (móvil Pixel 7 y escritorio 1440)
 Desde la quinta auditoría incluye: al cerrar sesión no queda a la vista el vehículo de la cuenta y el borrador de la cotización queda vacío; otra cuenta en el **mismo navegador** no ve vehículos ni cotizaciones de la anterior.
