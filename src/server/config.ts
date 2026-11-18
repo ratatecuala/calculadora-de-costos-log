@@ -13,6 +13,8 @@ export interface ServerConfig {
   googleApiKey: string | null;
   /** Sal para seudonimizar el origen de red en los contadores (no se guarda la IP). */
   originSalt: string;
+  /** SOLO STAGING (proveedor simulado): habilita las marcas de prueba del simulador. */
+  testMarkers: boolean;
 }
 
 export type EnvLike = Record<string, string | undefined>;
@@ -26,9 +28,11 @@ export function readServerConfig(env: EnvLike): ServerConfig {
       routesEnabled: env['ROUTES_ENABLED'] !== 'false',
       googleApiKey: null,
       originSalt,
+      testMarkers: env['STAGING_TEST_MARKERS'] === 'true',
     };
   }
   const key = env['GOOGLE_ROUTES_API_KEY'] ?? '';
   const enabled = env['ROUTES_ENABLED'] === 'true' && env['GOOGLE_ROUTES_ENABLED'] === 'true' && key.length > 0;
-  return { provider: 'google', routesEnabled: enabled, googleApiKey: enabled ? key : null, originSalt };
+  // Con Google nunca hay marcas de prueba.
+  return { provider: 'google', routesEnabled: enabled, googleApiKey: enabled ? key : null, originSalt, testMarkers: false };
 }

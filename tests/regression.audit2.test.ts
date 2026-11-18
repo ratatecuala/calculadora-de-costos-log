@@ -288,18 +288,22 @@ describe('Guardado local: los fallos ya no se ocultan', () => {
   };
   const business: BusinessProfile = { name: 'Mi negocio', phone: '', email: '' };
 
-  it('si el navegador no puede escribir, save y saveBusiness lanzan QuoteStorageError', () => {
+  it('si el navegador no puede escribir, create y saveBusiness fallan con QuoteStorageError', async () => {
     const repo = createQuoteRepository(failing);
-    expect(() => repo.save({ id: 'x', number: 1 } as JobRecord)).toThrow(QuoteStorageError);
-    expect(() => repo.saveBusiness(business)).toThrow(QuoteStorageError);
+    await expect(repo.create({ id: 'x', number: 1 } as JobRecord)).rejects.toThrow(QuoteStorageError);
+    await expect(repo.saveBusiness(business)).rejects.toThrow(QuoteStorageError);
   });
 
-  it('con almacenamiento sano guarda y recupera', () => {
+  it('con almacenamiento sano guarda, recupera y cambia estado y pago', async () => {
     const store = new MemoryKeyValueStore();
     const repo = createQuoteRepository(store);
-    repo.save({ id: 'a', number: 1 } as JobRecord);
-    expect(repo.get('a')).toMatchObject({ number: 1 });
+    await repo.create({ id: 'a', number: 1, status: 'borrador', payment: 'pendiente' } as JobRecord);
+    expect(await repo.get('a')).toMatchObject({ number: 1 });
     expect(store.getItem(JOBS_KEY)).toContain('"a"');
     expect(repo.persistent).toBe(true);
+    expect(repo.kind).toBe('local');
+    await repo.update('a', { status: 'aceptada', payment: 'recibido' });
+    expect(await repo.get('a')).toMatchObject({ status: 'aceptada', payment: 'recibido' });
+    expect(await repo.nextNumber()).toBe(2);
   });
 });

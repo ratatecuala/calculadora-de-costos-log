@@ -40,6 +40,16 @@ export const SWITCH_KEY = 'switch:apagado';
 
 export type ReservationResult = { ok: true; globalUsed: number } | { ok: false; reason: DenialReason };
 
+/** Estado para administración: interruptor y consumo global del mes (sin datos de usuarios). */
+export interface BudgetStatus {
+  enabled: boolean;
+  month: string;
+  globalUsed: number;
+  operationalAllowanceToday: number;
+  operationalMonthly: number;
+  emergencyMonthly: number;
+}
+
 export interface QuotaSnapshot {
   comparisonsLeftToday: number;
   comparisonsLeftMonth: number;
@@ -94,6 +104,21 @@ export class BudgetLedger implements BudgetGate, ServiceSwitch {
 
   setServiceEnabled(enabled: boolean): Promise<void> {
     return this.exclusive(() => this.storage.putAll({ [SWITCH_KEY]: enabled ? 0 : 1 }));
+  }
+
+  status(now: Date): Promise<BudgetStatus> {
+    return this.exclusive(async () => {
+      const p = periodKeys(now);
+      const values = await this.storage.getMany([SWITCH_KEY, `g:${p.month}`]);
+      return {
+        enabled: (values.get(SWITCH_KEY) ?? 0) !== 1,
+        month: p.month,
+        globalUsed: values.get(`g:${p.month}`) ?? 0,
+        operationalAllowanceToday: operationalAllowance(this.policy, p.dayOfMonth, p.daysInMonth),
+        operationalMonthly: this.policy.operationalMonthly,
+        emergencyMonthly: this.policy.emergencyMonthly,
+      };
+    });
   }
 
   isServiceEnabled(): Promise<boolean> {

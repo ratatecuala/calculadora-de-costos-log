@@ -1,0 +1,170 @@
+# 13 · Entorno de pruebas (staging): Cloudflare + Supabase
+
+**Fecha:** 18-11-2026 · **PR:** #34 (sin merge) · **Autorización:** el propietario autorizó por chat la integración y las pruebas en un entorno **gratuito de desarrollo/staging**. No autorizó producción pública, servicios de pago, facturación, Google Routes real ni merge (registrado como A-46 en [07](07-decisiones.md), pendiente de ratificación escrita en el PR).
+
+> Distinción obligatoria (AGENTS §4): **FUNCIONA (probado en el servicio real)** · **PREPARADO (código listo, sin probar en el servicio real)** · **BLOQUEADO**.
+
+## 1. Recursos usados o creados
+
+| Plataforma | Recurso | Plan | Estado |
+|---|---|---|---|
+| Supabase | Organización existente (1 sola) | **Gratuito** | Sin cambios de plan |
+| Supabase | Proyecto existente de **otro producto** | — | **No se tocó** |
+| Supabase | Proyecto **nuevo** `calculadora-fletes-staging` (ref entregado al propietario por chat), región **sa-east-1 (São Paulo)** | Gratuito (creado sin cotización de costo: $0) | Creado 18-11 |
+| Cloudflare | Cuenta existente (1 sola) | Workers **Free** | Sin cambios de plan; el token usado no tiene permisos de facturación |
+| Cloudflare | Worker existente de otro proyecto | — | **No se tocó** |
+| Cloudflare | Worker **nuevo** `calculadora-fletes-staging` en `*.workers.dev` + Durable Object `RouteBudgetDurableObject` (**SQLite**, único disponible en el plan gratuito) | Free | Creado 18-11 |
+| Entorno de Claude | Entorno de red propio de este repositorio: solo el host del proyecto Supabase, la API de Cloudflare, su documentación y el host del Worker de staging | — | Creado 18-11 |
+
+Límites del plan gratuito leídos en la documentación oficial (HECHO VERIFICADO, 18-11-2026):
+- **Workers Free:** 100.000 solicitudes/día; 10 ms de CPU por invocación; archivos estáticos gratuitos.
+- **Durable Objects (Free):** solo con almacenamiento SQLite; 100.000 solicitudes/día, 13.000 GB-s/día, 5 GB. Si se supera un límite, **las operaciones fallan con error, no se cobra**; los límites se reinician a las 00:00 UTC.
+- **Supabase Free:** **sin respaldos automáticos descargables**; Supabase recomienda exportar con `supabase db dump` y guardar copias fuera.
+
+## 2. Qué funciona realmente y qué quedó preparado
+
+| Función | Estado | Evidencia |
+|---|---|---|
+| Calculadora sin cuenta, historial local, PDF por impresión | **FUNCIONA en staging** | e2e móvil y escritorio (§5) |
+| Aviso «sin respaldo en la nube» para anónimos | **FUNCIONA** | e2e |
+| Esquema `profiles`, `vehicles`, `jobs`, `client_quotes`, `quote_shares` con RLS y GRANT mínimos | **FUNCIONA** (migraciones aplicadas) | `supabase/migrations/` + RLS 39/39 |
+| Inicio de sesión **con Google** | **PREPARADO / BLOQUEADO**: falta crear el cliente OAuth en Google Cloud del propietario (§7) | La app consulta a Supabase si Google está habilitado y, si no, lo dice |
+| Sesión, cierre y recuperación de sesión | **FUNCIONA** con usuarios de prueba (correo + contraseña, solo staging) | e2e |
+| Vehículos en la nube: crear, editar, borrar, predeterminado, recuperar en otro dispositivo | **FUNCIONA** | e2e |
+| Cotizaciones en la nube: guardar, historial tras cerrar sesión, estado y pago | **FUNCIONA** | e2e |
+| Datos comerciales en la cuenta | **FUNCIONA** (se guardan al crear la cotización) | RLS + e2e |
+| Enlace público revocable sin costos internos | **FUNCIONA** | RLS + e2e |
+| Copia opcional del historial local a la cuenta, sin duplicados, sin borrar lo local | **FUNCIONA** | e2e (1 copia exacta) |
+| Worker sirviendo la app + `/api/route` + Durable Object real | **FUNCIONA** | §5.3 |
+| Interruptor de emergencia en caliente | **FUNCIONA en Cloudflare real** | §5.3 |
+| Google Routes | **APAGADO** (proveedor simulado) | — |
+
+## 3. Esquema y seguridad (Supabase)
+
+Migraciones versionadas: [`supabase/migrations/`](../supabase/migrations/).
+
+| Tabla | Contenido | Acceso |
+|---|---|---|
+| `profiles` | Nombre comercial, teléfono, correo de la cotización, preferencias | Solo el dueño (`auth.uid() = id`) |
+| `vehicles` | Nombre, tipo, combustible, km/L, $/km, predeterminado (único por dueño) | Solo el dueño |
+| `jobs` | Cotización completa **con costos internos** (`internal`), estado, pago, vehículo usado | Solo el dueño |
+| `client_quotes` | **Solo** los 16 campos de `CLIENT_QUOTE_KEYS`; no tiene columnas de costos | Solo el dueño; el público, solo por `get_public_quote` |
+| `quote_shares` | Enlaces: **hash SHA-256** del token, expiración, revocación | El dueño lee sin el hash; crear y revocar, solo por funciones |
+
+- **RLS** activa en las 5 tablas, con políticas `SELECT/INSERT/UPDATE/DELETE` por dueño.
+- **GRANT:** `anon` no tiene acceso a **ninguna** tabla; `authenticated`, solo lo necesario (en `quote_shares`, sin la columna `token_hash`).
+- **Coherencia de dueño:** claves foráneas compuestas `(owner_id, job_id)` y `(owner_id, quote_id)`: una cotización o un enlace no pueden colgar de datos de otro usuario.
+- **Enlace público:** token aleatorio de **256 bits** (base64url, 43 caracteres), generado en el servidor y mostrado **una vez**; en la base solo queda su hash. Revocable, expiración opcional (la app usa 30 días; máximo 366).
+- **Guardado atómico:** `create_job_with_quote` guarda trabajo y cotización en una transacción, con permisos del usuario (RLS aplica).
+- **Funciones `SECURITY DEFINER` (avisos del asesor de Supabase, aceptados):** `get_public_quote` (debe poder llamarla un visitante sin sesión; solo devuelve campos de `client_quotes` con un token vigente), `create_quote_share` y `revoke_quote_share` (validan `auth.uid()` y el dueño). Todas con `search_path` vacío y `EXECUTE` revocado a `public`.
+- **Navegador:** solo la clave **publicable**. La app se niega a arrancar con una clave `sb_secret_` (prueba automática). No existe ninguna clave secreta en el Worker ni en el repositorio.
+
+## 4. Cloudflare (Worker + Durable Object)
+
+- Configuración versionada: [`wrangler.jsonc`](../wrangler.jsonc). Variables públicas: `ROUTES_PROVIDER=simulado`, `ROUTES_ENABLED=true`, `STAGING_TEST_MARKERS=true`.
+- Secretos (fuera del repositorio, cargados con `wrangler deploy --secrets-file`): `ADMIN_TOKEN`, `ORIGIN_HASH_SALT`, `STAGING_BASIC_AUTH`.
+- **Staging privado:** todo el sitio (app, API y enlaces públicos) exige usuario y contraseña (`STAGING_BASIC_AUTH`). Encabezados `noindex`, `nosniff`, `DENY` de marcos y `no-referrer`.
+- **Políticas sin cambios:** objetivo 7.000 y corte 8.000 al mes, ritmo diario, 3 comparaciones/día y 10/mes, 20 rutas/día por usuario, 40 por origen, reintento con nueva reserva, cierre ante falla del contador.
+- **Ayudas de prueba solo para staging** (apagadas por defecto y nunca con Google): `STAGING_TEST_MARKERS` (el simulador falla si una dirección contiene `[prueba:falla]` o `[prueba:falla-lenta]`) y `STAGING_FAULT_COUNTER` (el Durable Object responde como caído; solo se activó durante la prueba §5.3-7 y se retiró).
+- **Archivos de la app incrustados en el Worker:** el proxy del entorno de Claude reemplaza el encabezado `Authorization` de todas las solicitudes a la API de Cloudflare, y eso rompe la subida separada de *Static Assets* (que usa su propio token temporal). Por eso `npm run build:staging` incrusta `dist/` en el Worker (`src/server/embeddedAssets.ts`, `scripts/embed-assets.mjs`). Desde una máquina normal se puede volver a *Static Assets* sin cambiar la lógica.
+
+### Hallazgo en Cloudflare real (no detectable con Vitest)
+
+El Worker guardaba el *stub* del Durable Object entre solicitudes. En Workers, un objeto de E/S creado en una solicitud **no puede usarse desde otra**: el contador fallaba de forma intermitente (9 de 10 en un mismo isolate). El sistema **cerró correctamente** (modo manual, sin consultar al proveedor), pero sin servicio. Corrección: el contador se crea en cada solicitud y la deduplicación usa el *binding*, que es estable. Regresión en `tests/staging.worker.test.ts`; tras desplegar, 10 de 10.
+
+## 5. Resultados de pruebas
+
+### 5.1 Automáticas (sin red): `npm test`
+133 pruebas en verde (las 117 anteriores, adaptadas a la interfaz asíncrona, más conversores de la nube, piezas de staging del Worker y la regresión del *stub*).
+
+### 5.2 RLS real con dos usuarios: `scripts/verificar-rls.mjs` → **39/39**
+Sesiones reales (JWT emitidos por Supabase) de los usuarios A y B y un visitante anónimo, con la clave publicable:
+- B no puede **leer, modificar ni borrar** perfiles, vehículos, trabajos, cotizaciones ni enlaces de A, ni conociendo los ids.
+- B no puede **insertar** a nombre de A, colgar una cotización de un trabajo de A, crear ni revocar enlaces de A, ni cambiar su predeterminado.
+- El anónimo recibe `permission denied` en las 5 tablas; ni el dueño puede leer `token_hash`.
+- El enlace público devuelve **exactamente** los 16 campos autorizados y ningún costo; un token inventado no devuelve nada; revocado deja de funcionar; no se aceptan expiraciones pasadas.
+- A puede borrar lo suyo; la cotización y los enlaces se borran en cascada.
+
+### 5.3 Cloudflare real: `scripts/verificar-cloudflare.mjs` → **8/8** y **2/2**
+1. Una solicitud se calcula y reserva **exactamente 1**.
+2. Falla reintentable: el reintento consume **otra reserva** (Δ = 2).
+3. Servicio apagado (interruptor en caliente): rutas y comparaciones responden `servicio_apagado`, **Δ = 0**.
+4. Apagado **durante** una consulta: el reintento queda bloqueado (Δ = 1, solo la reserva inicial).
+5. Comparaciones: 3 al día; la cuarta se rechaza sin reservar.
+6. **30 solicitudes simultáneas** del mismo usuario: **20 autorizadas, 10 rechazadas, Δ = 20** (nunca se supera el límite).
+7. Durable Object caído (falla inyectada en el objeto real): `contador_no_disponible`, sin ruta, el proveedor no se consulta.
+
+### 5.4 Flujo completo en navegador: `scripts/e2e-staging.mjs` → **33/33** (móvil Pixel 7 y escritorio 1440)
+Anónimo (ruta simulada → costos → precio → cotización → historial local → impresión sin costos internos); copia del historial local a la cuenta (1 copia, sin duplicados); vehículo y cotización en la cuenta; enlace público; cerrar sesión (no quedan datos de la cuenta a la vista); volver a entrar (se recuperan); estado y pago persisten tras recargar; **otro dispositivo** recupera vehículo y cotización; **usuario B no ve nada de A**; enlace público sin costos y revocable; sin errores de página; **0 solicitudes a dominios externos**.
+
+## 6. Cómo verificar el entorno de pruebas
+
+**Sin comandos (propietario):**
+1. Abrir la URL del Worker de staging (§1) e ingresar el usuario y la contraseña de staging que Claude entregó por chat.
+2. Calcular una ruta (simulada), escribir un precio y crear una cotización: queda en «Mis trabajos» con el aviso «solo en este navegador».
+3. En «Ingresar», usar un usuario de prueba (entregados por chat): aparece «Copiar a mi cuenta»; copiar y revisar «Mis trabajos».
+4. Abrir la cotización → «Crear enlace» → abrir el enlace en una ventana privada: se ve solo la cotización. «Desactivar» y recargar: «Enlace no disponible».
+5. Cerrar sesión y volver a entrar desde otro navegador o el teléfono: los datos de la cuenta siguen ahí.
+
+**Con comandos (agentes):** ver la cabecera de cada script en `scripts/` (credenciales siempre desde archivos fuera del repositorio).
+
+## 7. Pasos manuales del propietario
+
+1. **Google OAuth** (para «Continuar con Google»): en un proyecto de Google Cloud **del propietario**, crear un cliente OAuth «Aplicación web» con la URI de redirección `https://<ref>.supabase.co/auth/v1/callback`; en Supabase → Authentication → Providers → Google, pegar el ID y el secreto del cliente. En Authentication → URL Configuration, agregar la URL del Worker de staging a *Redirect URLs*. Alcances: `openid`, `email`, `profile`. No requiere facturación de Google Cloud, pero es una cuenta y una credencial nuevas: decisión del propietario.
+2. **Cerrar el registro abierto de staging:** hoy Supabase permite registrarse por correo (con confirmación). Recomendado: desactivar el registro de nuevos usuarios por correo en Authentication mientras sea staging.
+3. **Protección de contraseñas filtradas** (aviso del asesor): habilitarla en Authentication si el plan lo permite.
+4. **MFA** en las cuentas de Supabase y Cloudflare del propietario.
+5. **Rotar o revocar** el token de Cloudflare entregado a Claude cuando termine la revisión (§9).
+6. Antes de cualquier lanzamiento: decidir plan de Supabase (el gratuito **se pausa** tras ~1 semana de baja actividad y **no tiene respaldos automáticos**), dominio y aviso de privacidad (#17).
+
+## 8. Servicios que siguen apagados
+
+- **Google Routes:** desconectado; ninguna clave de Google existe en el Worker. Pro y Enterprise bloqueados por código.
+- **Producción pública:** no existe. Staging es privado (usuario y contraseña) y `noindex`.
+- **Facturación y planes de pago:** no se activaron. Ambos servicios en plan gratuito.
+- **Google OAuth:** no configurado (falta el cliente del propietario).
+
+## 9. Detener servicios ante errores (interruptores)
+
+| Nivel | Acción | Efecto |
+|---|---|---|
+| 1 | `POST /api/admin/routes {"enabled": false}` con `ADMIN_TOKEN` | Detiene **reservas nuevas y reintentos** al instante (probado). No cancela una llamada ya en curso |
+| 2 | `ROUTES_ENABLED=false` (variable del Worker) | Apaga `/api/route` en la siguiente solicitud |
+| 3 | Desactivar la ruta `workers.dev` o borrar el Worker en el panel de Cloudflare | Sitio fuera de línea |
+| 4 | Pausar el proyecto de Supabase en su panel | Sin cuentas ni nube; la calculadora local sigue funcionando |
+
+**Revocar credenciales:** token de Cloudflare (panel → My Profile → API Tokens → Roll/Delete); `ADMIN_TOKEN`, `STAGING_BASIC_AUTH`, `ORIGIN_HASH_SALT` (`wrangler secret put <NOMBRE>`); clave publicable de Supabase (Settings → API Keys: crear otra y desactivar la actual); usuarios de prueba (Authentication → Users → borrar `prueba-a` y `prueba-b`, dominio `.invalid`); enlaces públicos (desde la app, «Desactivar»).
+
+## 10. Respaldo y restauración (Supabase gratuito)
+
+El plan gratuito **no tiene respaldos automáticos descargables**. Procedimiento (documentación oficial «Backup and Restore using the CLI»), **PREPARADO, no ejecutado**: requiere la contraseña de la base, que solo tiene el propietario, y Docker.
+
+**Respaldo** (en la máquina del propietario; guardar los archivos **cifrados** fuera del repositorio):
+
+```bash
+supabase db dump --db-url "$DB_URL" -f roles.sql --role-only
+```
+
+```bash
+supabase db dump --db-url "$DB_URL" -f schema.sql
+```
+
+```bash
+supabase db dump --db-url "$DB_URL" -f data.sql --use-copy --data-only -x "storage.buckets_vectors" -x "storage.vector_indexes"
+```
+
+**Restauración** en un proyecto **nuevo** (simulacro mensual recomendado):
+
+```bash
+psql --single-transaction --variable ON_ERROR_STOP=1 --file roles.sql --file schema.sql --command 'SET session_replication_role = replica' --file data.sql --dbname "$NEW_DB_URL"
+```
+
+**Verificación:** contar filas en ambos proyectos (`select count(*)` de `auth.users`, `profiles`, `vehicles`, `jobs`, `client_quotes`, `quote_shares`) y ejecutar `scripts/verificar-rls.mjs` contra el proyecto restaurado. El esquema también se puede reconstruir desde cero con las migraciones del repositorio. Lo que **no** viaja en el respaldo: configuración de Auth (proveedores, URLs), claves de API.
+
+## 11. Limitaciones conocidas
+
+- **Números de cotización:** al copiar el historial local, cada cotización conserva su número (el cliente ya pudo recibirlo), así que pueden repetirse números en la cuenta. Decisión pendiente del propietario.
+- **Deduplicación del doble clic** en Cloudflare: por isolate; dos clics simultáneos atendidos por isolates distintos reservan dos veces (el límite y el contador siguen correctos).
+- **Datos de prueba** en staging: usuarios `prueba-a`/`prueba-b` con cotizaciones y vehículos ficticios creados por las pruebas.
+- **Archivos incrustados** en el Worker (ver §4).
+- Supabase gratuito puede **pausarse** por inactividad.

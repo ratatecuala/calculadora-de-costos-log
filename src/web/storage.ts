@@ -1,31 +1,38 @@
 /**
- * Historial local (navegador). Decisión pendiente #35: cuando se apruebe Supabase,
- * se reemplaza esta implementación sin tocar la interfaz `QuoteRepository`.
+ * Historial de cotizaciones detrás de la interfaz `QuoteRepository` (asíncrona):
+ * - `createQuoteRepository`: navegador (localStorage), para el modo SIN cuenta.
+ * - `src/web/cloud/quotes.ts`: Supabase, para usuarios con sesión (#35).
  * Solo se guardan datos propios: direcciones del usuario, cálculos comerciales y
  * cotizaciones. Km y minutos de un proveedor se guardan solo si su retención lo permite.
  *
  * Auditoría 2: un fallo al escribir (almacenamiento lleno, bloqueado o modo privado)
- * ya NO se ignora en silencio: se lanza `QuoteStorageError` y la pantalla lo muestra.
+ * NO se ignora en silencio: se lanza `QuoteStorageError` y la pantalla lo muestra.
  */
 import type { BusinessProfile, JobRecord } from '../shared/clientQuote';
 import { MemoryKeyValueStore, type KeyValueStore } from './vehicleRepository';
 
+export type JobPatch = Partial<Pick<JobRecord, 'status' | 'payment'>>;
+
 export interface QuoteRepository {
+  /** Dónde quedan los datos: en este navegador o en la cuenta (nube). */
+  readonly kind: 'local' | 'nube';
   /** false si el navegador no permite guardar: los datos se pierden al cerrar la pestaña. */
   readonly persistent: boolean;
-  list(): JobRecord[];
-  get(id: string): JobRecord | null;
-  /** Lanza QuoteStorageError si no se pudo guardar. */
-  save(job: JobRecord): void;
-  nextNumber(): number;
-  getBusiness(): BusinessProfile;
-  /** Lanza QuoteStorageError si no se pudo guardar. */
-  saveBusiness(profile: BusinessProfile): void;
+  list(): Promise<JobRecord[]>;
+  get(id: string): Promise<JobRecord | null>;
+  /** Guarda una cotización nueva. Lanza un error si no se pudo guardar. */
+  create(job: JobRecord): Promise<JobRecord>;
+  /** Cambia el estado del trabajo o del pago. Lanza un error si no se pudo guardar. */
+  update(id: string, patch: JobPatch): Promise<JobRecord>;
+  nextNumber(): Promise<number>;
+  getBusiness(): Promise<BusinessProfile>;
+  /** Lanza un error si no se pudo guardar. */
+  saveBusiness(profile: BusinessProfile): Promise<void>;
 }
 
 export class QuoteStorageError extends Error {
-  constructor(cause: unknown) {
-    super('No se pudo guardar en este navegador. Puede estar lleno o bloqueado; la cotización no quedó guardada.');
+  constructor(cause: unknown, message = 'No se pudo guardar en este navegador. Puede estar lleno o bloqueado; la cotización no quedó guardada.') {
+    super(message);
     this.name = 'QuoteStorageError';
     this.cause = cause;
   }
@@ -33,6 +40,7 @@ export class QuoteStorageError extends Error {
 
 export const JOBS_KEY = 'cotizador.trabajos.v1';
 export const BUSINESS_KEY = 'cotizador.negocio.v1';
+const EMPTY_BUSINESS: BusinessProfile = { name: '', phone: '', email: '' };
 
 export function createQuoteRepository(store: KeyValueStore, persistent = true): QuoteRepository {
   const read = <T,>(key: string, fallback: T): T => {
@@ -50,26 +58,38 @@ export function createQuoteRepository(store: KeyValueStore, persistent = true): 
       throw new QuoteStorageError(error);
     }
   };
+  const jobs = () => read<JobRecord[]>(JOBS_KEY, []);
   return {
+    kind: 'local',
     persistent,
-    list() {
-      return read<JobRecord[]>(JOBS_KEY, []).sort((a, b) => b.number - a.number);
+    async list() {
+      return jobs().sort((a, b) => b.number - a.number);
     },
-    get(id) {
-      return read<JobRecord[]>(JOBS_KEY, []).find((j) => j.id === id) ?? null;
+    async get(id) {
+      return jobs().find((j) => j.id === id) ?? null;
     },
-    save(job) {
-      const jobs = read<JobRecord[]>(JOBS_KEY, []).filter((j) => j.id !== job.id);
-      jobs.push(job);
-      write(JOBS_KEY, jobs);
+    async create(job) {
+      const all = jobs().filter((j) => j.id !== job.id);
+      all.push(job);
+      write(JOBS_KEY, all);
+      return job;
     },
-    nextNumber() {
-      return read<JobRecord[]>(JOBS_KEY, []).reduce((max, j) => Math.max(max, j.number), 0) + 1;
+    async update(id, patch) {
+      const all = jobs();
+      const index = all.findIndex((j) => j.id === id);
+      if (index < 0) throw new QuoteStorageError(null, 'La cotización ya no existe en este navegador.');
+      const updated = { ...all[index]!, ...patch };
+      all[index] = updated;
+      write(JOBS_KEY, all);
+      return updated;
     },
-    getBusiness() {
-      return read<BusinessProfile>(BUSINESS_KEY, { name: '', phone: '', email: '' });
+    async nextNumber() {
+      return jobs().reduce((max, j) => Math.max(max, j.number), 0) + 1;
     },
-    saveBusiness(profile) {
+    async getBusiness() {
+      return read<BusinessProfile>(BUSINESS_KEY, EMPTY_BUSINESS);
+    },
+    async saveBusiness(profile) {
       write(BUSINESS_KEY, profile);
     },
   };

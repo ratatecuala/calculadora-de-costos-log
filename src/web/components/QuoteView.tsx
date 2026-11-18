@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
 import { formatClp } from '../../engine/rounding';
-import { toClientQuote, whatsappUrl, type JobRecord } from '../../shared/clientQuote';
+import { toClientQuote, whatsappUrl, type BusinessProfile, type ClientQuote, type JobRecord } from '../../shared/clientQuote';
 import { googleMapsDirectionsUrl } from '../../shared/mapsUrl';
+import { CloudQuoteRepository, type QuoteShare } from '../cloud/quotes';
 import type { QuoteRepository } from '../storage';
 
 interface Props {
@@ -15,7 +17,13 @@ interface Props {
  * PDF: impresión del navegador («Guardar como PDF»), sin servicios externos.
  */
 export function QuoteView({ job, repository, onBack }: Props) {
-  const q = toClientQuote(job, repository.getBusiness());
+  const [fallback, setFallback] = useState<BusinessProfile | undefined>(undefined);
+  useEffect(() => {
+    // Solo registros antiguos sin copia del emisor usan el perfil actual.
+    if (job.issuer) return;
+    void repository.getBusiness().then(setFallback, () => undefined);
+  }, [job, repository]);
+  const q = toClientQuote(job, fallback);
   const maps = googleMapsDirectionsUrl(job.waypoints);
   return (
     <div className="layout single">
@@ -36,63 +44,158 @@ export function QuoteView({ job, repository, onBack }: Props) {
         ) : null}
       </div>
       <p className="sub no-print">Para el PDF, elige «Guardar como PDF» en la ventana de impresión.</p>
-      <article className="doc">
-        <header className="doc-head">
-          <div>
-            <p className="doc-business">{q.businessName || '[Nombre comercial]'}</p>
-            <p className="sub">{[q.businessPhone, q.businessEmail].filter(Boolean).join(' · ')}</p>
-          </div>
-          <div className="doc-number">
-            <p className="sub">COTIZACIÓN</p>
-            <p className="num">N° {String(q.number).padStart(4, '0')}</p>
-          </div>
-        </header>
-        <div className="grid2 doc-grid">
-          <Item label="Cliente" value={q.clientName} />
-          <Item label="Emitida" value={q.issuedAt} />
-          <Item label="Origen → destino" value={`${q.originLabel} → ${q.destinationLabel}`} />
-          <Item label="Fecha del servicio" value={q.serviceDate || 'Por confirmar'} />
+      {repository instanceof CloudQuoteRepository ? <SharePanel repository={repository} jobId={job.id} /> : null}
+      <QuoteDocument q={q} />
+    </div>
+  );
+}
+
+/** Documento que ve el cliente (pantalla, PDF y enlace público). Solo recibe la ClientQuote. */
+export function QuoteDocument({ q }: { q: ClientQuote }) {
+  return (
+    <article className="doc">
+      <header className="doc-head">
+        <div>
+          <p className="doc-business">{q.businessName || '[Nombre comercial]'}</p>
+          <p className="sub">{[q.businessPhone, q.businessEmail].filter(Boolean).join(' · ')}</p>
         </div>
-        <div className="doc-box">
+        <div className="doc-number">
+          <p className="sub">COTIZACIÓN</p>
+          <p className="num">N° {String(q.number).padStart(4, '0')}</p>
+        </div>
+      </header>
+      <div className="grid2 doc-grid">
+        <Item label="Cliente" value={q.clientName} />
+        <Item label="Emitida" value={q.issuedAt} />
+        <Item label="Origen → destino" value={`${q.originLabel} → ${q.destinationLabel}`} />
+        <Item label="Fecha del servicio" value={q.serviceDate || 'Por confirmar'} />
+      </div>
+      <div className="doc-box">
+        <p>
+          <strong>Servicio:</strong> {q.serviceDescription}
+        </p>
+        {q.includes ? (
           <p>
-            <strong>Servicio:</strong> {q.serviceDescription}
+            <strong>Incluye:</strong> {q.includes}
           </p>
-          {q.includes ? (
-            <p>
-              <strong>Incluye:</strong> {q.includes}
-            </p>
-          ) : null}
-          {q.conditions ? (
-            <p>
-              <strong>Condiciones:</strong> {q.conditions}
-            </p>
-          ) : null}
-        </div>
-        <div className="doc-total">
-          {q.taxAmount === null ? (
-            <div className="ln strong">
-              <span>Valor neto</span>
+        ) : null}
+        {q.conditions ? (
+          <p>
+            <strong>Condiciones:</strong> {q.conditions}
+          </p>
+        ) : null}
+      </div>
+      <div className="doc-total">
+        {q.taxAmount === null ? (
+          <div className="ln strong">
+            <span>Valor neto</span>
+            <span className="num">{formatClp(q.netPrice)}</span>
+          </div>
+        ) : (
+          <>
+            <div className="ln">
+              <span>Neto</span>
               <span className="num">{formatClp(q.netPrice)}</span>
             </div>
-          ) : (
-            <>
-              <div className="ln">
-                <span>Neto</span>
-                <span className="num">{formatClp(q.netPrice)}</span>
-              </div>
-              <div className="ln">
-                <span>IVA</span>
-                <span className="num">{formatClp(q.taxAmount)}</span>
-              </div>
-              <div className="ln strong">
-                <span>Total</span>
-                <span className="num">{formatClp(q.total)}</span>
-              </div>
-            </>
-          )}
+            <div className="ln">
+              <span>IVA</span>
+              <span className="num">{formatClp(q.taxAmount)}</span>
+            </div>
+            <div className="ln strong">
+              <span>Total</span>
+              <span className="num">{formatClp(q.total)}</span>
+            </div>
+          </>
+        )}
+      </div>
+      {q.validUntil ? <p className="sub">Válida hasta {q.validUntil}.</p> : null}
+    </article>
+  );
+}
+
+/** Enlaces públicos: el token se muestra UNA vez (en la base solo queda su hash). */
+function SharePanel({ repository, jobId }: { repository: CloudQuoteRepository; jobId: string }) {
+  const [shares, setShares] = useState<QuoteShare[]>([]);
+  const [link, setLink] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const reload = () => repository.listShares(jobId).then(setShares, (e: unknown) => setFailure(e instanceof Error ? e.message : 'Error'));
+  useEffect(() => {
+    void reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobId]);
+
+  const create = async () => {
+    setBusy(true);
+    setFailure(null);
+    setCopied(false);
+    try {
+      const token = await repository.createShare(jobId, 30);
+      setLink(`${window.location.origin}/c/${token}`);
+      await reload();
+    } catch (e) {
+      setFailure(e instanceof Error ? e.message : 'No se pudo crear el enlace.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const revoke = async (id: string) => {
+    setFailure(null);
+    try {
+      await repository.revokeShare(id);
+      setLink(null);
+      await reload();
+    } catch (e) {
+      setFailure(e instanceof Error ? e.message : 'No se pudo desactivar el enlace.');
+    }
+  };
+
+  const active = shares.filter((s) => !s.revokedAt && (!s.expiresAt || new Date(s.expiresAt) > new Date()));
+  return (
+    <div className="card no-print">
+      <h2 className="sec">Enlace para tu cliente</h2>
+      <p className="sub">Tu cliente verá solo esta cotización: sin tus costos, combustible ni margen. El enlace dura 30 días y puedes desactivarlo cuando quieras.</p>
+      {link ? (
+        <div className="notice">
+          <p className="share-link">{link}</p>
+          <button
+            type="button"
+            className="btn2 small"
+            onClick={() => void navigator.clipboard?.writeText(link).then(() => setCopied(true), () => setCopied(false))}
+          >
+            {copied ? 'Copiado' : 'Copiar enlace'}
+          </button>
+          <p className="sub">Guárdalo ahora: por seguridad no lo volveremos a mostrar.</p>
         </div>
-        {q.validUntil ? <p className="sub">Válida hasta {q.validUntil}.</p> : null}
-      </article>
+      ) : null}
+      <div className="row-gap">
+        <button type="button" className="btn2 small" disabled={busy} onClick={() => void create()}>
+          {busy ? 'Creando…' : 'Crear enlace'}
+        </button>
+      </div>
+      {active.length > 0 ? (
+        <div className="results">
+          {active.map((s) => (
+            <div className="ln" key={s.id}>
+              <span className="sub">
+                Enlace activo desde {s.createdAt.slice(0, 10)}
+                {s.expiresAt ? ` · vence ${s.expiresAt.slice(0, 10)}` : ''}
+              </span>
+              <button type="button" className="link-btn danger-text" onClick={() => void revoke(s.id)}>
+                Desactivar
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {failure ? (
+        <p className="warn" role="alert">
+          {failure}
+        </p>
+      ) : null}
     </div>
   );
 }

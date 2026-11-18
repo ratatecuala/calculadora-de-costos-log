@@ -10,6 +10,7 @@
 import {
   BudgetLedger,
   type BudgetGate,
+  type BudgetStatus,
   type CounterStorage,
   type QuotaSnapshot,
   type ReservationRequest,
@@ -23,6 +24,10 @@ interface DurableStorageLike {
 }
 interface DurableStateLike {
   storage: DurableStorageLike;
+}
+interface DurableEnvLike {
+  /** SOLO STAGING: «true» hace que el contador responda como caído (prueba de cierre ante falla). */
+  STAGING_FAULT_COUNTER?: unknown;
 }
 interface DurableStubLike {
   fetch(input: string, init?: RequestInit): Promise<Response>;
@@ -41,12 +46,17 @@ class DurableCounterStorage implements CounterStorage {
 
 export class RouteBudgetDurableObject {
   private readonly ledger: BudgetLedger;
-  constructor(state: DurableStateLike) {
+  private readonly faultInjected: boolean;
+  constructor(state: DurableStateLike, env: DurableEnvLike = {}) {
     this.ledger = new BudgetLedger(new DurableCounterStorage(state.storage));
+    this.faultInjected = env.STAGING_FAULT_COUNTER === 'true';
   }
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
+    if (this.faultInjected && (url.pathname === '/reserve' || url.pathname === '/quota')) {
+      return new Response('Contador no disponible (falla inyectada de staging)', { status: 503 });
+    }
     try {
       if (request.method === 'POST' && url.pathname === '/reserve') {
         const body = (await request.json()) as Omit<ReservationRequest, 'now'> & { now: string };
@@ -65,6 +75,10 @@ export class RouteBudgetDurableObject {
       }
       if (request.method === 'GET' && url.pathname === '/switch') {
         return Response.json({ enabled: await this.ledger.isServiceEnabled() });
+      }
+      if (request.method === 'POST' && url.pathname === '/status') {
+        const body = (await request.json()) as { now: string };
+        return Response.json(await this.ledger.status(new Date(body.now)));
       }
       return new Response('No encontrado', { status: 404 });
     } catch {
@@ -98,6 +112,12 @@ export class DurableObjectBudgetGate implements BudgetGate, ServiceSwitch {
   async setServiceEnabled(enabled: boolean): Promise<void> {
     const res = await this.stub.fetch('https://budget/switch', { method: 'POST', body: JSON.stringify({ enabled }) });
     if (!res.ok) throw new Error(`Contador respondió ${res.status}`);
+  }
+
+  async status(now: Date): Promise<BudgetStatus> {
+    const res = await this.stub.fetch('https://budget/status', { method: 'POST', body: JSON.stringify({ now: now.toISOString() }) });
+    if (!res.ok) throw new Error(`Contador respondió ${res.status}`);
+    return (await res.json()) as BudgetStatus;
   }
 
   async isServiceEnabled(): Promise<boolean> {

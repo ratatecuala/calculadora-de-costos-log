@@ -45,11 +45,31 @@ describe('Prueba 8 — no se expone ninguna clave de API al navegador', () => {
 
   it('el código del navegador no importa módulos del servidor ni lee variables de entorno', () => {
     const webFiles = [...filesUnder(join(root, 'src/web')), ...filesUnder(join(root, 'src/shared')), ...filesUnder(join(root, 'src/engine'))];
+    // Única excepción: la configuración PÚBLICA de Supabase (URL y clave publicable).
+    const allowed = join(root, 'src/web/cloud/client.ts');
     for (const f of webFiles) {
       const content = readFileSync(f, 'utf8');
       expect(content, f).not.toMatch(/from ['"][./]*server\//);
-      expect(content, f).not.toContain('import.meta.env');
+      if (f !== allowed) expect(content, f).not.toContain('import.meta.env');
       expect(content, f).not.toContain('process.env');
+    }
+    const names = [...readFileSync(allowed, 'utf8').matchAll(/VITE_[A-Z_]+/g)].map((m) => m[0]);
+    expect(new Set(names)).toEqual(new Set(['VITE_SUPABASE_URL', 'VITE_SUPABASE_PUBLISHABLE_KEY', 'VITE_TEST_PASSWORD_LOGIN']));
+  });
+
+  it('el navegador rechaza una clave secreta de Supabase y no incluye claves privilegiadas', async () => {
+    const { readCloudConfig } = await import('../src/web/cloud/client');
+    expect(() => readCloudConfig({ VITE_SUPABASE_URL: 'https://abc.supabase.co', VITE_SUPABASE_PUBLISHABLE_KEY: ['sb', 'secret', 'x'.repeat(24)].join('_') })).toThrow();
+    expect(readCloudConfig({})).toBeNull();
+    expect(readCloudConfig({ VITE_SUPABASE_URL: 'https://abc.supabase.co', VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_0123456789abcdef' })).toMatchObject({
+      testPasswordLogin: false,
+    });
+    for (const f of filesUnder(outDir)) {
+      const content = readFileSync(f, 'utf8');
+      // Valores de clave (no el prefijo, que aparece en los controles de supabase-js y en el nuestro).
+      expect(content).not.toMatch(/sb_secret_[A-Za-z0-9_-]{10,}/);
+      // JWT con rol service_role: «service_role» codificado en base64 dentro de un token.
+      expect(content).not.toMatch(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*c2VydmljZV9yb2xl/);
     }
   });
 

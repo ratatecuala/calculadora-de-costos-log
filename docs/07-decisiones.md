@@ -158,3 +158,11 @@ La contrapropuesta de MapLibre + PMTiles + Valhalla (con geocodificación OSM), 
 | A-45 | Módulo **«Mi vehículo»**: varios vehículos con nombre, tipo (camioneta, furgón o camión liviano), combustible, rendimiento (km/L) y desgaste ($/km); editar, eliminar y elegir un predeterminado. Al elegirlo se cargan sus datos en la cotización y se pueden ajustar solo para ella. **Sin valores predeterminados inventados.** Guardado local, con una interfaz migrable a Supabase. **Sin cambios en el motor.** Comunicada por el propietario a Claude el 17-11-2026; ratificar en PR #34 | 2026-11-17 |
 
 **Decisión menor de implementación (revisable):** el primer vehículo registrado queda como predeterminado para ahorrar un paso. Eliminar el predeterminado no elige otro automáticamente.
+
+## Decisión del 18-11-2026: integración de Cloudflare y Supabase en staging
+
+| ID | Decisión | Fecha |
+|---|---|---|
+| A-46 | Se autoriza integrar y probar **Cloudflare** (Worker, Durable Object, interruptor) y **Supabase** (Auth, Postgres con RLS, enlaces públicos) en un entorno **gratuito de desarrollo/staging**, sobre la rama del PR #34, usando recursos exclusivos de este proyecto sin alterar los existentes. **No** se autoriza: producción pública, planes de pago, facturación, Google Routes real ni merge. Comunicada por el propietario a Claude el 18-11-2026; **ratificar en el PR #34** | 2026-11-18 |
+
+**Decisiones menores de implementación (revisables):** proyecto Supabase en `sa-east-1`; usuarios de prueba con contraseña **solo en staging** mientras no exista el cliente OAuth de Google del propietario; staging protegido con usuario y contraseña; enlaces públicos de 30 días; números de cotización conservados al copiar el historial local (pueden repetirse). Detalle y resultados en [13](13-staging.md).

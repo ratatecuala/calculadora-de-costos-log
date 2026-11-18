@@ -24,6 +24,12 @@ export interface RouteHandlerDeps {
   budget: BudgetGate;
   provider: RouteProvider;
   clock?: () => Date;
+  /**
+   * Objeto estable para deduplicar solicitudes simultáneas idénticas. Por defecto, el
+   * contador. En Cloudflare, el contador (stub) se crea en CADA solicitud, así que el
+   * Worker pasa aquí el binding del Durable Object, que sí es estable.
+   */
+  dedupeScope?: object;
 }
 
 export interface RequestContext {
@@ -37,9 +43,9 @@ export interface HandlerResult {
 }
 
 const CLIENT_ID = /^[a-zA-Z0-9-]{16,64}$/;
-// Clave estable: el contador (BudgetGate). Las dependencias pueden rearmarse en cada
+// Clave estable (dedupeScope o el contador). Las dependencias pueden rearmarse en cada
 // solicitud (configuración leída en caliente) sin perder la deduplicación.
-const inflight = new WeakMap<BudgetGate, Map<string, Promise<HandlerResult>>>();
+const inflight = new WeakMap<object, Map<string, Promise<HandlerResult>>>();
 
 export function handleRouteRequest(body: unknown, ctx: RequestContext, deps: RouteHandlerDeps): Promise<HandlerResult> {
   const parsed = routeRequestSchema.safeParse(body);
@@ -51,10 +57,11 @@ export function handleRouteRequest(body: unknown, ctx: RequestContext, deps: Rou
   const userKey = `c:${ctx.clientId}`;
   // Doble clic o recarga: la misma solicitud en curso del mismo usuario se comparte (una sola reserva).
   const dedupeKey = `${userKey}|${routeKey(input)}`;
-  let map = inflight.get(deps.budget);
+  const scope = deps.dedupeScope ?? deps.budget;
+  let map = inflight.get(scope);
   if (!map) {
     map = new Map();
-    inflight.set(deps.budget, map);
+    inflight.set(scope, map);
   }
   const existing = map.get(dedupeKey);
   if (existing) return existing;

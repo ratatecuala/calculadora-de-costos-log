@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatClp } from '../../engine/rounding';
 import type { BusinessProfile, JobRecord } from '../../shared/clientQuote';
 import { VEHICLE_TYPE_LABEL } from '../../shared/vehicle';
@@ -28,8 +28,21 @@ function plusDays(days: number): string {
 export function QuoteForm({ session, repository, onSaved, onCancel }: Props) {
   const s = session.getSnapshot();
   const computation = session.computation('habitual');
-  const [business, setBusiness] = useState<BusinessProfile>(() => repository.getBusiness());
+  const [business, setBusiness] = useState<BusinessProfile>({ name: '', phone: '', email: '' });
   const [failure, setFailure] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    repository
+      .getBusiness()
+      .then((b) => {
+        if (alive) setBusiness(b);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [repository]);
   const [form, setForm] = useState({
     clientName: '',
     serviceDescription: s.vehicle ? `Flete en ${VEHICLE_TYPE_LABEL[s.vehicle.type].toLowerCase()}` : 'Flete',
@@ -44,23 +57,26 @@ export function QuoteForm({ session, repository, onSaved, onCancel }: Props) {
   const price = s.chosenPrice;
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
 
-  const save = () => {
+  const save = async () => {
+    if (saving) return; // doble clic: una sola cotización
     setFailure(null);
-    const job = buildJobRecord(session, form, business, {
-      id: crypto.randomUUID(),
-      number: repository.nextNumber(),
-      createdAt: new Date().toISOString().slice(0, 10),
-    });
-    if (!job) return; // la ruta dejó de estar vigente
+    setSaving(true);
     try {
-      repository.saveBusiness(business);
-      repository.save(job);
+      const job = buildJobRecord(session, form, business, {
+        id: crypto.randomUUID(),
+        number: await repository.nextNumber(),
+        createdAt: new Date().toISOString().slice(0, 10),
+      });
+      if (!job) return; // la ruta dejó de estar vigente
+      await repository.saveBusiness(business);
+      const saved = await repository.create(job);
+      onSaved(saved);
     } catch (e) {
       // No se navega: la cotización no quedó guardada y el usuario debe saberlo (auditoría 2).
       setFailure(e instanceof Error ? e.message : 'No se pudo guardar la cotización.');
-      return;
+    } finally {
+      setSaving(false);
     }
-    onSaved(job);
   };
 
   return (
@@ -103,8 +119,8 @@ export function QuoteForm({ session, repository, onSaved, onCancel }: Props) {
           <button type="button" className="btn2" onClick={onCancel}>
             Volver
           </button>
-          <button type="button" className="btn" onClick={save}>
-            Guardar cotización
+          <button type="button" className="btn" disabled={saving} onClick={() => void save()}>
+            {saving ? 'Guardando…' : repository.kind === 'nube' ? 'Guardar en mi cuenta' : 'Guardar cotización'}
           </button>
         </div>
       </div>

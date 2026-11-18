@@ -10,12 +10,14 @@ interface Props {
   defaultId: string | null;
   onChanged: () => Promise<unknown>;
   onUse: (vehicle: VehicleProfile) => void;
+  /** Dónde se guardan: en este navegador o en la cuenta. */
+  where?: 'local' | 'nube';
 }
 
 const EMPTY: VehicleInput = { name: '', type: 'camioneta', fuel: 'gasolina', kmPerL: null, wearPerKm: null };
 
 /** «Mi vehículo»: registrar, editar, eliminar y elegir el predeterminado. */
-export function VehiclesView({ repository, vehicles, defaultId, onChanged, onUse }: Props) {
+export function VehiclesView({ repository, vehicles, defaultId, onChanged, onUse, where = 'local' }: Props) {
   const [editing, setEditing] = useState<{ id: string | null; input: VehicleInput } | null>(vehicles.length === 0 ? { id: null, input: EMPTY } : null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -112,7 +114,10 @@ export function VehiclesView({ repository, vehicles, defaultId, onChanged, onUse
             + Agregar vehículo
           </button>
         </div>
-        <p className="sub">Guardados en este navegador. Al cotizar, sus datos se cargan solos y puedes ajustarlos sin cambiar lo guardado.</p>
+        <p className="sub">
+          {where === 'nube' ? 'Guardados en tu cuenta.' : 'Guardados solo en este navegador.'} Al cotizar, sus datos se cargan solos y puedes ajustarlos sin cambiar lo
+          guardado.
+        </p>
         {failure ? <p className="warn">{failure}</p> : null}
         {vehicles.map((v) => (
           <div className="job" key={v.id}>

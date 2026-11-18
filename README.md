@@ -11,9 +11,9 @@ Herramienta web para **transportistas independientes y fletes livianos en Chile*
 | Elemento | Estado |
 |---|---|
 | Etapa actual | E0: redefinición del producto, UX/UI y validaciones técnicas |
-| Aplicación | **No hay código funcional ni despliegue** |
+| Aplicación | Prototipo funcional con **datos de ruta simulados**. **Staging privado** (Cloudflare Workers + Supabase, planes gratuitos) desde el 18-11-2026, protegido con usuario y contraseña ([13](docs/13-staging.md)). **Sin producción** |
 | Diseño | **Diseño v4 completo aprobado** (16-11-2026): blanco, azul sobrio y grafito, navegación móvil y escritorio de tres columnas ([guía UX](docs/10-diseno-ux.md)) |
-| Arquitectura | **Propuesta de cierre** en revisión ([02 §8](docs/02-arquitectura.md), #35) |
+| Arquitectura | Implementada en staging: Worker + Durable Object (contador) y Supabase con RLS ([02](docs/02-arquitectura.md), [13](docs/13-staging.md), #35). Pendiente de aprobación para lanzamiento |
 | Repositorio | Público, con documentación propuesta en PR [#34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34) |
 | Nombre comercial y dominio | **Pendientes**, decisión del propietario (#13) |
 | Licencia | Pendiente (#7) |
@@ -54,6 +54,7 @@ La comparación detallada entre categorías de vehículos para clientes y el eva
 | [10 · Diseño UX/UI v4](docs/10-diseno-ux.md) | Diseño aprobado: pantallas, valores visuales, glosario y estados |
 | [11 · Auditoría Google Maps](docs/11-auditoria-google-maps.md) | Informe Deep Research, costos, rutas y condiciones contractuales pendientes |
 | [12 · Alternativas de mapas](docs/12-alternativas-mapas.md) | Revisión preliminar de Mapbox, TomTom, HERE, Waze y GraphHopper |
+| [13 · Staging](docs/13-staging.md) | Recursos de Cloudflare y Supabase, RLS, pruebas reales, interruptores, respaldo y pasos manuales |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Ramas, issues grandes, trabajo paralelo y controles |
 | [SECURITY.md](SECURITY.md) | Reporte de incidentes |
 
@@ -75,7 +76,7 @@ Requiere Node 20 o superior. No usa cuentas, claves ni servicios externos.
 
 ```bash
 npm install
-npm test        # 117 pruebas: candado de consumo, motor, sesión, SKU, secretos, auditorías e interruptor, y vehículos
+npm test        # 133 pruebas sin red: candado de consumo, motor, sesión, SKU, secretos, auditorías, vehículos, nube y Worker
 npm run dev     # abre http://localhost:5173
 ```
 

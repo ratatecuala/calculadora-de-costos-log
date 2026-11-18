@@ -15,7 +15,7 @@ export function createRouteService(config: ServerConfig, budget?: BudgetGate): R
   if (config.provider === 'google' && config.routesEnabled && config.googleApiKey) {
     provider = new GoogleRoutesProvider({ apiKey: config.googleApiKey, fetchImpl: fetch });
   } else {
-    provider = new MockRouteProvider();
+    provider = new MockRouteProvider({ testMarkers: config.testMarkers });
   }
   return {
     config: { routesEnabled: config.routesEnabled, originSalt: config.originSalt },

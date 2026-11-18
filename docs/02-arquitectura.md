@@ -291,6 +291,8 @@ Leídos vía buscador sobre la documentación oficial el 16-11-2026; se confirma
 
 ### 9.2 Implementación en el PR #34 (datos simulados)
 
+> **18-11-2026:** integrado en un **staging gratuito** de Cloudflare y Supabase (A-46): cuentas, vehículos, cotizaciones, enlaces públicos, Worker y Durable Object probados en los servicios reales. Ver [13 · Staging](13-staging.md). Lo que sigue describe la base local, que se mantiene para el modo sin cuenta.
+
 ```
 src/engine/   motor económico puro (medidas, cotas, redondeo, comparación, IVA)
 src/shared/   tipos y esquemas compartidos, toClientQuote(), enlace de Google Maps
@@ -301,8 +303,8 @@ tests/        pruebas Vitest (presupuesto, concurrencia, SKU, motor, sesión, se
 
 - **Proveedor activo:** `simulado`. Las respuestas llevan `fuente: "simulado"` y la interfaz lo dice en cada resultado.
 - **Proveedor Google:** existe la plantilla de solicitud y su validación. **No está conectado**: exige `ROUTES_PROVIDER=google`, `GOOGLE_ROUTES_ENABLED=true` y una clave de servidor que no existe. Las pruebas usan un `fetch` falso.
-- **Contador en producción:** clase Durable Object (`src/server/budget/durableObject.ts`) con el mismo libro serializado. **No se ha ejecutado en Cloudflare**, porque no hay cuenta autorizada.
-- **Historial:** en el navegador (localStorage), detrás de `QuoteRepository`; migrable a Supabase cuando se apruebe #35. Si el navegador no puede guardar (lleno, bloqueado o modo privado), el error **se muestra** y la cotización no se da por guardada.
+- **Contador:** clase Durable Object (`src/server/budget/durableObject.ts`, almacenamiento SQLite) con el mismo libro serializado. **Probado en Cloudflare real (staging)**: reserva, concurrencia, apagado en caliente, reintento bloqueado y cierre ante falla ([13](13-staging.md) §5.3). El *stub* del objeto se crea en cada solicitud (hallazgo en Cloudflare real).
+- **Historial:** `QuoteRepository` (asíncrona) con dos implementaciones: navegador (sin cuenta) y Supabase (`src/web/cloud/`, con cuenta). Copia opcional del historial local a la cuenta, sin duplicados (`local_id`) y sin borrar lo local. Si el navegador no puede guardar (lleno, bloqueado o modo privado), el error **se muestra** y la cotización no se da por guardada.
 - **Interruptor global (segunda auditoría):**
   - `ROUTES_ENABLED` se lee **en cada solicitud**; el Worker no guarda la configuración en el isolate;
   - además hay un interruptor **en caliente** en el almacenamiento del contador (`switch:apagado`). Se revisa dentro de cada reserva, también en los reintentos, y no consume cupo. Apaga la siguiente consulta sin reiniciar ni redesplegar;

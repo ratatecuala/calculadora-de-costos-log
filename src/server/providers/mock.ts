@@ -13,6 +13,13 @@ export interface MockProviderOptions {
   /** Falla siempre con un error no reintentable (para pruebas). */
   failPermanently?: boolean;
   clock?: () => Date;
+  /**
+   * SOLO STAGING: si una dirección contiene «[prueba:falla]» el proveedor simulado responde
+   * con un error reintentable; con «[prueba:falla-lenta]», espera `slowMs` y luego falla.
+   * Sirve para probar reintentos e interruptor en Cloudflare real sin un proveedor real.
+   */
+  testMarkers?: boolean;
+  slowMs?: number;
 }
 
 export class MockRouteProvider implements RouteProvider {
@@ -27,6 +34,14 @@ export class MockRouteProvider implements RouteProvider {
   async computeRoute(input: RouteRequestInput): Promise<ProviderOutcome> {
     this.calls += 1;
     if (this.options.failPermanently) return { ok: false, retryable: false, error: 'simulado: 400' };
+    if (this.options.testMarkers) {
+      const text = [input.origin, input.destination, input.base ?? ''].join(' ');
+      if (text.includes('[prueba:falla-lenta]')) {
+        await new Promise((r) => setTimeout(r, this.options.slowMs ?? 4000));
+        return { ok: false, retryable: true, error: 'simulado: falla lenta de prueba' };
+      }
+      if (text.includes('[prueba:falla]')) return { ok: false, retryable: true, error: 'simulado: falla de prueba' };
+    }
     if (this.failuresLeft > 0) {
       this.failuresLeft -= 1;
       return { ok: false, retryable: true, error: 'simulado: 503' };

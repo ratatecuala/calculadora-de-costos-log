@@ -78,9 +78,24 @@ Se ejecutan con `npm test` (Vitest), sin red ni servicios externos.
 | `tests/regression.audit.test.ts` | Hallazgos de la auditoría de ChatGPT (commit `6f73aaa`): ruta de direcciones anteriores, respuesta tardía, retención por campo de km y minutos, validación de la respuesta del proveedor, copia del emisor. **Fallaban con la versión auditada** (14 de 15) |
 | `tests/regression.audit2.test.ts` | Segunda auditoría de ChatGPT: reintento explícito tras error del servicio o del contador (consume una reserva nueva y conserva los km escritos); sin repetición con cupo o límites agotados; interruptor en caliente en el contador y en el Worker (mismo isolate), ruta de administración con token; deduplicación estable; confirmación del precio al cambiar el costo; errores de guardado visibles. **Las pruebas de los dos P1 fallaban con la versión auditada** (4 de 4) |
 | `tests/regression.review3.test.ts` | Tercera revisión de ChatGPT: modo manual elegido durante una consulta pendiente (la respuesta tardía no lo reemplaza); reintento fallido conserva lo escrito; rotación de la clave de Google del mismo largo en el mismo isolate (con `fetch` falso); reconfirmar el precio ante cambios de parámetros o vehículo aunque el costo redondeado no cambie. **Fallaban con la versión revisada** (5 de 5; la sexta es un control) |
+| `tests/cloud.mappers.test.ts` | Conversión app ↔ Supabase: la fila de `client_quotes` tiene exactamente los 16 campos de la lista blanca y ningún costo; ida y vuelta de trabajos; valores faltantes siguen siendo `null` |
+| `tests/staging.worker.test.ts` | Staging protegido (401 sin credenciales), encabezados de seguridad, estado administrativo, falla inyectada del contador, marcas del simulador, archivos incrustados y la regresión del *stub* del Durable Object (hallazgo en Cloudflare real) |
+
+### Pruebas contra servicios reales (staging, 18-11-2026)
+
+Detalle en [13 · Staging](13-staging.md) §5. Se ejecutan con credenciales desde archivos **fuera** del repositorio.
+
+| Script | Resultado |
+|---|---|
+| `scripts/verificar-rls.mjs` (Supabase real, dos usuarios y anónimo) | **39/39** |
+| `scripts/verificar-cloudflare.mjs principal` (Worker y Durable Object reales) | **8/8** (incluye 30 simultáneas → exactamente 20 autorizadas) |
+| `scripts/verificar-cloudflare.mjs falla` (contador caído en el objeto real) | **2/2** |
+| `scripts/e2e-staging.mjs` (navegador, móvil y escritorio) | **33/33** |
 
 **No probado todavía:**
-- el Durable Object en Cloudflare (no hay cuenta); el candado **no está probado en producción**;
+- el candado en **producción** (sí probado en staging real, plan gratuito, con proveedor simulado; ver [13](13-staging.md));
+- el inicio de sesión **con Google** (falta el cliente OAuth del propietario); se probó con usuarios de prueba por contraseña;
+- el respaldo y la restauración de Supabase (procedimiento preparado; requiere la contraseña de la base del propietario);
 - la confirmación de direcciones: qué ubicación interpretó Google y la comprobación con la línea recta quedan pendientes para el experimento de #19;
 - el abuso real: el identificador anónimo del navegador se puede reemplazar, y lo contienen el límite por origen y el techo global;
 - Google Routes real (no autorizado);
