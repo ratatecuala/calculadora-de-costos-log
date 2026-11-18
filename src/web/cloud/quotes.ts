@@ -4,6 +4,7 @@
  * token aleatorio de 256 bits, revocables (`quote_shares`).
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { createBoundClient } from './client';
 import type { BusinessProfile, ClientQuote, JobRecord } from '../../shared/clientQuote';
 import type { JobPatch, QuoteRepository } from '../storage';
 import { clientQuoteFromRow, jobFromRow, jobWithQuotePayload, type ClientQuoteRow, type JobRow } from './mappers';
@@ -11,6 +12,16 @@ import { CloudError } from './vehicles';
 
 const SAVE_FAILED = 'No se pudo guardar en tu cuenta. Revisa tu conexión e inténtalo de nuevo; la cotización no quedó guardada.';
 const LOAD_FAILED = 'No se pudo cargar tu historial. Revisa tu conexión.';
+export const SESSION_CHANGED = 'La sesión cambió mientras se guardaba. No se guardó nada en la otra cuenta; vuelve a intentarlo.';
+
+export interface CloudQuoteOptions {
+  /** ¿La app sigue con la sesión de este usuario? Se consulta antes de cada escritura. */
+  isCurrentUser?: () => boolean;
+  /** Crea un cliente fijado a un token (inyectable en pruebas). */
+  bindClient?: (accessToken: string) => SupabaseClient | null;
+  /** Interno: este repositorio ya está fijado a una sesión. */
+  bound?: boolean;
+}
 
 export interface QuoteShare {
   id: string;
@@ -26,7 +37,29 @@ export class CloudQuoteRepository implements QuoteRepository {
   constructor(
     private readonly supabase: SupabaseClient,
     private readonly userId: string,
+    private readonly options: CloudQuoteOptions = {},
   ) {}
+
+  /** Antes de escribir: si la app ya está en otra identidad, no se escribe nada. */
+  private ensureCurrent(): void {
+    if (this.options.isCurrentUser && !this.options.isCurrentUser()) throw new CloudError(SESSION_CHANGED);
+  }
+
+  /**
+   * Sexta auditoría (P1): repositorio FIJADO al token de la sesión vigente al empezar a guardar.
+   * Todas sus solicitudes van con ese token aunque en el cliente compartido entre otra cuenta,
+   * y cada escritura se detiene si la identidad de la app cambió.
+   */
+  async forWrite(): Promise<CloudQuoteRepository> {
+    if (this.options.bound) return this;
+    this.ensureCurrent();
+    const { data } = await this.supabase.auth.getSession();
+    const session = data.session;
+    if (!session || session.user.id !== this.userId) throw new CloudError(SESSION_CHANGED);
+    const bound = (this.options.bindClient ?? ((t: string) => createBoundClient(t)))(session.access_token);
+    if (!bound) throw new CloudError(SAVE_FAILED);
+    return new CloudQuoteRepository(bound, this.userId, { ...this.options, bound: true });
+  }
 
   async list(): Promise<JobRecord[]> {
     const { data, error } = await this.supabase.from('jobs').select('*').order('number', { ascending: false }).order('created_at', { ascending: false });
@@ -41,12 +74,14 @@ export class CloudQuoteRepository implements QuoteRepository {
   }
 
   async create(job: JobRecord): Promise<JobRecord> {
+    this.ensureCurrent();
     const { data, error } = await this.supabase.rpc('create_job_with_quote', jobWithQuotePayload(job, null));
     if (error || !data) throw new CloudError(SAVE_FAILED, error);
     return { ...job, id: data as string };
   }
 
   async update(id: string, patch: JobPatch): Promise<JobRecord> {
+    this.ensureCurrent();
     const { data, error } = await this.supabase.from('jobs').update(patch).eq('id', id).select('*');
     if (error) throw new CloudError(SAVE_FAILED, error);
     if (!data || data.length === 0) throw new CloudError('La cotización ya no existe en tu cuenta.');
@@ -67,6 +102,7 @@ export class CloudQuoteRepository implements QuoteRepository {
   }
 
   async saveBusiness(profile: BusinessProfile): Promise<void> {
+    this.ensureCurrent();
     const { error } = await this.supabase
       .from('profiles')
       .upsert({ id: this.userId, business_name: profile.name, business_phone: profile.phone, business_email: profile.email });

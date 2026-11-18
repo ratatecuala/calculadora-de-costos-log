@@ -28,6 +28,12 @@ export interface QuoteRepository {
   getBusiness(): Promise<BusinessProfile>;
   /** Lanza un error si no se pudo guardar. */
   saveBusiness(profile: BusinessProfile): Promise<void>;
+  /**
+   * Repositorio para una operación de guardado de varios pasos (sexta auditoría, P1).
+   * En la nube queda FIJADO a la sesión vigente al empezar y se detiene si la identidad cambia;
+   * en el navegador es el mismo repositorio.
+   */
+  forWrite(): Promise<QuoteRepository>;
 }
 
 export class QuoteStorageError extends Error {
@@ -91,6 +97,9 @@ export function createQuoteRepository(store: KeyValueStore, persistent = true): 
     },
     async saveBusiness(profile) {
       write(BUSINESS_KEY, profile);
+    },
+    async forWrite() {
+      return this;
     },
   };
 }

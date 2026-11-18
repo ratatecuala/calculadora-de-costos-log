@@ -169,6 +169,8 @@ psql --single-transaction --variable ON_ERROR_STOP=1 --file roles.sql --file sch
 - **Borrador de la cotización:** se reinicia al cerrar sesión o al cambiar de una cuenta a otra; se conserva al pasar de anónimo a una cuenta (es quien estaba cotizando).
 - **Copia del historial local:** usa un cliente **fijado al token** de la cuenta que la inició (`createBoundClient`), así nada puede quedar a nombre de otra cuenta aunque la sesión cambie; además comprueba la identidad antes de cada paso y no se marca como completa si la sesión cambió.
 - **Precio:** la confirmación se exige también en el último paso de guardado (`buildJobRecord`).
+- **Guardado de una cotización (sexta auditoría):** `saveQuote` usa `QuoteRepository.forWrite()`. En la nube es un repositorio **fijado al token** de la sesión vigente al empezar, que antes de cada escritura comprueba que la app siga con esa cuenta; si cambió, no escribe nada más (nunca en la otra cuenta). La app ignora un guardado que termina cuando la cuenta ya es otra.
+- **Render (sexta auditoría):** la lista de vehículos, el borrador y la vista de una cotización se filtran por dueño **en el propio render**, así otra identidad no ve datos ajenos ni por un cuadro mientras corre el efecto que los limpia.
 
 ## 11. Limitaciones conocidas
 

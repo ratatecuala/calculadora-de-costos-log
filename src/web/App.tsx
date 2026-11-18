@@ -16,14 +16,14 @@ import { QuoteView } from './components/QuoteView';
 import { VehiclesView } from './components/VehiclesView';
 import { QuoteSession } from './session';
 import { browserQuoteRepository, type QuoteRepository } from './storage';
-import { shouldResetDraft, VehicleListLoader } from './vehicleList';
+import { draftVisibleTo, ownerOf, shouldResetDraft, VehicleListLoader, visibleVehicleState } from './vehicleList';
 import { browserVehicleRepository, MemoryKeyValueStore, type KeyValueStore, type VehicleRepository } from './vehicleRepository';
 
 type View =
   | { name: 'cotizar' }
-  | { name: 'nueva' }
+  | { name: 'nueva'; owner: string }
   | { name: 'trabajos' }
-  | { name: 'ver'; job: JobRecord }
+  | { name: 'ver'; job: JobRecord; owner: string }
   | { name: 'vehiculos' }
   | { name: 'cuenta' };
 
@@ -59,8 +59,10 @@ function browserStore(): KeyValueStore {
 }
 
 function MainApp() {
-  // El borrador de la cotización se reinicia al cerrar sesión o cambiar de cuenta (quinta auditoría).
-  const [session, setSession] = useState(() => new QuoteSession(httpRouteClient));
+  // El borrador de la cotización se reinicia al cerrar sesión o cambiar de cuenta (quinta auditoría)
+  // y lleva el dueño, para no mostrarlo a otra identidad ni por un cuadro (sexta auditoría).
+  const [draft, setDraft] = useState(() => ({ owner: 'local', session: new QuoteSession(httpRouteClient) }));
+  const session = draft.session;
   const localVehicles = useMemo(() => browserVehicleRepository(), []);
   const localQuotes = useMemo(() => browserQuoteRepository(), []);
   const store = useMemo(() => browserStore(), []);
@@ -70,23 +72,37 @@ function MainApp() {
   );
   const authSnap = useSyncExternalStore(auth.subscribe, auth.getSnapshot);
   const userId = authSnap.status === 'conectado' ? (authSnap.user?.id ?? null) : null;
+  const currentOwner = ownerOf(userId);
 
   // Datos anónimos (navegador) y de la cuenta (nube) separados: nunca se mezclan en pantalla.
   const { vehicleRepository, quoteRepository } = useMemo((): { vehicleRepository: VehicleRepository; quoteRepository: QuoteRepository } => {
     const supabase = getSupabase();
     if (userId && supabase) {
-      return { vehicleRepository: new CloudVehicleRepository(supabase, userId), quoteRepository: new CloudQuoteRepository(supabase, userId) };
+      // Cada escritura comprueba que la app siga con esta cuenta (sexta auditoría, P1).
+      const isCurrentUser = () => {
+        const snap = auth.getSnapshot();
+        return snap.status === 'conectado' && snap.user?.id === userId;
+      };
+      return {
+        vehicleRepository: new CloudVehicleRepository(supabase, userId),
+        quoteRepository: new CloudQuoteRepository(supabase, userId, { isCurrentUser }),
+      };
     }
     return { vehicleRepository: localVehicles, quoteRepository: localQuotes };
-  }, [userId, localVehicles, localQuotes]);
+  }, [userId, localVehicles, localQuotes, auth]);
+  const quoteRepoRef = useRef(quoteRepository);
+  quoteRepoRef.current = quoteRepository;
 
   const [view, setView] = useState<View>({ name: 'cotizar' });
   // Lista de vehículos ligada a la identidad vigente: nunca muestra la de otra cuenta.
   const vehicleList = useMemo(() => new VehicleListLoader(), []);
   const vehicleState = useSyncExternalStore(vehicleList.subscribe, vehicleList.getSnapshot);
-  const vehicles: VehicleProfile[] = vehicleState.vehicles;
-  const defaultVehicleId = vehicleState.defaultId;
-  const loadFailure = vehicleState.failure;
+  // Filtro por dueño EN EL RENDER: nada de otra identidad, ni siquiera un cuadro (sexta auditoría, P2).
+  const visibleVehicles = visibleVehicleState(vehicleState, currentOwner);
+  const vehicles: VehicleProfile[] = visibleVehicles.vehicles;
+  const defaultVehicleId = visibleVehicles.defaultId;
+  const loadFailure = visibleVehicles.failure;
+  const showDraft = draftVisibleTo(draft.owner, currentOwner);
   const [pending, setPending] = useState<PendingLocalData | null>(null);
   const [migration, setMigration] = useState<{ busy: boolean; message: string | null }>({ busy: false, message: null });
   const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot);
@@ -101,10 +117,13 @@ function MainApp() {
   const sessionRef = useRef(session);
   sessionRef.current = session;
   useEffect(() => {
+    const owner = ownerOf(userId);
     if (shouldResetDraft(previousUser.current, userId)) {
       const fresh = new QuoteSession(httpRouteClient);
       sessionRef.current = fresh;
-      setSession(fresh);
+      setDraft({ owner, session: fresh });
+    } else {
+      setDraft((d) => (d.owner === owner ? d : { ...d, owner }));
     }
     previousUser.current = userId;
     setView((v) => (v.name === 'ver' || v.name === 'nueva' ? { name: 'trabajos' } : v));
@@ -217,19 +236,33 @@ function MainApp() {
       {migration.message ? <p className="notice migration no-print">{migration.message}</p> : null}
       {loadFailure ? <p className="warn migration no-print">{loadFailure}</p> : null}
       <main>
-        {view.name === 'cotizar' ? (
+        {(view.name === 'cotizar' || view.name === 'nueva') && !showDraft ? <p className="sub layout">Cargando…</p> : null}
+        {view.name === 'cotizar' && showDraft ? (
           <Calculator
             session={session}
             vehicles={vehicles}
             onManageVehicles={() => setView({ name: 'vehiculos' })}
-            onCreateQuote={() => setView({ name: 'nueva' })}
+            onCreateQuote={() => setView({ name: 'nueva', owner: currentOwner })}
           />
         ) : null}
-        {view.name === 'nueva' ? (
-          <QuoteForm session={session} repository={quoteRepository} onSaved={(job) => setView({ name: 'ver', job })} onCancel={() => setView({ name: 'cotizar' })} />
+        {view.name === 'nueva' && showDraft && view.owner === currentOwner ? (
+          <QuoteForm
+            session={session}
+            repository={quoteRepository}
+            onSaved={(job, savedWith) => {
+              // Un guardado iniciado con otra cuenta no abre su cotización en la cuenta actual.
+              if (savedWith !== quoteRepoRef.current) return;
+              setView({ name: 'ver', job, owner: ownerOf(userId) });
+            }}
+            onCancel={() => setView({ name: 'cotizar' })}
+          />
         ) : null}
-        {view.name === 'trabajos' ? <History key={quoteRepository.kind + (userId ?? '')} repository={quoteRepository} onOpen={(job) => setView({ name: 'ver', job })} /> : null}
-        {view.name === 'ver' ? <QuoteView job={view.job} repository={quoteRepository} onBack={() => setView({ name: 'trabajos' })} /> : null}
+        {view.name === 'trabajos' ? (
+          <History key={quoteRepository.kind + (userId ?? '')} repository={quoteRepository} onOpen={(job) => setView({ name: 'ver', job, owner: currentOwner })} />
+        ) : null}
+        {view.name === 'ver' && view.owner === currentOwner ? (
+          <QuoteView job={view.job} repository={quoteRepository} onBack={() => setView({ name: 'trabajos' })} />
+        ) : null}
         {view.name === 'vehiculos' ? (
           <VehiclesView
             key={userId ?? 'local'}

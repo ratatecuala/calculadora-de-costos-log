@@ -80,3 +80,27 @@ export function shouldResetDraft(previous: string | null | undefined, next: stri
   if (previous === undefined || previous === next) return false;
   return previous !== null;
 }
+
+/** Identidad como texto: «local» (sin cuenta) o el id del usuario. */
+export function ownerOf(userId: string | null): string {
+  return userId ?? 'local';
+}
+
+/**
+ * Sexta auditoría (P2): lo que se puede mostrar EN ESTE RENDER. Si el estado aún pertenece a
+ * otra identidad (el efecto que lo limpia corre después de pintar), se muestra vacío.
+ */
+export function visibleVehicleState(state: VehicleListState, currentOwner: string): VehicleListState {
+  return state.owner === currentOwner ? state : empty(currentOwner);
+}
+
+/**
+ * ¿Puede mostrarse el borrador a la identidad actual en este render? Sí si es suyo, o si se
+ * pasa de anónimo a una cuenta (se conserva). No si viene de otra cuenta.
+ */
+export function draftVisibleTo(draftOwner: string, currentOwner: string): boolean {
+  if (draftOwner === currentOwner) return true;
+  const previous = draftOwner === 'local' ? null : draftOwner;
+  const next = currentOwner === 'local' ? null : currentOwner;
+  return !shouldResetDraft(previous, next);
+}

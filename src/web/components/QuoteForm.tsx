@@ -3,13 +3,15 @@ import { formatClp } from '../../engine/rounding';
 import type { BusinessProfile, JobRecord } from '../../shared/clientQuote';
 import { VEHICLE_TYPE_LABEL } from '../../shared/vehicle';
 import { buildJobRecord } from '../jobs';
+import { saveQuote } from '../saveQuote';
 import type { QuoteSession } from '../session';
 import type { QuoteRepository } from '../storage';
 
 interface Props {
   session: QuoteSession;
   repository: QuoteRepository;
-  onSaved: (job: JobRecord) => void;
+  /** `repository` permite a la app ignorar el resultado si la cuenta cambió mientras se guardaba. */
+  onSaved: (job: JobRecord, repository: QuoteRepository) => void;
   onCancel: () => void;
 }
 
@@ -62,19 +64,17 @@ export function QuoteForm({ session, repository, onSaved, onCancel }: Props) {
     setFailure(null);
     setSaving(true);
     try {
-      const job = buildJobRecord(session, form, business, {
-        id: crypto.randomUUID(),
-        number: await repository.nextNumber(),
-        createdAt: new Date().toISOString().slice(0, 10),
-      });
-      if (!job) {
+      const result = await saveQuote(
+        repository,
+        (number) => buildJobRecord(session, form, business, { id: crypto.randomUUID(), number, createdAt: new Date().toISOString().slice(0, 10) }),
+        business,
+      );
+      if (result.status === 'no_vigente') {
         // La ruta dejó de estar vigente o el costo cambió y el precio no se confirmó.
         setFailure('El costo cambió o la ruta ya no está vigente. Vuelve a «Cotizar», revisa y confirma tu precio.');
         return;
       }
-      await repository.saveBusiness(business);
-      const saved = await repository.create(job);
-      onSaved(saved);
+      onSaved(result.job, repository);
     } catch (e) {
       // No se navega: la cotización no quedó guardada y el usuario debe saberlo (auditoría 2).
       setFailure(e instanceof Error ? e.message : 'No se pudo guardar la cotización.');

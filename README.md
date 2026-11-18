@@ -76,7 +76,7 @@ Requiere Node 20 o superior. No usa cuentas, claves ni servicios externos.
 
 ```bash
 npm install
-npm test        # 140 pruebas sin red: candado de consumo, motor, sesión, SKU, secretos, auditorías, vehículos, nube y Worker
+npm test        # 147 pruebas sin red: candado de consumo, motor, sesión, SKU, secretos, auditorías, vehículos, nube y Worker
 npm run dev     # abre http://localhost:5173
 ```
 
