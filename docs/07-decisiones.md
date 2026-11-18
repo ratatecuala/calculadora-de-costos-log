@@ -166,3 +166,17 @@ La contrapropuesta de MapLibre + PMTiles + Valhalla (con geocodificación OSM), 
 | A-46 | Se autoriza integrar y probar **Cloudflare** (Worker, Durable Object, interruptor) y **Supabase** (Auth, Postgres con RLS, enlaces públicos) en un entorno **gratuito de desarrollo/staging**, sobre la rama del PR #34, usando recursos exclusivos de este proyecto sin alterar los existentes. **No** se autoriza: producción pública, planes de pago, facturación, Google Routes real ni merge. Comunicada por el propietario a Claude el 18-11-2026; **ratificar en el PR #34** | 2026-11-18 |
 
 **Decisiones menores de implementación (revisables):** proyecto Supabase en `sa-east-1`; usuarios de prueba con contraseña **solo en staging** mientras no exista el cliente OAuth de Google del propietario; staging protegido con usuario y contraseña; enlaces públicos de 30 días; números de cotización conservados al copiar el historial local (pueden repetirse). Detalle y resultados en [13](13-staging.md).
+
+## Decisiones del 17/18-11-2026 aprobadas por escrito en el PR #34
+
+Escritas por el propietario en GitHub ([comentario en el PR #34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6966694338)): **APROBADAS** según el criterio de acreditación.
+
+| ID | Decisión | Estado |
+|---|---|---|
+| A-47 | **Numeración de cotizaciones:** secuencia propia por cuenta, **única, correlativa y segura ante concurrencia**, asignada **atómicamente en Supabase** (no «máximo + 1» en el navegador), con unicidad por dueño en la base. Al copiar cotizaciones locales se conservan `local_id` y la idempotencia; si el número local está ocupado, se asigna un **número interno nuevo**. **Nunca** se cambia el número de un documento ya emitido: se guarda el número emitido por separado y el documento lo sigue mostrando | **APROBADO**. Implementado y probado en staging ([13](13-staging.md) §10 ter) |
+| A-48 | **README como fuente de contexto:** README principal en español con estado real, «Estado para retomar en otro chat», pruebas ejecutadas o revisadas, decisiones, riesgos y límites; **actualizado con cada avance material**; publicado en la portada de `main` mediante un **PR exclusivamente documental**, sin fusionar el PR #34 | **APROBADO**. Regla permanente en [AGENTS.md](../AGENTS.md) §10 |
+
+**Implementación de A-47 (decisiones menores, revisables):**
+- Un número local **libre** se conserva tal cual, así que la secuencia puede saltar hasta ese número.
+- Los números de cotizaciones borradas **no se reutilizan**.
+- El dueño solo puede modificar el **estado** y el **pago** de sus trabajos.

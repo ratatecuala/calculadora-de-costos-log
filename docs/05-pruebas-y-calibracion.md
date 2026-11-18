@@ -81,6 +81,7 @@ Se ejecutan con `npm test` (Vitest), sin red ni servicios externos.
 | `tests/cloud.mappers.test.ts` | Conversión app ↔ Supabase: la fila de `client_quotes` tiene exactamente los 16 campos de la lista blanca y ningún costo; ida y vuelta de trabajos; valores faltantes siguen siendo `null` |
 | `tests/regression.audit5.test.ts` | Quinta auditoría: vehículos de otra cuenta que llegan tarde se descartan y una carga fallida deja la lista vacía; reglas de reinicio del borrador; la copia del historial se detiene si cambia la sesión y no se marca completa; el cliente fijado envía siempre el token de quien inició la copia; el guardado exige el precio confirmado. **Las 3 regresiones de código existente fallaban con `514ceda`** |
 | `tests/regression.audit6.test.ts` | Sexta auditoría: cambio a B mientras se guardan los datos comerciales de A → no se llama a `create_job_with_quote` y nada viaja por el cliente compartido; la secuencia antigua (número → datos → crear) se niega con B activa; con sesión estable todo usa el token fijado; sesión ajena al empezar → nada se escribe; el modo sin cuenta sigue igual; filtros por dueño en el render. **7 de 7 fallaban con `974deb3`** |
+| `tests/numbering.test.ts` | Numeración (A-47): el documento muestra siempre el número emitido; conversión de `issued_number`; al importar viajan el número emitido y el `local_id`; guardar en la nube usa el número que asigna la base |
 | `tests/staging.worker.test.ts` | Staging protegido (401 sin credenciales), encabezados de seguridad, estado administrativo, falla inyectada del contador, marcas del simulador, archivos incrustados y la regresión del *stub* del Durable Object (hallazgo en Cloudflare real) |
 
 ### Pruebas contra servicios reales (staging, 18-11-2026)
@@ -92,7 +93,8 @@ Detalle en [13 · Staging](13-staging.md) §5. Se ejecutan con credenciales desd
 | `scripts/verificar-rls.mjs` (Supabase real, dos usuarios y anónimo) | **39/39** |
 | `scripts/verificar-cloudflare.mjs principal` (Worker y Durable Object reales) | **8/8** (concurrencia estricta: 30 simultáneas → exactamente 20 autorizadas, 10 rechazadas, 0 fallas, Δ=20) |
 | `scripts/verificar-cloudflare.mjs falla` (contador caído en el objeto real) | **2/2** |
-| `scripts/e2e-staging.mjs` (navegador, móvil y escritorio) | **39/39** (incluye aislamiento entre sesiones en el mismo navegador) |
+| `scripts/verificar-numeracion.mjs` (Supabase real, dos dispositivos de A y la cuenta B) | **17/17**: concurrencia, importación repetida y simultánea, conflicto de número, documento histórico, cambios prohibidos, cuentas independientes |
+| `scripts/e2e-staging.mjs` (navegador, móvil y escritorio) | **41/41** (incluye aislamiento entre sesiones y número emitido conservado al copiar) |
 
 **No probado todavía:**
 - el candado en **producción** (sí probado en staging real, plan gratuito, con proveedor simulado; ver [13](13-staging.md));

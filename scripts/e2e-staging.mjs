@@ -133,6 +133,10 @@ for (const [deviceName, device, user, tag] of [
   check(`${deviceName}: la cotización anónima quedó en la cuenta`, txt.includes(`Anónimo ${stamp}`) && txt.includes('Guardados en tu cuenta'));
   const copies = (txt.match(new RegExp(`Anónimo ${stamp}`, 'g')) ?? []).length;
   check(`${deviceName}: sin duplicados al copiar`, copies === 1, `${copies} copias`);
+  // Numeración (A-47): el N° 1 local ya está ocupado en la cuenta → número interno nuevo y el
+  // historial indica el número con que se emitió.
+  const migratedRow = await page.locator('.job', { hasText: `Anónimo ${stamp}` }).innerText();
+  check(`${deviceName}: la cotización copiada conserva su número emitido`, /emitida como N° 0001/.test(migratedRow), migratedRow.split('\n')[0]);
 
   await page.getByRole('button', { name: 'Mi vehículo' }).click();
   await page.getByRole('button', { name: '+ Agregar vehículo' }).click().catch(() => undefined);

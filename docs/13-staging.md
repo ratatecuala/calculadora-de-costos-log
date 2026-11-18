@@ -172,9 +172,26 @@ psql --single-transaction --variable ON_ERROR_STOP=1 --file roles.sql --file sch
 - **Guardado de una cotización (sexta auditoría):** `saveQuote` usa `QuoteRepository.forWrite()`. En la nube es un repositorio **fijado al token** de la sesión vigente al empezar, que antes de cada escritura comprueba que la app siga con esa cuenta; si cambió, no escribe nada más (nunca en la otra cuenta). La app ignora un guardado que termina cuando la cuenta ya es otra.
 - **Render (sexta auditoría):** la lista de vehículos, el borrador y la vista de una cotización se filtran por dueño **en el propio render**, así otra identidad no ve datos ajenos ni por un cuadro mientras corre el efecto que los limpia.
 
+## 10 ter. Numeración de cotizaciones (A-47, aprobada)
+
+Migración [`20261118000300_numeracion_atomica.sql`](../supabase/migrations/20261118000300_numeracion_atomica.sql), aplicada en staging el 18-11-2026.
+
+- **Número interno** (`jobs.number`): único por cuenta (`unique (owner_id, number)`). Lo asigna la base dentro de `create_job_with_quote`, con un contador por cuenta (`quote_counters`) bloqueado con `FOR UPDATE` en la misma transacción que guarda la cotización. La función que asigna vive en un esquema `private`, no expuesto por la API; el contador no se puede leer ni escribir por REST.
+- **Número emitido** (`jobs.issued_number`): el que figura en el documento del cliente (`client_quotes.number`). En cotizaciones nuevas es igual al interno.
+- **Importación del historial local:** se conserva el `local_id`, así que repetirla no duplica nada, ni siquiera de forma simultánea, y tampoco gasta números. Si el número local está **libre**, se conserva. Si está **ocupado**, se asigna un número interno nuevo y el documento conserva el emitido; el historial muestra «N° interno (emitida como N° X)».
+- **Documentos inalterables:** el dueño solo puede cambiar estado y pago; `client_quotes` no admite `UPDATE`.
+- **Datos existentes:** la migración no borró nada ni cambió ningún documento emitido. Los 9 trabajos de prueba con número repetido recibieron un número interno nuevo y conservan su número emitido.
+- **Verificación real** (`scripts/verificar-numeracion.mjs`): **17/17**.
+  - 20 guardados simultáneos desde 2 dispositivos → números únicos y correlativos.
+  - Importación repetida al mismo tiempo → 1 copia, sin huecos.
+  - Número ocupado → interno nuevo y documento con el emitido, también en el enlace público.
+  - Cambios del número prohibidos; secuencias independientes por cuenta.
+- **En navegador** (`scripts/e2e-staging.mjs`): **41/41**. Una cotización anónima N° 1 copiada a la cuenta queda como «N° 0094 (emitida como N° 0001)».
+- **Sin cuenta:** la numeración local sigue siendo «máximo + 1» en el navegador; no protege ante dos pestañas simultáneas (A-47 rige para las cuentas).
+
 ## 11. Limitaciones conocidas
 
-- **Números de cotización:** al copiar el historial local, cada cotización conserva su número (el cliente ya pudo recibirlo), así que pueden repetirse números en la cuenta. Además, `nextNumber()` calcula «máximo + 1» en el navegador, sin garantía de unicidad entre pestañas simultáneas. Decisión pendiente del propietario; resolver antes de uso comercial (p. ej., numeración asignada por la base).
+- **Números de cotización:** resuelto en la cuenta con A-47 (§10 ter). Sin cuenta, la numeración local no protege ante dos pestañas simultáneas.
 - **Origen de red:** el egreso del proxy de pruebas usa varias IP, así que el límite por origen (40/día) se reparte entre ellas; el límite por usuario y el techo global sí se verificaron con cifras exactas.
 - **Deduplicación del doble clic** en Cloudflare: por isolate; dos clics simultáneos atendidos por isolates distintos reservan dos veces (el límite y el contador siguen correctos).
 - **Datos de prueba** en staging: usuarios `prueba-a`/`prueba-b` con cotizaciones y vehículos ficticios creados por las pruebas.

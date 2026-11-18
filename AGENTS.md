@@ -116,4 +116,23 @@ Siguiente acción:
 ¿Requiere aprobación del propietario?:
 ```
 
+## 10. README como fuente de continuidad (regla permanente, A-48)
+
+1. **Cada avance material** (función terminada, decisión, cambio de arquitectura, despliegue, prueba, bloqueo o hito) actualiza [README.md](README.md) **en el mismo PR o commit**. Cuando proceda, también [07 · Decisiones](docs/07-decisiones.md) y los documentos técnicos afectados.
+2. El README debe mostrar siempre, fechado:
+   - objetivo;
+   - estado real, distinguiendo «funciona», «simulado», «preparado» y «bloqueado»;
+   - arquitectura a alto nivel;
+   - rama, PR y commit activos;
+   - pruebas, indicando cuáles **ejecutó** quién y cuáles solo se **revisaron**;
+   - decisiones con su estado, riesgos, siguiente acción y límites de autorización;
+   - la sección **«Estado para retomar en otro chat»**.
+3. **Nada que envejezca:** no dejar etapas superadas («E0», «falta programar»), conteos de pruebas antiguos ni estados contradictorios.
+4. **Portada pública (`main`):** el README de `main` no se actualiza solo desde una rama. Tras cada hito, el agente que trabaja en el repositorio:
+   - genera la versión de portada con `node scripts/readme-portada.mjs`, que convierte los enlaces relativos en enlaces a la rama de desarrollo mientras esos archivos no existan en `main`;
+   - la propone en un **PR exclusivamente documental contra `main`**, que solo contiene `README.md`;
+   - deja que lo fusione **solo el propietario**.
+5. No afirmar monitorización automática: la actualización ocurre cuando un agente trabaja en el repositorio.
+6. **Nunca** publicar en el README URLs privadas de staging, secretos, identificadores de cuentas ni datos personales.
+
 Estas reglas se aplican a todos los agentes; ningún agente puede ampliarse permisos a sí mismo.
