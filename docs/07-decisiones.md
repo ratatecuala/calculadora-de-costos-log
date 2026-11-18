@@ -193,6 +193,18 @@ El propietario las eligió en la sesión de Claude del 18-11-2026, sobre las opc
 | A-50 | **Motor y margen, sin cambiar fórmulas:** (1) **C-3**: se mantiene P = C/(1−m) y solo cambia el rótulo, que pasa a «Margen objetivo (% del precio de venta)», con una ayuda; (2) **C-1**: un dato **opcional** inválido (negativo o no numérico) se trata como faltante y **se avisa**; un dato **requerido** inválido (km, minutos, ayudantes, carga y descarga, partidas negativas o no finitas, recargos y precio **no numéricos**) **se rechaza**. Un texto escrito que no es número se avisa en el propio campo. **No incluye** los recargos negativos llevados a 0 (NE-1) ni el precio elegido negativo (NE-10), que siguen como «no especificado»; (3) **C-2**: nunca «$-0»; (4) **C-4**: el campo del margen muestra el mismo valor que usa el cálculo (12,5 %) | **APROBADA** (18-11-2026). **Implementada** (docs/15 §6) |
 | A-51 | **IVA, alcance mínimo:** la cotización sin regla de IVA verificada muestra **«Precio total»** (no «Valor neto») y lleva siempre la leyenda **«Esta cotización no es factura ni boleta.»** (documento, PDF, enlace público y WhatsApp). **Sin reglas tributarias automáticas**: la opción B de docs/16 sigue condicionada a validación de un contador o del SII. **Estado transitorio de staging:** como «Precio total» exige que el emisor incluya cualquier IVA aplicable, no habilita cotizaciones comerciales reales hasta validar e implementar la política tributaria | **APROBADA** (18-11-2026). **Implementada** |
 
+## Decisiones operativas del 18-11-2026
+
+El propietario las eligió en la sesión de Claude, sobre las opciones recomendadas por la revisión de ChatGPT ([registro de decisiones en el PR #34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6972739332)). **APROBADAS.**
+
+| ID | Decisión | Estado |
+|---|---|---|
+| A-52 | **Supabase en plan gratuito con respaldo propio:** cifrado, fuera del repositorio, antes de cada migración y mensual en staging; semanal con simulacro de restauración mensual en una futura beta ([17](17-supabase-seguridad-respaldo.md) §5). El **primer respaldo real lo ejecuta el propietario**, porque requiere la contraseña de la base. Sin plan Pro ni gastos | **APROBADA**. Pendiente: primer respaldo real |
+| A-53 | **Google OAuth en modo *Testing*:** el propietario crea el cliente OAuth en su Google Cloud, sin facturación, y lo carga en Supabase según [17](17-supabase-seguridad-respaldo.md) §7, nunca por chat ni GitHub. Registro abierto mientras Google esté en *Testing* (§7.4, opción a). Después, Claude verifica el flujo y agrega la prueba e2e | **APROBADA**. Pendiente: cliente OAuth del propietario |
+| A-54 | **Validación tributaria con GPT Deep Research** antes de implementar la opción B de [16](16-iva-cotizaciones.md). Encargo listo en [18](18-encargo-deep-research-iva.md); lo ejecuta el propietario. Hasta entonces rige A-51 (transitorio) | **APROBADA**. Pendiente: informe de Deep Research |
+
+También se aprobó integrar **solo** el PR #41 (README de portada). No autoriza fusionar el PR #34.
+
 **Implementación de A-47 (decisiones menores, revisables):**
 - Un número local **libre** se conserva tal cual, así que la secuencia puede saltar hasta ese número.
 - Los números de cotizaciones borradas **no se reutilizan**.

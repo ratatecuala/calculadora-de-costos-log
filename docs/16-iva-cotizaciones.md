@@ -226,6 +226,8 @@ Además de B, un interruptor «Mi precio ya incluye IVA». Se calcula `neto = ro
 
 ### 7.5 Decisiones que requiere el propietario
 
+> **18-11-2026:** D-IVA-4 quedó resuelta por **A-51** y D-IVA-2 por **A-54**: la validación se hace con GPT Deep Research, con el encargo en [18](18-encargo-deep-research-iva.md). Las demás esperan ese informe.
+
 | ID propuesto | Decisión | Opciones |
 |---|---|---|
 | D-IVA-1 | Modelo de presentación del IVA | A / **B (recomendada)** / B + C |

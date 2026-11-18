@@ -391,6 +391,8 @@ Recomendación: **(a)** mientras sea staging privado (Basic Auth del Worker más
 
 ## 9. Decisiones que requiere el propietario
 
+> **18-11-2026:** D1, D2 y D5 quedaron resueltas por **A-52** (plan gratuito, respaldo propio y simulacro local) y D4 por **A-53** (Google en modo *Testing*, con registro abierto). Ver [07](07-decisiones.md). Siguen abiertas D3 (segundo lugar de los respaldos) y D7.
+
 | # | Decisión | Opciones | Recomendación |
 |---|---|---|---|
 | D1 | Plan de Supabase antes de usuarios reales | Free (pausa por inactividad, sin respaldos descargables, sin contraseñas filtradas ni límites de sesión) / Pro (gasto: requiere autorización) | Seguir en Free mientras sea staging; decidir antes de la beta |
