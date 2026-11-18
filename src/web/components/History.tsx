@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { formatClp } from '../../engine/rounding';
 import type { JobRecord, JobStatus } from '../../shared/clientQuote';
+import { formatDate } from '../format';
 import type { JobPatch, QuoteRepository } from '../storage';
 
 const STATUS_LABEL: Record<JobStatus, string> = {
@@ -65,7 +66,7 @@ export function History({ repository, onOpen, banner }: Props) {
               <span className="sub">
                 N° {String(job.number).padStart(4, '0')}
                 {job.issuedNumber !== undefined && job.issuedNumber !== job.number ? ` (emitida como N° ${String(job.issuedNumber).padStart(4, '0')})` : ''} ·{' '}
-                {job.createdAt}
+                {formatDate(job.createdAt)}
               </span>
               <strong className="num">{formatClp(job.netPrice)}</strong>
             </div>

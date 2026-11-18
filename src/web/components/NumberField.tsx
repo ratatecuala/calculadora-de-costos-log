@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { parseAmount } from '../format';
+import { formatInputNumber, parseAmount } from '../format';
 
 interface Props {
   label: string;
@@ -15,11 +15,7 @@ interface Props {
   decimals?: number;
 }
 
-function toText(value: number | null, decimals: number): string {
-  if (value === null) return '';
-  const f = 10 ** decimals;
-  return String(Math.round(value * f) / f).replace('.', ',');
-}
+const toText = formatInputNumber;
 
 /** Campo numérico que acepta «1.050», «12,5» o vacío (= no lo sé). */
 export function NumberField({ label, value, onChange, suffix, hint, placeholder, tag, compact, decimals = 2 }: Props) {
@@ -46,6 +42,12 @@ export function NumberField({ label, value, onChange, suffix, hint, placeholder,
           onChange={(e) => {
             setText(e.target.value);
             onChange(parseAmount(e.target.value));
+          }}
+          onBlur={() => {
+            // Al salir del campo se muestra con separador de miles. Un texto ilegible no se borra y
+            // tampoco se reformatea si mostrarlo redondeado ocultaría decimales escritos.
+            const formatted = toText(value, decimals);
+            if (value !== null && parseAmount(formatted) === value) setText(formatted);
           }}
         />
         {suffix ? <span className="field-suffix">{suffix}</span> : null}

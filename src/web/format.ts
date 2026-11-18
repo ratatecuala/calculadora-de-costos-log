@@ -48,6 +48,21 @@ export function formatMinutes(min: number): string {
   return `${Math.floor(m / 60)} h ${m % 60} min`;
 }
 
+/**
+ * Número para mostrar en un campo editable, en formato chileno (QA UX, H-06): «1.050», «11,5».
+ * `parseAmount` lo vuelve a leer igual. Vacío = no lo sé.
+ */
+export function formatInputNumber(value: number | null, decimals = 2): string {
+  if (value === null) return '';
+  return new Intl.NumberFormat('es-CL', { maximumFractionDigits: decimals }).format(value);
+}
+
+/** Fecha ISO (aaaa-mm-dd) en formato chileno dd-mm-aaaa; cualquier otro texto se muestra tal cual. */
+export function formatDate(value: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : value;
+}
+
 /** Lee un número escrito por el usuario; vacío = no lo sabe (null). Acepta «1.050» o «12,5». */
 export function parseAmount(text: string): number | null {
   const t = text.trim().replace(/\$/g, '').replace(/\s/g, '');

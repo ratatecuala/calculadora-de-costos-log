@@ -1,11 +1,11 @@
 import { useState, useSyncExternalStore } from 'react';
-import { displayThreshold, formatClp } from '../../engine/rounding';
+import { displayAmount, displayThreshold, formatClp } from '../../engine/rounding';
 import type { Comparison } from '../../engine/compare';
 import { googleMapsDirectionsUrl } from '../../shared/mapsUrl';
 import type { RouteKind } from '../../shared/route';
 import { VEHICLE_TYPE_LABEL, type VehicleProfile } from '../../shared/vehicle';
 import { buildWaypoints } from '../../shared/waypoints';
-import { boundedText, formatKm, formatMinutes, missingText, ROLE_LABEL, signedBoundedText, SOURCE_LABEL } from '../format';
+import { boundedText, formatInputNumber, formatKm, formatMinutes, missingText, ROLE_LABEL, signedBoundedText, SOURCE_LABEL } from '../format';
 import type { QuoteSession, RouteComputation, RouteState } from '../session';
 import { Fold } from './Fold';
 import { NumberField } from './NumberField';
@@ -402,7 +402,7 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
         suffix="$"
         value={s.chosenPrice}
         onChange={(v) => session.setChosenPrice(v)}
-        placeholder={m ? String(m.suggested.value) : 'Escribe tu precio'}
+        placeholder={m ? formatInputNumber(displayAmount(m.suggested), 0) : 'Escribe tu precio'}
       />
       {session.priceNeedsConfirmation() ? (
         <div className="warn" role="alert">

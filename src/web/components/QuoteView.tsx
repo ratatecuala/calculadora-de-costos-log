@@ -3,6 +3,7 @@ import { formatClp } from '../../engine/rounding';
 import { toClientQuote, whatsappUrl, type BusinessProfile, type ClientQuote, type JobRecord } from '../../shared/clientQuote';
 import { googleMapsDirectionsUrl } from '../../shared/mapsUrl';
 import { CloudQuoteRepository, type QuoteShare } from '../cloud/quotes';
+import { formatDate } from '../format';
 import type { QuoteRepository } from '../storage';
 
 interface Props {
@@ -72,9 +73,9 @@ export function QuoteDocument({ q }: { q: ClientQuote }) {
       </header>
       <div className="grid2 doc-grid">
         <Item label="Cliente" value={q.clientName} />
-        <Item label="Emitida" value={q.issuedAt} />
+        <Item label="Emitida" value={formatDate(q.issuedAt)} />
         <Item label="Origen → destino" value={`${q.originLabel} → ${q.destinationLabel}`} />
-        <Item label="Fecha del servicio" value={q.serviceDate || 'Por confirmar'} />
+        <Item label="Fecha del servicio" value={q.serviceDate ? formatDate(q.serviceDate) : 'Por confirmar'} />
       </div>
       <div className="doc-box">
         <p>
@@ -114,7 +115,7 @@ export function QuoteDocument({ q }: { q: ClientQuote }) {
           </>
         )}
       </div>
-      {q.validUntil ? <p className="sub">Válida hasta {q.validUntil}.</p> : null}
+      {q.validUntil ? <p className="sub">Válida hasta {formatDate(q.validUntil)}.</p> : null}
     </article>
   );
 }
@@ -187,8 +188,8 @@ function SharePanel({ repository, jobId }: { repository: CloudQuoteRepository; j
           {active.map((s) => (
             <div className="ln" key={s.id}>
               <span className="sub">
-                Enlace activo desde {s.createdAt.slice(0, 10)}
-                {s.expiresAt ? ` · vence ${s.expiresAt.slice(0, 10)}` : ''}
+                Enlace activo desde {formatDate(s.createdAt)}
+                {s.expiresAt ? ` · vence ${formatDate(s.expiresAt)}` : ''}
               </span>
               <button type="button" className="link-btn danger-text" onClick={() => void revoke(s.id)}>
                 Desactivar
