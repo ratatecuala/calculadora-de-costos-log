@@ -25,6 +25,11 @@ body {
   margin: 0;
   background: var(--bg);
 }
+/* Foco de teclado visible y coherente con la paleta (QA UX, H-08). */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
 .num {
   font-variant-numeric: tabular-nums;
 }
@@ -174,7 +179,7 @@ body {
   color: var(--text-2);
 }
 .field-compact .field-input {
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 8px;
 }
 .visually-hidden {
@@ -229,7 +234,7 @@ body {
   cursor: not-allowed;
 }
 .btn2.small {
-  min-height: 40px;
+  min-height: 44px;
   font-size: 14px;
 }
 .link-btn {
@@ -239,7 +244,11 @@ body {
   font: inherit;
   font-size: 14px;
   font-weight: 600;
-  padding: 4px 0;
+  /* Área táctil mínima de 44 px (QA UX, H-03). */
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
   cursor: pointer;
   text-align: left;
 }
@@ -269,7 +278,8 @@ body {
   cursor: pointer;
   font-weight: 600;
   color: var(--blue);
-  min-height: 32px;
+  min-height: 44px;
+  padding: 11px 0;
 }
 .fold[open] {
   display: flex;
@@ -278,6 +288,9 @@ body {
 }
 .fold-card summary {
   cursor: pointer;
+  min-height: 44px;
+  padding: 14px 0;
+  margin: -12px 0;
 }
 .fold-card[open] {
   gap: 12px;
@@ -286,7 +299,7 @@ body {
   display: flex;
   gap: 10px;
   align-items: center;
-  min-height: 40px;
+  min-height: 44px;
   font-size: 15px;
 }
 .check input {
@@ -417,7 +430,7 @@ body {
   gap: 8px;
 }
 select {
-  min-height: 40px;
+  min-height: 44px;
   border: 1px solid var(--field);
   border-radius: 8px;
   font: inherit;
@@ -519,6 +532,9 @@ select {
   gap: 6px;
 }
 .link-btn.inline {
+  /* Enlace dentro de un texto: excepción «en línea» del criterio de tamaño (WCAG 2.5.8). */
+  display: inline;
+  min-height: 0;
   padding: 0;
   font-size: inherit;
 }

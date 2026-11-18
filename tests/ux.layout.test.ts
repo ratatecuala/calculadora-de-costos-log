@@ -37,3 +37,22 @@ describe('H-01 · navegación en teléfonos', () => {
     expect(rule(block, '.nav')).toMatch(/flex:\s*1 1 auto/);
   });
 });
+
+describe('H-03 · áreas táctiles de al menos 44 px', () => {
+  const minHeight = (selector: string) => Number(/min-height:\s*(\d+)px/.exec(rule(css, selector))?.[1] ?? 0);
+  it.each(['.link-btn', '.fold summary', '.fold-card summary', '.check', '.btn2.small', 'select', '.field-compact .field-input', '.seg', '.nav'])(
+    '%s',
+    (selector) => {
+      expect(minHeight(selector)).toBeGreaterThanOrEqual(44);
+    },
+  );
+  it('el enlace dentro de un texto queda en línea (excepción WCAG 2.5.8)', () => {
+    expect(rule(css, '.link-btn.inline')).toMatch(/display:\s*inline;/);
+  });
+});
+
+describe('H-08 · foco de teclado visible', () => {
+  it('regla global :focus-visible con el azul de la paleta', () => {
+    expect(rule(css, ':focus-visible')).toMatch(/outline:\s*2px solid var\(--blue\)/);
+  });
+});
