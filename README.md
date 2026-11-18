@@ -32,8 +32,8 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 |---|---|
 | Calculadora y cotizador (motor de costos, precio, PDF, WhatsApp) | **Funciona** (local y staging) |
 | Experiencia en teléfono y en PC/notebook (A-49) | **Paridad verificada en local** del 320 al 1440 px: 10 problemas encontrados y corregidos ([14](docs/14-qa-ux.md)). **Staging aún muestra la versión anterior** hasta redesplegar |
-| Validación independiente del motor (#24) | **Casos dorados 64/64** por recálculo independiente; sin errores de fórmula; 4 hallazgos de entradas y textos **pendientes de tu aprobación** ([15](docs/15-validacion-motor.md)) |
-| IVA en la cotización (#16) | Hoy: IVA opcional sobre el neto. **Propuesta** de presentación según el tipo de transportista y de cliente, **sin implementar** ([16](docs/16-iva-cotizaciones.md)) |
+| Validación independiente del motor (#24) | **Casos dorados 64/64** por recálculo independiente; sin errores de fórmula. Los 4 hallazgos de entradas y textos (C-1 a C-4) **corregidos** con tu aprobación (A-50), sin cambiar fórmulas ([15](docs/15-validacion-motor.md)) |
+| IVA en la cotización (#16) | La cotización muestra **«Precio total»** y la leyenda **«Esta cotización no es factura ni boleta.»** (A-51). Las reglas por tipo de transportista y de cliente (opción B) siguen **sin implementar**, a la espera de validación tributaria ([16](docs/16-iva-cotizaciones.md)) |
 | Distancias y tiempos de ruta | **Simulados**. La app lo indica en cada resultado. Google Routes **no está conectado** |
 | Uso sin cuenta (historial en el navegador) | **Funciona**, con aviso de que no hay respaldo en la nube |
 | Cuentas, vehículos y cotizaciones en la nube (Supabase) | **Funciona en staging** con usuarios de prueba (correo y contraseña, solo staging) |
@@ -63,9 +63,9 @@ Detalle: [02 · Arquitectura](docs/02-arquitectura.md) y [13 · Staging](docs/13
 
 | Prueba | Resultado | Quién la ejecutó |
 |---|---|---|
-| `npm test` (sin red) | **225/225** (18-11-2026). **Incluye 9 `it.fails`** que documentan defectos del motor **no corregidos** (C-1 a C-3, docs/15): el verde no significa que estén resueltos | Claude (ejecutadas) |
+| `npm test` (sin red) | **236/236** (18-11-2026). Sin `it.fails` activos: los defectos C-1 a C-4 se corrigieron con tu aprobación (A-50) | Claude (ejecutadas) |
 | Recálculo independiente de los casos dorados (`scripts/verificar-casos-dorados.mjs`) | **64/64** | Claude (ejecutadas) |
-| Teléfono y PC en navegador local (10 tamaños de pantalla) | 10 hallazgos, 10 corregidos; montos idénticos antes y después | Claude (ejecutadas) |
+| Teléfono y PC en navegador local (10 tamaños de pantalla) | 10 hallazgos, 10 corregidos; montos idénticos antes y después (también tras A-50); cotización con «Precio total» y leyenda | Claude (ejecutadas) |
 | Ensayo local de respaldo y restauración (datos ficticios) | **Idéntica** (`diff` = 0). **No** equivale a un respaldo real ni a restaurar staging | Claude (ejecutadas) |
 | RLS real en Supabase con dos usuarios y un visitante anónimo (`scripts/verificar-rls.mjs`) | **39/39** | Claude (ejecutadas) |
 | Numeración real en Supabase: concurrencia desde 2 dispositivos, importación y conflictos (`scripts/verificar-numeracion.mjs`) | **17/17** | Claude (ejecutadas) |
@@ -82,6 +82,9 @@ Fuente: [07 · Decisiones](docs/07-decisiones.md). Una decisión está **APROBAD
 - **APROBADAS por escrito (PR #34):**
   - **A-47:** numeración de cotizaciones única, correlativa y atómica por cuenta, que conserva el número emitido.
   - **A-48:** este README como fuente de continuidad, actualizado con cada avance.
+- **Comunicadas el 18-11 en la sesión de Claude, pendientes de ratificación escrita en el PR #34 (ya implementadas):**
+  - **A-50:** margen sobre el precio de venta con rótulo corregido; validación de entradas; sin «$-0»; margen con decimales visible.
+  - **A-51:** «Precio total» y leyenda «Esta cotización no es factura ni boleta.»
 - **APROBADA por escrito (PR #40 y PR #34):**
   - **A-49:** paridad teléfono y computador: mismas funciones, interfaz adaptable a cada pantalla.
 - **Comunicadas por el propietario, pendientes de ratificación escrita en el PR #34:**
@@ -92,8 +95,8 @@ Fuente: [07 · Decisiones](docs/07-decisiones.md). Una decisión está **APROBAD
 ## Riesgos y pendientes
 
 - **Decisiones pendientes de la sesión del 18-11 (detalle en cada documento):**
-  - **Motor (15):** C-3, el margen se aplica sobre el **precio** (P = C/(1−m)), pero la pantalla dice «Ganancia extra sobre el costo». Opciones: corregir el texto o cambiar la fórmula. **ChatGPT recomienda corregir solo el texto** («Margen objetivo (% del precio de venta)»). También: validar entradas negativas o no numéricas (C-1), el «$-0» (C-2), el margen con decimales (C-4) y las correcciones Doc-1 a Doc-6 de docs/03. **Ninguna fórmula se cambió.**
-  - **IVA (16):** opción A, B (recomendada como dirección de producto, **condicionada a validación de un contador o del SII**) o B+C; leyenda «no es factura ni boleta»; perfil tributario del transportista y tipo de cliente. Validación por un contador o GPT Deep Research (sii.cl no fue accesible desde la sesión).
+  - **Motor (15):** C-1 a C-4 **resueltos** (A-50). Siguen pendientes las correcciones Doc-1 a Doc-6 de docs/03 y los puntos «no especificado» (descuentos, empates, topes, etc.).
+  - **IVA (16):** leyenda y «Precio total» **implementados** (A-51). Pendiente: validación tributaria (contador o SII) antes de implementar la opción B (perfil tributario del transportista y tipo de cliente).
   - **Supabase (17):** plan antes de usuarios reales, frecuencia y lugar de los respaldos, registro por correo cuando exista Google y privilegios por defecto.
   - **Experiencia de usuario (14):** filtro del historial, precio fijo en el teléfono y propuestas menores.
 - **Decisiones del propietario (anteriores):**

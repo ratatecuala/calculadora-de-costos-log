@@ -163,6 +163,8 @@ Fuentes leídas: `data/tax-rules.json`, `src/engine/tax.ts`, `src/shared/clientQ
 
 **Lo que podría inducir a error**
 
+> **Actualización 18-11-2026 (A-51):** los puntos 1 y 2 están **resueltos**. Sin regla verificada, la cotización muestra «Precio total» y siempre lleva «Esta cotización no es factura ni boleta.» (documento, PDF, enlace público y WhatsApp). Al transportista se le avisa que su cliente verá ese monto como total, sin desglose de IVA. Los puntos 3 a 5 siguen pendientes de validación tributaria.
+
 1. **«Valor neto» como único monto** (`QuoteDocument` y `whatsappText`) cuando no hay perfil. Para un **cliente persona**, «neto» sugiere que se agregará IVA, o es un precio incompleto según el art. 30 (N18). Para un transportista **sin documentos** (perfil 6), sugiere un IVA que nunca se cobrará. En ambos casos conviene decir **«Precio total»**.
 2. **Falta la leyenda** «no es factura ni boleta» en pantalla, PDF, enlace público y WhatsApp (§5).
 3. **No se distingue el tipo de cliente** (empresa vs persona). Con la regla afecta activada, el documento mostraría «Neto / IVA / Total» también a consumidores, cuando lo esperable es destacar el total con IVA incluido.

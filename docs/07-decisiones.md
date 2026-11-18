@@ -184,6 +184,15 @@ Escrita por el propietario en GitHub ([comentario en el PR #40](https://github.c
 |---|---|---|
 | A-49 | **Paridad teléfono y computador:** el cotizador se diseña para usarse **plenamente en teléfonos y en PC/notebook**, con interfaz adaptable y las **mismas funciones principales** (cálculo, cotización, PDF, historial, vehículos, cuentas y sincronización). Teléfono: controles táctiles cómodos. Computador: diseño que aprovecha el ancho. *Mobile-first* como técnica de maquetación **no** implica prioridad funcional ni comercial del móvil. Sin rehacer el diseño v4 ni agregar funciones nuevas | **APROBADA** (18-11-2026). Se reemplaza «Pensada primero para el teléfono» en el README |
 
+## Decisiones del 18-11-2026 tras la [revisión de ChatGPT](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6970465877) de los cinco frentes
+
+El propietario las eligió en la sesión de Claude del 18-11-2026, sobre las opciones recomendadas en la revisión de ChatGPT. **Comunicadas; ratificar por escrito en el PR #34.**
+
+| ID | Decisión | Estado |
+|---|---|---|
+| A-50 | **Motor y margen, sin cambiar fórmulas:** (1) **C-3**: se mantiene P = C/(1−m) y solo cambia el rótulo, que pasa a «Margen objetivo (% del precio de venta)», con una ayuda; (2) **C-1**: un dato **opcional** inválido (negativo o no numérico) se trata como faltante y **se avisa**; un dato **requerido** inválido (km, minutos, ayudantes, carga y descarga, recargos, precio) **se rechaza**; (3) **C-2**: nunca «$-0»; (4) **C-4**: el campo del margen muestra el mismo valor que usa el cálculo (12,5 %) | Comunicada; ratificar en PR #34. **Implementada** (docs/15 §6) |
+| A-51 | **IVA, alcance mínimo:** la cotización sin regla de IVA verificada muestra **«Precio total»** (no «Valor neto») y lleva siempre la leyenda **«Esta cotización no es factura ni boleta.»** (documento, PDF, enlace público y WhatsApp). **Sin reglas tributarias automáticas**: la opción B de docs/16 sigue condicionada a validación de un contador o del SII | Comunicada; ratificar en PR #34. **Implementada** |
+
 **Implementación de A-47 (decisiones menores, revisables):**
 - Un número local **libre** se conserva tal cual, así que la secuencia puede saltar hasta ese número.
 - Los números de cotizaciones borradas **no se reutilizan**.

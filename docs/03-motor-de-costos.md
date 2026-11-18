@@ -78,6 +78,8 @@ Cada partida lleva tres atributos, y las medidas se calculan filtrando por ellos
 - **Redondeo:** sin redondeos intermedios. Los montos se muestran **al peso**; solo el **precio sugerido** se redondea hacia arriba al múltiplo de 1.000. Si el valor es una **cota**, el sentido del redondeo lo fija §3C (corregido el 16-11-2026).
 - **Procedencia** de cada valor: MEDIDO · OFICIAL (fuente y fecha) · DECLARADO · PREDETERMINADO (no calibrado) · CALCULADO.
 
+**Contrato de entradas (A-50, 18-11-2026):** un dato **opcional** inválido (negativo o no numérico) se trata como **faltante** (`null`) y la partida queda marcada para avisar al usuario; nunca se usa como 0. Un dato **requerido** inválido (km, minutos, ayudantes, carga y descarga, recargos no numéricos, precio no numérico, partida negativa o no finita) **se rechaza** con error. Así se mantiene la premisa de §3C: toda partida es ≥ 0. Ninguna fórmula cambió.
+
 ## 3A. Alcance vigente del trayecto y comparación de rutas
 
 La versión gratuita calcula, como máximo, los siguientes tramos **diferentes**:

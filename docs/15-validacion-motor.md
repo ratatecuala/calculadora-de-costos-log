@@ -49,6 +49,8 @@ Fuera de alcance: la política de IVA (qué perfiles, qué tasa, #16), rutas rea
 
 ## 4. Hallazgos
 
+> **Estado al 18-11-2026: C-1, C-2, C-3 (solo texto) y C-4 CORREGIDOS** con aprobación del propietario (A-50, docs/07). Las 9 pruebas `it.fails` pasaron a ser pruebas normales que protegen la corrección; NE-8 quedó resuelto (carga y descarga negativa se rechaza). Los casos dorados siguen en **64/64**: ninguna fórmula cambió. Las correcciones de documentación Doc-1 a Doc-6 y los puntos «no especificado» siguen **pendientes**.
+
 Severidad: **Alta** = puede llevar a cobrar de menos con datos válidos; **Media** = contrato o texto que puede inducir a error en dinero; **Baja** = cosmético o latente.
 
 | ID | Sev. | Entrada | Actual | Esperado | Impacto para el transportista | Prueba | Corrección propuesta | ¿Cambia fórmula? |
@@ -96,7 +98,9 @@ Severidad: **Alta** = puede llevar a cobrar de menos con datos válidos; **Media
 | Invariantes | C = D + W + CF + R; (P − D) − W − CF − R = P − C | Correcto | «invariantes» |
 | Huella del precio (`session.ts`) | Incluye recorrido, tramos, vehículo, parámetros y costo; excluye margen y recargos (intencional). Precio escrito antes de calcular → exige confirmar | Correcto. Observación: `JSON.stringify` confunde NaN con `null`, irrelevante si se aplica C-1 | revisión de código |
 
-## 6. Correcciones propuestas (NO aplicadas; requieren aprobación)
+## 6. Correcciones propuestas (APLICADAS el 18-11-2026 por A-50)
+
+Diferencias con la propuesta original: (a) un dato opcional inválido queda marcado (`invalid: true`) y la interfaz lo avisa en «Costo parcial»; (b) ayudantes y carga y descarga negativos se **rechazan** en vez de llevarse a 0; (c) «otros gastos» negativo pasa a faltante con aviso en vez de llevarse a 0 en silencio.
 
 > **Recomendaciones de la [revisión de ChatGPT del 18-11](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6970465877)** (no son aprobación del propietario):
 > - **C-3:** mantener la fórmula de margen sobre el precio de venta, P = C/(1−m), que coincide con docs/03 y con los casos dorados, y corregir **solo el texto** de la interfaz a «Margen objetivo (% del precio de venta)», con una ayuda clara. No cambiar la fórmula por confundir «margen» con «recargo sobre el costo».
