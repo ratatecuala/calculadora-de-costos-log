@@ -22,7 +22,7 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 | Auditorías de ChatGPT | 7 rondas sobre el flujo general, más una revisión focalizada de A-47: **aceptada técnicamente para staging, sin hallazgos P0/P1**. ChatGPT revisa **por inspección**; no ejecuta las pruebas |
 | `main` | Solo publica este README de continuidad. **El código y los documentos técnicos siguen en la rama del PR #34, que no está integrado.** Toda fusión requiere aprobación del propietario |
 | Conflicto con `main` | **Resuelto en la rama**: se integró `main` conservando el README de desarrollo (`main` solo tenía el README de portada) |
-| Siguiente acción | Reauditoría de ChatGPT de I-1 + I-1b tras corregir 3 P1 ([22 §11](docs/22-diseno-integracion-cotizador.md)) y tu decisión sobre D-I8 (recuperar km y minutos manuales, §12); después, por separado: #52 → M3 y M4 (I-2); ejecutar C-1 y C-2 en GPT Deep Research; crear el cliente OAuth de Google y hacer el primer respaldo real |
+| Siguiente acción | Auditoría final de ChatGPT de I-1 + I-1b ([22 §13](docs/22-diseno-integracion-cotizador.md)) y tu decisión sobre D-I8 (recuperar km y minutos manuales, §12); después, por separado: #52 → M3 y M4 (I-2); ejecutar C-1 y C-2 en GPT Deep Research; crear el cliente OAuth de Google y hacer el primer respaldo real |
 
 **Cómo retomar:** leer este README → [AGENTS.md](AGENTS.md) (reglas y autorizaciones) → [07 · Decisiones](docs/07-decisiones.md) → [13 · Staging](docs/13-staging.md) → los últimos comentarios del PR #34.
 
@@ -64,7 +64,7 @@ Detalle: [02 · Arquitectura](docs/02-arquitectura.md) y [13 · Staging](docs/13
 
 | Prueba | Resultado | Quién la ejecutó |
 |---|---|---|
-| `npm test` (sin red) | **521/521** (20-11-2026: 249 anteriores + 96 de la fase 0 + 120 de la fase 1 + 56 de la integración I-1 + I-1b, incluidas las correcciones de su auditoría). Sin `it.fails` activos: los defectos C-1 a C-4 se corrigieron con tu aprobación (A-50) | Claude (ejecutadas) |
+| `npm test` (sin red) | **528/528** (20-11-2026: 249 anteriores + 96 de la fase 0 + 120 de la fase 1 + 63 de la integración I-1 + I-1b, incluidas las correcciones de sus auditorías). Sin `it.fails` activos: los defectos C-1 a C-4 se corrigieron con tu aprobación (A-50) | Claude (ejecutadas) |
 | Recálculo independiente de los casos dorados (`scripts/verificar-casos-dorados.mjs`) | **64/64** | Claude (ejecutadas) |
 | Teléfono y PC en navegador local (10 tamaños de pantalla) | 10 hallazgos, 10 corregidos; montos idénticos antes y después (también tras A-50); cotización con «Precio total» y leyenda | Claude (ejecutadas) |
 | Ensayo local de respaldo y restauración (datos ficticios) | **Idéntica** (`diff` = 0). **No** equivale a un respaldo real ni a restaurar staging | Claude (ejecutadas) |
@@ -74,7 +74,7 @@ Detalle: [02 · Arquitectura](docs/02-arquitectura.md) y [13 · Staging](docs/13
 | Navegador real contra staging **sin cuenta**, PC y teléfono (`scripts/e2e-staging-anonimo.mjs`, versión del 18-11) | **59/59**: acceso privado, flujo completo, aviso de texto inválido, margen, «Precio total» y leyenda, PDF, controles ≥ 44 px, 0 errores, 0 dominios externos | Claude (ejecutadas) |
 | Navegador real contra staging **con cuentas A y B**, PC y teléfono (`scripts/e2e-staging.mjs`, versión del 18-11) | **41/41**: inicio y cierre de sesión, cambio de cuenta, vehículos, cotizaciones, importación del historial local, otro dispositivo, enlaces públicos | Claude (ejecutadas) |
 | Borradores M3 y M4 del diseño #45 en PostgreSQL **local desechable** (`scripts/diseno/probar-borradores.sh`), **sin tocar Supabase** | **18/18** y 3 controles negativos que fallan como corresponde (20-11). **C3** (fixtures compartidas con Zod): **27/27**, tras corregir en M3 un `CHECK` que dejaba pasar líneas con dos medidas. Medición de 16 KB con aserciones: **10/10** (`scripts/diseno/medir-16kb.sh`) | Claude (ejecutadas) |
-| Integración I-1 + I-1b en navegador local (`scripts/e2e-integracion.mjs`): Pixel 7, iPhone 13 emulado, 1366 y 1440 | **122/122** con la flag (dos corridas) y **24/24** sin ella; además `e2e-staging-anonimo.mjs` en local 54/59 (5 fallas propias de staging: 401 y `localhost` como dominio externo). Sin cuentas reales ni Safari real | Claude (ejecutadas) |
+| Integración I-1 + I-1b en navegador local (`scripts/e2e-integracion.mjs`): Pixel 7, iPhone 13 emulado, 1366 y 1440 | **134/134** con la flag (dos corridas; incluye emitir < 1 s después del último cambio y recargar) y **24/24** sin ella; además `e2e-staging-anonimo.mjs` en local 54/59 (5 fallas propias de staging: 401 y `localhost` como dominio externo). Sin cuentas reales ni Safari real | Claude (ejecutadas) |
 | Editores de inventario y recursos (fase 1, interfaz plegable) en navegador local, con y sin flag (`scripts/e2e-modulos.mjs`): Pixel 7, iPhone 13 emulado, 1366 y 1440 | **210/210** (20-11), con capturas; incluye foco al cerrar, cambio de modo y totales con datos inválidos. No probado en Safari real ni con lector de pantalla | Claude (ejecutadas) |
 | Revisión independiente del código | 7 auditorías, más la [revisión de los cinco frentes del 18-11](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6970465877) (sin bloqueos nuevos; PR #41 apto para tu decisión) | ChatGPT, **por inspección**: no reproduce las ejecuciones |
 

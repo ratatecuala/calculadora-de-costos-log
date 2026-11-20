@@ -347,6 +347,14 @@ export class QuoteSession {
   }
 
   /**
+   * La cotización se emitió con este estado: pasa a ser la línea base del borrador (reauditoría de
+   * `230ad6e`, P1). Sin cambios posteriores no hay nada que autoguardar; un cambio nuevo sí cuenta.
+   */
+  markEmitted(): void {
+    this.baseline = JSON.stringify(this.draftData());
+  }
+
+  /**
    * Aplica el vehículo predeterminado de forma AUTOMÁTICA. Si la sesión estaba en su línea base,
    * la base pasa a incluir ese vehículo: no se ofrece como «borrador» algo que el usuario no hizo.
    */

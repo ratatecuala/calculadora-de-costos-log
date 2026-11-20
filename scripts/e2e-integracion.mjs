@@ -184,9 +184,24 @@ try {
     const servicio = await page.getByLabel('Servicio', { exact: true }).inputValue();
     check('X5: texto sugerido con la carga y sin ayudantes ni datos internos', servicio.includes('1 × Refrigerador') && !/ayudante|kg|m³|\$|min/i.test(servicio), servicio);
     await shot(page, nombre, 'i1-formulario', { fullPage: true });
+
+    // Reauditoría de 230ad6e (P1): un cambio y la emisión INMEDIATA (< 1 s, con un autoguardado
+    // pendiente). Después de esperar más de 1 s y recargar, el borrador no debe reaparecer.
+    await page.getByRole('button', { name: 'Volver' }).click();
+    await page.locator('button.disclosure-head').filter({ hasText: 'Detalle de la carga y recursos' }).click();
+    const filaOrigen = page.locator('button.disclosure-head').filter({ hasText: 'Origen (A)' });
+    if ((await filaOrigen.getAttribute('aria-expanded')) === 'false') await filaOrigen.click();
+    await page.getByRole('group', { name: 'Accesos de origen (a)' }).getByLabel('Escaleras (opcional)').selectOption('si');
+    const t0 = Date.now(); // último cambio de la sesión: programa el autoguardado a +1 s
+    await page.getByRole('button', { name: 'Crear cotización' }).click();
+    await page.getByRole('button', { name: 'Usar texto sugerido' }).click();
     await page.getByLabel('Cliente', { exact: true }).fill('Cliente ficticio');
     await page.getByRole('button', { name: 'Guardar cotización' }).click();
+    const ms = Date.now() - t0;
+    check('P1: se emitió antes de 1 s desde el último cambio (carrera ejercida)', ms < 1000, `${ms} ms`);
     await page.getByText('COTIZACIÓN').first().waitFor();
+    await page.waitForTimeout(1500);
+    check('P1: tras emitir y esperar > 1 s no se recreó el borrador', await page.evaluate(() => !JSON.parse(localStorage.getItem('cotizador.borrador.v1') ?? '{}').local));
 
     // 7. Snapshot v2 completo en el navegador; borrador borrado; documento sin datos internos.
     const v = await page.evaluate(() => JSON.parse(localStorage.getItem('cotizador.trabajos.v1'))[0].internal);
@@ -204,6 +219,12 @@ try {
     await shot(page, nombre, 'i1-vista', { fullPage: true });
     await page.getByRole('button', { name: /Mis trabajos/ }).first().click();
     check('historial con la marca «Con detalle de carga»', await page.getByText('Con detalle de carga').first().isVisible());
+
+    // P1: al recargar no se ofrece recuperar la cotización ya emitida.
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.getByLabel('Desde (A)').waitFor();
+    await page.waitForTimeout(300);
+    check('P1: al recargar no se ofrece recuperar lo ya emitido', (await page.getByTestId('oferta-borrador').count()) === 0);
 
     // 8. Maquetación y errores.
     await page.getByRole('button', { name: 'Cotizar' }).click();

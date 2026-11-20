@@ -15,7 +15,7 @@ import { isSnapshotV2, toClientQuote, type JobInternalV1, type JobRecord } from 
 import { MAX_CLOUD_INTERNAL_JSON_BYTES, readSnapshot, snapshotV2Schema, toCloudPayload } from '../src/shared/snapshot';
 import { clasificarParaCopia, mensajeCopia, MIGRATION_KEY, migrateLocalToCloud, pendingLocalData } from '../src/web/cloud/migration';
 import { jobWithQuotePayload, jobFromRow } from '../src/web/cloud/mappers';
-import { decidirAutoguardado, DRAFT_KEY, DraftStore } from '../src/web/draftStore';
+import { decidirAutoguardado, DraftAutosaver, DRAFT_KEY, DraftStore } from '../src/web/draftStore';
 import { buildJobRecord, CargoInvalidError } from '../src/web/jobs';
 import { alternarIncluye, avisosDuplicado, bloqueoEmision, includesPorDefecto, includesSegunCasilla } from '../src/web/modules/integracion';
 import { addItem, newDraftItem, setMode, updateItem } from '../src/web/modules/inventoryDraft';
@@ -788,3 +788,133 @@ describe('P1-3 · tarifa × horas sobre el tope monetario bloquea la emisión', 
     expect(s.computation('habitual')!.measures).toEqual(antes);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Reauditoría de 230ad6e · P1: un temporizador pendiente no puede recrear el borrador tras emitir
+// ---------------------------------------------------------------------------
+describe('P1 · autoguardado pendiente y emisión (temporizadores controlados)', () => {
+  function montar(opts: { owner?: () => string; oferta?: () => boolean } = {}) {
+    vi.useFakeTimers();
+    const store = new MemoryKeyValueStore();
+    const ds = new DraftStore(store);
+    const s = conCarga(sesionLista());
+    const errores: Array<string | null> = [];
+    const saver = new DraftAutosaver(ds, s, { owner: opts.owner ?? (() => 'local'), ofertaPendiente: opts.oferta ?? (() => false), onWrite: (e) => errores.push(e) });
+    const stop = saver.start();
+    return { ds, s, saver, stop, errores, store };
+  }
+  const fin = () => vi.useRealTimers();
+
+  it('cambio → emitir antes de 1 s → esperar 2 s → recargar: NO reaparece el borrador', () => {
+    try {
+      const { ds, s, saver, stop } = montar();
+      s.setMargin(0.2); // último cambio: programa una escritura a +1 s
+      expect(saver.pending()).toBe(true);
+      vi.advanceTimersByTime(300);
+      saver.emitted(); // guardado exitoso (lo que hace App en onSaved)
+      expect(saver.pending()).toBe(false);
+      vi.advanceTimersByTime(2000);
+      expect(ds.read('local')).toEqual({ status: 'none' });
+      stop();
+    } finally {
+      fin();
+    }
+  });
+
+  it('aunque el callback ya esté en cola, una emisión lo invalida (generación)', () => {
+    try {
+      const { ds, s, saver, stop } = montar();
+      // Se fuerza el caso más estrecho: el temporizador vence en el mismo instante que la emisión.
+      s.setSurcharges(1000);
+      vi.advanceTimersByTime(999);
+      saver.emitted();
+      vi.advanceTimersByTime(1);
+      vi.runOnlyPendingTimers();
+      expect(ds.read('local')).toEqual({ status: 'none' });
+      stop();
+    } finally {
+      fin();
+    }
+  });
+
+  it('el estado emitido es la nueva línea base: sin cambios nuevos no hay borrador; con un cambio nuevo, sí', () => {
+    try {
+      const { ds, s, saver, stop } = montar();
+      s.setMargin(0.2);
+      saver.emitted();
+      expect(s.hasDraftContent()).toBe(false);
+      s.setMargin(0.25); // trabajo NUEVO después de emitir
+      vi.advanceTimersByTime(1500);
+      const r = ds.read('local');
+      expect(r.status === 'ok' && r.draft.data.margin).toBe(0.25);
+      stop();
+    } finally {
+      fin();
+    }
+  });
+
+  it('si el guardado FALLA (no se llama a emitted), el borrador se conserva y se escribe', () => {
+    try {
+      const { ds, s, saver, stop } = montar();
+      s.setMargin(0.2);
+      // saveQuote lanzó un error: App no llama a emitted().
+      vi.advanceTimersByTime(1500);
+      const r = ds.read('local');
+      expect(r.status === 'ok' && r.draft.data.margin).toBe(0.2);
+      expect(r.status === 'ok' && r.draft.data.cargo.items).toHaveLength(2);
+      expect(saver.pending()).toBe(false);
+      stop();
+    } finally {
+      fin();
+    }
+  });
+
+  it('C1 · si la cuenta cambia mientras hay un temporizador pendiente, no se escribe nada', () => {
+    try {
+      let owner = 'local';
+      const { ds, s, stop } = montar({ owner: () => owner });
+      ds.write('local', s.draftData()); // lo que guardó C1 al iniciar sesión
+      const guardado = ds.read('local');
+      s.setMargin(0.3);
+      owner = 'user-A';
+      vi.advanceTimersByTime(1500);
+      expect(ds.read('local')).toEqual(guardado); // ni se pisa ni se borra
+      expect(ds.read('user-A')).toEqual({ status: 'none' });
+      stop();
+    } finally {
+      fin();
+    }
+  });
+
+  it('C1 · emitir durante un cambio de cuenta: el borrador local se borra solo si la emisión fue local y exitosa', () => {
+    try {
+      let owner = 'local';
+      const { ds, s, saver, stop } = montar({ owner: () => owner });
+      s.setMargin(0.2);
+      vi.advanceTimersByTime(1500);
+      expect(ds.read('local').status).toBe('ok');
+      owner = 'user-A'; // inicia sesión mientras se guardaba en el navegador
+      saver.emitted(); // la cotización quedó emitida en el navegador
+      vi.advanceTimersByTime(2000);
+      expect(ds.read('local')).toEqual({ status: 'none' });
+      expect(ds.read('user-A')).toEqual({ status: 'none' });
+      stop();
+    } finally {
+      fin();
+    }
+  });
+
+  it('detener el autoguardado cancela lo pendiente', () => {
+    try {
+      const { ds, s, saver, stop } = montar();
+      s.setMargin(0.2);
+      stop();
+      expect(saver.pending()).toBe(false);
+      vi.advanceTimersByTime(2000);
+      expect(ds.read('local')).toEqual({ status: 'none' });
+    } finally {
+      fin();
+    }
+  });
+});
+

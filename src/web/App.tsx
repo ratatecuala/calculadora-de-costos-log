@@ -16,7 +16,7 @@ import { QuoteForm } from './components/QuoteForm';
 import { QuoteView } from './components/QuoteView';
 import { VehiclesView } from './components/VehiclesView';
 import { DraftBanner } from './components/DraftBanner';
-import { decidirAutoguardado, DraftStore, type StoredDraft } from './draftStore';
+import { DraftAutosaver, DraftStore, type StoredDraft } from './draftStore';
 import { FEATURE_FLAGS } from './featureFlags';
 import { emptyInventoryDraft } from './modules/inventoryDraft';
 import { emptyResourcesDraft } from './modules/resourcesDraft';
@@ -177,23 +177,19 @@ function MainApp() {
   // I-1b: autoguardado 1 s después del último cambio, solo sin cuenta y sin una oferta pendiente.
   const currentOwnerRef = useRef(currentOwner);
   currentOwnerRef.current = currentOwner;
+  const autosaverRef = useRef<{ session: QuoteSession; saver: DraftAutosaver } | null>(null);
   useEffect(() => {
     if (!cargoOn) return;
-    const target = draft.session;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const unsubscribe = target.subscribe(() => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        const accion = decidirAutoguardado(currentOwnerRef.current, offerPending.current, target.hasDraftContent());
-        if (accion === 'borrar') draftStore.clear('local');
-        if (accion !== 'escribir') return;
-        const w = draftStore.write('local', target.draftData());
-        setDraftNotice(w.ok ? null : w.reason);
-      }, 1000);
+    const saver = new DraftAutosaver(draftStore, draft.session, {
+      owner: () => currentOwnerRef.current,
+      ofertaPendiente: () => offerPending.current,
+      onWrite: (error) => setDraftNotice(error),
     });
+    autosaverRef.current = { session: draft.session, saver };
+    const stop = saver.start();
     return () => {
-      if (timer) clearTimeout(timer);
-      unsubscribe();
+      stop();
+      if (autosaverRef.current?.saver === saver) autosaverRef.current = null;
     };
   }, [cargoOn, draft.session, draftStore]);
 
@@ -346,8 +342,13 @@ function MainApp() {
             repository={quoteRepository}
             cargoEnabled={cargoOn && currentOwner === 'local'}
             onSaved={(job, savedWith) => {
-              // I-1b: emitir en el navegador borra el borrador sin emitir.
-              if (cargoOn && savedWith.kind === 'local') draftStore.clear('local');
+              // I-1b: emitir en el navegador borra el borrador y CANCELA todo autoguardado pendiente
+              // (reauditoría de 230ad6e, P1). Solo tras un guardado exitoso: un error no llega aquí.
+              if (cargoOn && savedWith.kind === 'local') {
+                const a = autosaverRef.current;
+                if (a && a.session === session) a.saver.emitted();
+                else draftStore.clear('local');
+              }
               // Un guardado iniciado con otra cuenta no abre su cotización en la cuenta actual.
               if (savedWith !== quoteRepoRef.current) return;
               setView({ name: 'ver', job, owner: ownerOf(userId) });

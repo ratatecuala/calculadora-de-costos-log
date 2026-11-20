@@ -363,3 +363,49 @@ No implementa la integración, no modifica el motor ni las fórmulas, no toca el
 
 **Decisión pendiente (propuesta D-I8):** incluirlo en I-1b, como corrección, o dejarlo para una entrega posterior. **Recomendación:** incluir el **modo manual** (punto 1) en I-1b, porque es dato propio y simple, y dejar las correcciones sobre rutas del proveedor (punto 2) para cuando haya rutas reales (D-10).
 
+## 13. Reauditoría de `230ad6e` (0 P0 · 1 P1 nuevo · 1 P2 pendiente de decisión)
+
+[Reauditoría](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7051854593): los 3 P1 de `bb907b7` quedaron resueltos. Se corrige el P1 nuevo; D-I8 (§12) **sigue pendiente de autorización y no se implementó**.
+
+**P1: un temporizador pendiente podía recrear el borrador después de emitir.** El autoguardado ahora vive en `DraftAutosaver` (`draftStore.ts`, sin React). Al emitir con éxito, App llama a `emitted()`, que hace cuatro cosas:
+1. **cancela** el temporizador pendiente;
+2. **invalida su generación**, así que un callback ya en cola no escribe;
+3. fija el estado emitido como **nueva línea base** de la sesión (`markEmitted`): sin cambios posteriores no hay «contenido» que guardar, y un cambio nuevo sí se guarda;
+4. borra el borrador guardado.
+
+Si el guardado **falla**, `emitted()` no se llama y el borrador se conserva. La separación entre cuentas no cambia: con cuenta, el autoguardado no escribe ni borra.
+
+**Pruebas:**
+- **Unitarias con temporizadores controlados (`vi.useFakeTimers`), 7 casos:**
+  - cambio, emitir a los 300 ms, esperar 2 s: sin borrador;
+  - el temporizador vence en el mismo instante de la emisión: no escribe;
+  - el estado emitido es la nueva base, y un cambio nuevo se guarda;
+  - un guardado fallido conserva el borrador;
+  - un cambio de cuenta con un temporizador pendiente no escribe ni borra;
+  - emitir durante un cambio de cuenta borra solo el borrador local;
+  - detener el autoguardado cancela lo pendiente.
+- **E2E en 4 tamaños:** un cambio en «Escaleras»; la cotización se emite en **menos de 1 s** (se mide y se verifica); se espera 1,5 s; ni el almacenamiento ni la recarga muestran el borrador.
+
+**Defecto reintroducido a propósito:**
+- `emitted()` solo borra (como en `230ad6e`): fallan **3** pruebas unitarias;
+- solo cancela, sin generación ni línea base: falla **1**;
+- App vuelve a solo borrar el borrador: el E2E falla **12** verificaciones (3 en cada tamaño).
+
+**Resultados (Claude, 20-11-2026):**
+
+| Prueba | Resultado |
+|---|---|
+| `npm test` | **528/528** |
+| Casos dorados | **64/64** |
+| Typecheck y 3 builds | Sin errores |
+| `e2e-integracion.mjs` con la flag | **134/134** (dos corridas) |
+| `e2e-integracion.mjs --sin-flag` | **24/24** |
+| `e2e-modulos.mjs` | **210/210** |
+| `e2e-staging-anonimo.mjs` en local, sin y con flag | **54/59** (las 5 fallas propias de staging: no verificables aquí) |
+
+**Pendiente antes de habilitar la flag a usuarios** (según la auditoría y fuera de este alcance):
+- e2e con cuentas reales y la suite 59/59 en staging;
+- Safari real;
+- lector de pantalla;
+- la decisión D-I8.
+

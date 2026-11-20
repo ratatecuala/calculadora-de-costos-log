@@ -184,3 +184,90 @@ export function haceCuanto(savedAt: string, now: Date = new Date()): string {
   if (h < 48) return `hace ${h} h`;
   return `hace ${Math.round(h / 24)} días`;
 }
+
+/** Lo que el autoguardado necesita de la sesión (QuoteSession lo cumple). */
+export interface AutosaveSession {
+  subscribe(listener: () => void): () => void;
+  hasDraftContent(): boolean;
+  draftData(): DraftData;
+  /** El estado actual ya se emitió: pasa a ser la línea base del borrador. */
+  markEmitted(): void;
+}
+
+export interface AutosaveContext {
+  owner(): string;
+  ofertaPendiente(): boolean;
+  /** Resultado de una escritura: `null` si fue bien, o el motivo del error. */
+  onWrite(error: string | null): void;
+}
+
+/**
+ * Autoguardado con espera (I-1b), sin React para poder probarlo con temporizadores controlados.
+ *
+ * Carrera corregida (reauditoría de `230ad6e`, P1): un temporizador pendiente podía volver a
+ * escribir el borrador DESPUÉS de emitir. `emitted()` lo impide de dos formas:
+ *   1. cancela el temporizador pendiente e invalida su generación (un callback ya en cola no escribe);
+ *   2. marca el estado emitido como nueva línea base de la sesión: sin cambios posteriores, no hay
+ *      «contenido» que guardar. Un cambio NUEVO después de emitir sí vuelve a guardarse.
+ * Si la emisión FALLA, no se llama a `emitted()`: el borrador y lo pendiente se conservan.
+ */
+export class DraftAutosaver {
+  private timer: ReturnType<typeof setTimeout> | null = null;
+  private generation = 0;
+
+  constructor(
+    private readonly store: DraftStore,
+    private readonly session: AutosaveSession,
+    private readonly ctx: AutosaveContext,
+    private readonly delayMs = 1000,
+  ) {}
+
+  /** Empieza a escuchar la sesión. Devuelve la función que detiene todo (cancela lo pendiente). */
+  start(): () => void {
+    const unsubscribe = this.session.subscribe(() => this.schedule());
+    return () => {
+      this.cancel();
+      unsubscribe();
+    };
+  }
+
+  private schedule(): void {
+    this.cancel();
+    const generation = this.generation;
+    this.timer = setTimeout(() => {
+      this.timer = null;
+      if (generation !== this.generation) return; // invalidado por una emisión
+      this.run();
+    }, this.delayMs);
+  }
+
+  private run(): void {
+    const accion = decidirAutoguardado(this.ctx.owner(), this.ctx.ofertaPendiente(), this.session.hasDraftContent());
+    if (accion === 'borrar') this.store.clear('local');
+    if (accion !== 'escribir') return;
+    const w = this.store.write('local', this.session.draftData());
+    this.ctx.onWrite(w.ok ? null : w.reason);
+  }
+
+  /** ¿Hay una escritura programada? (para pruebas y diagnóstico) */
+  pending(): boolean {
+    return this.timer !== null;
+  }
+
+  cancel(): void {
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
+  }
+
+  /**
+   * Emisión EXITOSA en el navegador: cancela e invalida lo pendiente, fija la nueva línea base y
+   * borra el borrador guardado. Llamar SOLO tras un guardado exitoso.
+   */
+  emitted(): void {
+    this.cancel();
+    this.generation += 1;
+    this.session.markEmitted();
+    this.store.clear('local');
+  }
+}
+
