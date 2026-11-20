@@ -32,6 +32,8 @@ run -f "$dir/borradores/M4_guardado_v2.sql" >/dev/null
 echo "OK borradores M3 y M4 aplicados"
 # pipefail: si una prueba falla, psql termina con error y el script se detiene.
 run -f "$dir/pruebas-borradores.sql" 2>&1 | sed -n 's/^.*NOTICE:  //p; s/^.*ERROR:  /ERROR: /p'
+# C3 (fase 0): las mismas fixtures que valida Zod en tests/contratos.cargo.test.ts.
+run -v fixtures="$(cat "$repo/tests/fixtures/cargo-items.json")" -f "$dir/pruebas-c3.sql" 2>&1 | sed -n 's/^.*NOTICE:  //p; s/^.*ERROR:  /ERROR: /p'
 
 # Concurrencia: 20 guardados v2 simultáneos de A (2 líneas cada uno) → números únicos y correlativos.
 call="begin; set local role authenticated; select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-00000000000a',true); select public.create_job_with_quote_v2(prueba.job(), prueba.quote(), prueba.items(2)); commit;"

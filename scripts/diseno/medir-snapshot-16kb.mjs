@@ -60,7 +60,8 @@ function items(n, { largo = false } = {}) {
       qty: kind === 'cajas' ? 6 : 1,
       unitWeightKg: kg,
       dimsCm: { l, w, h },
-      // Misma regla que el CHECK de M3 (cm enteros → m³ con 3 decimales): l*w*h/1000 es entero.
+      // Misma regla que el CHECK de M3 y que volumeFromDims (src/shared/cargo.ts): cm enteros → m³ con
+      // 3 decimales, redondeando la mitad hacia arriba.
       volumeM3: Math.round((l * w * h) / 1000) / 1000,
       volumeSource: 'calculado',
       fragile: desc.includes('loza') || desc.includes('Televisor'),

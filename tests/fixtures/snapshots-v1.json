@@ -1,0 +1,99 @@
+{
+ "_nota": "Snapshots internos v1 (sin schemaVersion) con las formas históricas que produjo el código (commits 6f73aaa, 6308a33 y actual). Datos ficticios; no provienen de staging.",
+ "casos": [
+  {
+   "nombre": "motor-1.0.0 sin vehículo (antes de «Mi vehículo»)",
+   "internal": {
+    "routeSource": "simulado",
+    "km": null,
+    "minutes": null,
+    "costEstimate": 41234.5,
+    "costType": "cotaInferior",
+    "suggestedPrice": 51543,
+    "margin": 0.2,
+    "missing": [
+     "peajes",
+     "gastosFijos"
+    ],
+    "engineVersion": "motor-1.0.0"
+   }
+  },
+  {
+   "nombre": "vehículo null y km/minutos retenidos",
+   "internal": {
+    "routeSource": "mixto",
+    "km": 26,
+    "minutes": 40,
+    "costEstimate": 41234.5,
+    "costType": "estimado",
+    "suggestedPrice": 51543,
+    "margin": 0.2,
+    "missing": [],
+    "engineVersion": "motor-1.0.1",
+    "vehicle": null
+   }
+  },
+  {
+   "nombre": "vehículo completo con ajustes",
+   "internal": {
+    "routeSource": "simulado",
+    "km": null,
+    "minutes": null,
+    "costEstimate": 41234.5,
+    "costType": "estimado",
+    "suggestedPrice": 51543,
+    "margin": 0.2,
+    "missing": [],
+    "engineVersion": "motor-1.0.1",
+    "vehicle": {
+     "id": "veh-ficticio-1",
+     "name": "Camioneta ficticia",
+     "type": "camioneta",
+     "fuel": "diesel",
+     "kmPerL": 11.5,
+     "wearPerKm": null,
+     "adjusted": [
+      "kmPerL"
+     ]
+    }
+   }
+  },
+  {
+   "nombre": "combustible «otro» y costo cota superior",
+   "internal": {
+    "routeSource": "declarado",
+    "km": null,
+    "minutes": null,
+    "costEstimate": 41234.5,
+    "costType": "cotaSuperior",
+    "suggestedPrice": 51543,
+    "margin": 0.2,
+    "missing": [],
+    "engineVersion": "motor-1.0.1",
+    "vehicle": {
+     "id": "veh-ficticio-2",
+     "name": "Furgón ficticio",
+     "type": "furgon",
+     "fuel": "otro",
+     "kmPerL": null,
+     "wearPerKm": 85,
+     "adjusted": []
+    }
+   }
+  },
+  {
+   "nombre": "carga y descarga 0 (H4)",
+   "internal": {
+    "routeSource": "simulado",
+    "km": 12.3,
+    "minutes": 25,
+    "costEstimate": 18000,
+    "costType": "estimado",
+    "suggestedPrice": 22500,
+    "margin": 0.2,
+    "missing": [],
+    "engineVersion": "motor-1.0.1"
+   }
+  }
+ ]
+}

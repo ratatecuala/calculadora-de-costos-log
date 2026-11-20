@@ -3,8 +3,9 @@
 **Versión 3 · 20-11-2026 · Estado: DISEÑO; pendiente de tus decisiones (§12) y de autorizar la fase 0.**
 - La versión 2 corrigió los 5 P1 y los 3 P2 de la [auditoría sobre `cba6ffb`](https://github.com/ratatecuala/calculadora-de-costos-log/issues/45#issuecomment-7042277474) (§13.1).
 - La versión 3 corrige los 5 P2 de la [reauditoría (0 P0, 0 P1)](https://github.com/ratatecuala/calculadora-de-costos-log/issues/45#issuecomment-7044566908) (§13.2) y agrega el plan de implementación de inventario y recursos (§15).
-**Autorización:** [ratificación del propietario en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7041864905): A-55 a A-60. **Siguen sin aprobar** D-2b, D-4, D-5, D-7 y D-10.
-**No hay:** código de la aplicación, migraciones en Supabase, cambios en el motor ni datos importados.
+- **Aprobado (20-11-2026):** D-4 = (b) y T-1 a T-6 (A-61, A-62) y **solo la fase 0** (A-63). La fase 0 está implementada (§16); la fase 1 **no** está autorizada.
+**Autorización:** [ratificación en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7041864905) (A-55 a A-60) y [aprobación del 20-11 registrada en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7044997471) (A-61 a A-63). **Siguen sin aprobar** D-2b, D-5, D-7 y D-10.
+**No hay:** interfaz nueva, integración al cotizador, migraciones en Supabase, cambios en el motor ni datos importados. Solo los contratos de la fase 0 (§16), que la aplicación todavía no usa.
 **Ensayos:** los borradores SQL y las mediciones se ejecutaron en un PostgreSQL 16 **local y desechable**, con las 3 migraciones reales del repositorio (§11).
 
 ## 0. Resumen
@@ -66,7 +67,7 @@
 | `dimsCm` | `{ l, w, h }`, cada uno **entero** 1–2.000 cm, o `null` (las tres o ninguna) |
 | `volumeM3` + `volumeSource` | número > 0 y ≤ 100 con `'calculado' \| 'declarado'`, o ambos `null` |
 
-**Volumen calculado (P2-4):** si `volumeSource = 'calculado'`, deben existir las tres dimensiones y `volumeM3 = Math.round(l × w × h / 1000) / 1000` (m³ con 3 decimales; con cm enteros, `l × w × h / 1000` es entero y el redondeo es exacto). La interfaz **recalcula** el volumen cada vez que cambia una dimensión; el esquema Zod **valida** la igualdad; y el servidor tiene la misma regla como `CHECK` (`round(l*w*h/1e6, 3)`), probada en T15. Si el usuario quiere otro valor, lo marca como `declarado`.
+**Volumen calculado (P2-4):** si `volumeSource = 'calculado'`, deben existir las tres dimensiones y `volumeM3 = Math.round(l × w × h / 1000) / 1000` (m³ con 3 decimales: `l × w × h` es un entero de cm³, así que `l × w × h / 1000` tiene a lo sumo 3 decimales y `Math.round` redondea la mitad hacia arriba, igual que `round()` de PostgreSQL con positivos; verificado en una muestra amplia contra aritmética entera). La interfaz **recalcula** el volumen cada vez que cambia una dimensión; el esquema Zod **valida** la igualdad; y el servidor tiene la misma regla como `CHECK` (`round(l*w*h/1e6, 3)`), probada en T15. Si el usuario quiere otro valor, lo marca como `declarado`.
 | `fragile` | booleano (por defecto `false`) |
 | `handling` | `'normal' \| 'pesado' \| 'voluminoso' \| 'requiere2'` (por defecto `normal`) |
 
@@ -93,6 +94,8 @@
 | `stops[]` (A y B; T-3) | `role`, `floor: −5..60 \| null`, `elevator: 'si' \| 'no' \| 'noCabe' \| null`, `stairs: boolean \| null`, `carryMeters: 0..1.000 \| null`, `access: texto ≤ 120`, `loadMinutes: 0..1.440 \| null` |
 | `helpers[]` | `id` (uuid), `mode: 'servicio' \| 'hora'`; servicio: `feeService`; hora: `ratePerHour`, `paidSegments: ('manipulacion' \| 'traslado')[]` y `hours: número \| null` |
 | `equipment[]` | `label: texto ≤ 60`, `amount: CLP ≥ 0 \| null` |
+
+**Límites técnicos fijados en la fase 0** (revisables; no son reglas de negocio): montos en pesos **enteros** entre 0 y 9.999.999.999 (el tope de `jobs.net_price`); `hours` > 0 y ≤ 24; `paidSegments` con al menos un tramo y sin repetir; hasta 20 ayudantes y 20 elementos de equipamiento; `id` del ayudante en formato UUID y sin repetir; minutos y pisos enteros.
 
 ### 4.2 Sin doble contabilización (A-58)
 
@@ -278,6 +281,7 @@ La marca es local a la transacción (`is_local = true`) y desaparece al terminar
 | Escritura **única**, dentro de la transacción de guardado | `private.insert_cargo_items` (SECURITY DEFINER, `search_path=''`) exige: trabajo del usuario; **marca del guardado v2** para ese trabajo; creado **en esta transacción**; sin líneas previas; ≤ 200 líneas (ver las capas arriba) | T6, T6b y **T6c**: rechazadas |
 | Las defensas no son redundantes | **Controles:** sin la marca, **T6c falla**; sin `created_at = now()`, **T6b falla** | Ejecutados (§11.1) |
 | Volumen calculado coherente | `CHECK`: si `volume_source = 'calculado'`, `volume_m3 = round(l*w*h/1e6, 3)` con cm enteros | **T15**; sin el `CHECK`, **T15 falla** |
+| Tres medidas o ninguna | `CHECK` con `IS NOT NULL` explícitos. **Corregido en la fase 0:** sin ellos, una línea con solo dos medidas pasaba, porque un `CHECK` que da `NULL` se considera cumplido | **C3** (27 fixtures compartidas con Zod); sin la corrección, **C3 falla** |
 | Borrado | Solo **en cascada** cuando el dueño elimina el trabajo completo. Eso ya lo permiten hoy el `GRANT DELETE` sobre `jobs` y la **política RLS** `jobs_delete` del esquema inicial (no es una función), y borra también la cotización y sus enlaces. Es un caso distinto de alterar un documento: el documento deja de existir completo | T13 |
 | `internal` no se reescribe | Permisos actuales: el dueño solo actualiza `status` y `payment` | T11 |
 
@@ -321,9 +325,11 @@ La marca es local a la transacción (`is_local = true`) y desaparece al terminar
 - [x] Reauditoría de ChatGPT: **0 P0 y 0 P1**; los 5 P2 se corrigen en esta versión (§13.2).
 - [x] Borradores M3 y M4 ensayados en local: **18 de 18 pruebas** (T1–T15, T6b, T6c y T9b) y 3 controles negativos (T6b, T6c y T15) (§11.1).
 - [x] Medición de 16 KB reproducible, con la restricción real, un `INSERT` independiente por caso y **aserciones** que hacen fallar el script ante un resultado inesperado (§7).
-- [ ] Decisión del propietario sobre D-4 y T-1 a T-6 (§12).
+- [x] Decisión del propietario sobre D-4 y T-1 a T-6 (A-61, A-62).
+- [x] Autorización expresa de la fase 0 (A-63) y fase 0 implementada (§16).
+- [ ] Revisión técnica de la fase 0 (ChatGPT) y autorización de la fase 1.
+- [ ] Corrección del `INSERT` directo en `jobs` (#52) antes de M3/M4 en staging.
 - [ ] Aprobación expresa de §4.3 y §4.4 antes de programar el adaptador.
-- [ ] Autorización expresa para iniciar la fase 0 de desarrollo (**hoy no autorizada**).
 
 ## 11. Pruebas
 
@@ -332,6 +338,7 @@ La marca es local a la transacción (`is_local = true`) y desaparece al terminar
 | Pruebas | Resultado |
 |---|---|
 | `probar-borradores.sh`: T1–T15, T6b, T6c y T9b | **18/18 OK** (versión 3, 20-11-2026) |
+| `probar-borradores.sh`: **C3** con `tests/fixtures/cargo-items.json` (fase 0) | **27/27**; encontró el defecto de «dos medidas» de M3, ya corregido |
 | Control negativo: M3 sin `created_at = now()` | **T6b falla**: la prueba detecta la defensa faltante |
 | Control negativo: M3 sin la marca del guardado v2 | **T6c falla** |
 | Control negativo: M3 sin el `CHECK` de volumen calculado | **T15 falla** |
@@ -343,9 +350,9 @@ La marca es local a la transacción (`is_local = true`) y desaparece al terminar
 
 | ID | Prueba | Carril |
 |---|---|---|
-| C1 | Contratos Zod: límites de §3.1 y §4.1; dimensiones enteras; volumen `calculado` igual a `Math.round(l·w·h/1000)/1000`; una modalidad por ayudante; 201 líneas rechazadas | 0 |
-| C3 | El mismo conjunto de líneas que Zod acepta, el `CHECK` de M3 también lo acepta (fixtures compartidas con `pruebas-borradores.sql`) | 0 y Datos |
-| C2 | `readSnapshot` lee fixtures v1 reales y no modifica nada | 0 |
+| C1 | Contratos Zod: límites de §3.1 y §4.1; dimensiones enteras; volumen `calculado` igual a `Math.round(l·w·h/1000)/1000`; una modalidad por ayudante; 201 líneas rechazadas | 0 · **hecho** (§16) |
+| C3 | El mismo conjunto de líneas que Zod acepta, el `CHECK` de M3 también lo acepta (fixtures compartidas con `pruebas-c3.sql`) | 0 y Datos · **hecho** (§16) |
+| C2 | `readSnapshot` lee fixtures v1 con las formas históricas y no modifica nada | 0 · **hecho** (§16) |
 | L1 | Copia a la cuenta de un registro v1: idéntico al flujo actual | Datos |
 | L2 | Copia de un registro v2 con 120 líneas: 120 filas en `job_cargo_items`, `internal` con resumen | Datos |
 | L3 | Copia repetida: sin duplicados ni números gastados | Datos |
@@ -355,7 +362,7 @@ La marca es local a la transacción (`is_local = true`) y desaparece al terminar
 | H1 | Paradas A y B con minutos: costo igual al actual con la suma | 2 y 4 |
 | H2 | Falta la parada B: CF, R y el costo pasan a cota inferior; el precio, «al menos» | 2 y 4 |
 | H3 | Comparación de rutas no concluyente si depende del tiempo faltante | 4 |
-| H4 | Cotización v1 con carga 0: se muestra igual que antes | 0 |
+| H4 | Cotización v1 con carga 0: se muestra igual que antes | 0 · **hecho** (§16) |
 | S1 | `suggestServiceText` nunca contiene kg, m³, $ ni minutos | 1 |
 | K1 | El catálogo no tiene ningún valor sin fuente; combustible solo gasolina o diésel en el piloto | 3 |
 | G1 | Casos dorados 64/64 en cada entrega | ∀ |
@@ -477,3 +484,34 @@ Ninguna puerta autoriza fusionar el PR #34, activar Google Routes, producción n
 | Diferencia entre la validación del navegador y la del servidor | Fixtures compartidas (C3) |
 | Inventario grande llena el navegador | Tope 200, validación de tamaño y error visible (L5) |
 | Exposición del esquema `private` | Verificación previa obligatoria (§8); si falla, no se migra |
+
+## 16. Fase 0 implementada (A-63)
+
+**Alcance autorizado y cumplido:** tipos, contratos y validaciones Zod de inventario y recursos; contratos del snapshot versionado; pruebas de compatibilidad con las cotizaciones actuales; cálculos y casos dorados intactos. **La aplicación todavía no importa estos archivos:** no hay cambio visible, ni en lo que se guarda, ni en el costo.
+
+| Archivo | Contenido |
+|---|---|
+| `src/shared/cargo.ts` | `cargoItemSchema` (§3.1, `strict`, valores por defecto sin inventar datos), `cargoItemsSchema` (≤ 200, T-1), `cargoInventorySchema`, `volumeFromDims`, esquemas de `totals` y `capacity`, firmas de `cargoSummary`, `capacityEstimate` y `suggestServiceText` (carril 1) |
+| `src/shared/resources.ts` | `stopSchema` (solo A y B, T-3), `helperSchema` (unión por modalidad, `strict`: A-58), `equipmentSchema`, `resourcesSchema`, `handlingTimeSchema`, firmas de `handlingTime` y `helperCostLines` (carril 2) |
+| `src/shared/snapshot.ts` | `snapshotV1Schema` (lectura tolerante de lo existente), `snapshotV2Schema` (§6.1), `readSnapshot` (nunca lanza ni modifica; v1 sin inventario ni recursos), `toCloudPayload` (D-4 = b: líneas aparte, `internal` sin `items`; v1 idéntico) |
+| `tests/contratos.*.test.ts` | 79 pruebas: C1, C2, C3, H4 y la parte pura de L1 |
+| `tests/fixtures/` | `cargo-items.json` (27 casos compartidos con el servidor) y `snapshots-v1.json` (5 formas históricas, datos ficticios; no provienen de staging) |
+| `scripts/diseno/pruebas-c3.sql` | C3 del lado del servidor, en el PostgreSQL local desechable |
+
+**Decisiones menores tomadas en la fase 0 (revisables en la revisión técnica):**
+- En la vista de una cotización v1, `formulaVersion` es `null` (no se conocía) y los datos del catálogo del vehículo son `null`. Los campos extra del vehículo v1 no se muestran, pero el registro no cambia.
+- `cargo` y `resources` pueden ser `null` en una cotización v2 sin inventario o sin recursos.
+- `toCloudPayload` copia un v1 **tal cual** (como hoy). Un v2 se valida antes de copiarse: si es inválido, no se copia.
+- Diferencias permitidas en C3 (Zod más estricto que el servidor): campos extra y números escritos como texto.
+
+**Pruebas (20-11-2026, Claude):**
+
+| Prueba | Resultado |
+|---|---|
+| `npm test` | **328/328** (249 anteriores + 79 nuevas) |
+| `npm run typecheck` y `vite build` | Sin errores |
+| `scripts/verificar-casos-dorados.mjs` | **64/64** |
+| `probar-borradores.sh` (local desechable) | 18/18 + **C3 27/27** |
+| Mutaciones manuales (quitar la regla de volumen, permitir medidas con decimales, quitar `strict` del ayudante, no copiar en `readSnapshot`, dejar `items` en `toCloudPayload`) | **Las 5 hacen fallar las pruebas** |
+| Archivos de `src/web`, `src/engine`, `src/server` y `supabase/` | **Sin cambios** |
+

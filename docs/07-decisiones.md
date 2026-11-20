@@ -234,12 +234,24 @@ Escritas por el propietario en GitHub ([ratificación en #43](https://github.com
 
 **Siguen pendientes:**
 - D-2b (clasificación de camiones);
-- D-4 (almacenamiento del inventario; con datos de medición en [21](21-diseno-datos-cotizador.md) §7);
 - D-5 (fórmulas);
 - D-7 (IVA);
 - D-10 (Google Routes).
+- D-4 quedó resuelta por A-61 (abajo).
 
 **Autorizado además:** el diseño técnico documental de #45 ([21](21-diseno-datos-cotizador.md)). **No autorizado:** implementar, ejecutar migraciones, modificar el motor, activar servicios de pago, importar datos, producción ni merge.
+
+## Decisiones del 20-11-2026 sobre el diseño v3 (#45) y la fase 0
+
+Comunicadas por el propietario por chat a Claude y **registradas literalmente** en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7044997471) (misma cuenta de GitHub, AGENTS.md §6.7). **APROBADAS**, sobre [21](21-diseno-datos-cotizador.md) versión 3 (commit `7b5a95b`).
+
+| ID | Decisión | Alcance de la aprobación |
+|---|---|---|
+| A-61 | **D-4 = opción (b):** tabla `job_cargo_items` de solo lectura para el dueño, escrita una vez dentro del guardado; `internal` guarda solo el resumen | Diseño de almacenamiento. **No** autoriza ejecutar M3/M4 |
+| A-62 | **T-1 a T-6** según docs/21 §12: tope de 200 líneas (interfaz, local y servidor); reutilizar `service_description`; accesibilidad solo en A y B; historial local en la misma clave con versión por registro; fuentes del catálogo en `jsonb` por campo; `create_job_with_quote_v2` que reutiliza la v1 | Contratos y diseño |
+| A-63 | **Fase 0 (puerta P0)**, exclusivamente: tipos, contratos y validaciones Zod de inventario y recursos; contratos de snapshot versionado; pruebas de compatibilidad con las cotizaciones actuales; cálculos y casos dorados intactos | **No** autoriza interfaces nuevas, integración al cotizador, migraciones, fórmulas nuevas, cambios tributarios, Google Routes, despliegue ni merge del PR #34. Al terminar: commit, pruebas y revisión técnica antes de pedir la fase 1 |
+
+**Tarea independiente:** [#52](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52), impedir el `INSERT` directo en `jobs` que omite la numeración automática. **Debe resolverse antes de autorizar M3/M4 en staging** (puerta P3).
 
 **Implementación de A-47 (decisiones menores, revisables):**
 - Un número local **libre** se conserva tal cual, así que la secuencia puede saltar hasta ese número.

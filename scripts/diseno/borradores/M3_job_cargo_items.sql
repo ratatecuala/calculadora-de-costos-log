@@ -37,17 +37,21 @@ create table public.job_cargo_items (
   fragile boolean not null default false,
   handling text not null default 'normal' check (handling in ('normal', 'pesado', 'voluminoso', 'requiere2')),
   created_at timestamptz not null default now(),
-  -- Las tres dimensiones o ninguna.
+  -- Las tres dimensiones o ninguna. Los IS NOT NULL son necesarios: con una medida nula,
+  -- `between` da NULL y un CHECK con resultado NULL se considera CUMPLIDO (lo detectó C3).
   constraint job_cargo_items_dims check (
     (dim_l_cm is null and dim_w_cm is null and dim_h_cm is null)
-    or (dim_l_cm between 1 and 2000 and dim_w_cm between 1 and 2000 and dim_h_cm between 1 and 2000)
+    or (dim_l_cm is not null and dim_w_cm is not null and dim_h_cm is not null
+        and dim_l_cm between 1 and 2000 and dim_w_cm between 1 and 2000 and dim_h_cm between 1 and 2000)
   ),
   constraint job_cargo_items_volume_source check ((volume_m3 is null) = (volume_source is null)),
   -- P2-4: un volumen «calculado» DEBE coincidir con las dimensiones (cm enteros → m³ con 3
   -- decimales, mitad hacia arriba). El cliente usa la misma regla: Math.round(l*w*h/1000)/1000.
   constraint job_cargo_items_volume_calculado check (
     volume_source is distinct from 'calculado'
-    or (dim_l_cm is not null and volume_m3 = round(dim_l_cm::numeric * dim_w_cm * dim_h_cm / 1000000, 3))
+    or (dim_l_cm is not null and dim_w_cm is not null and dim_h_cm is not null
+        and volume_m3 is not null
+        and volume_m3 = round(dim_l_cm::numeric * dim_w_cm * dim_h_cm / 1000000, 3))
   ),
   constraint job_cargo_items_job_fk foreign key (owner_id, job_id)
     references public.jobs (owner_id, id) on delete cascade,
