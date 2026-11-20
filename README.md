@@ -22,7 +22,7 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 | Auditorías de ChatGPT | 7 rondas sobre el flujo general, más una revisión focalizada de A-47: **aceptada técnicamente para staging, sin hallazgos P0/P1**. ChatGPT revisa **por inspección**; no ejecuta las pruebas |
 | `main` | Solo publica este README de continuidad. **El código y los documentos técnicos siguen en la rama del PR #34, que no está integrado.** Toda fusión requiere aprobación del propietario |
 | Conflicto con `main` | **Resuelto en la rama**: se integró `main` conservando el README de desarrollo (`main` solo tenía el README de portada) |
-| Siguiente acción | Reauditoría de ChatGPT de la fase 1 tras corregir 3 P1 y 2 P2 ([21 §17.6](docs/21-diseno-datos-cotizador.md)); después, tu decisión sobre la integración (puerta P2) y sobre el diseño de más de 24 h (§4.5); corregir #52 antes de autorizar M3/M4; ejecutar C-1 y C-2 en GPT Deep Research; crear el cliente OAuth de Google y hacer el primer respaldo real |
+| Siguiente acción | Fase 1 con cierre técnico (reauditoría 0 P0 y 0 P1; sus 2 P2 corregidos). Tu decisión sobre el plan de integración ([22](docs/22-diseno-integracion-cotizador.md)): D-I1 a D-I7 y autorizar I-1; después, tu decisión sobre la integración (puerta P2) y sobre el diseño de más de 24 h (§4.5); corregir #52 antes de autorizar M3/M4; ejecutar C-1 y C-2 en GPT Deep Research; crear el cliente OAuth de Google y hacer el primer respaldo real |
 
 **Cómo retomar:** leer este README → [AGENTS.md](AGENTS.md) (reglas y autorizaciones) → [07 · Decisiones](docs/07-decisiones.md) → [13 · Staging](docs/13-staging.md) → los últimos comentarios del PR #34.
 
@@ -64,7 +64,7 @@ Detalle: [02 · Arquitectura](docs/02-arquitectura.md) y [13 · Staging](docs/13
 
 | Prueba | Resultado | Quién la ejecutó |
 |---|---|---|
-| `npm test` (sin red) | **450/450** (20-11-2026: 249 anteriores + 96 de la fase 0 + 105 de la fase 1, incluidas la interfaz plegable y las correcciones de su auditoría). Sin `it.fails` activos: los defectos C-1 a C-4 se corrigieron con tu aprobación (A-50) | Claude (ejecutadas) |
+| `npm test` (sin red) | **465/465** (20-11-2026: 249 anteriores + 96 de la fase 0 + 120 de la fase 1, incluidas la interfaz plegable y las correcciones de sus dos auditorías). Sin `it.fails` activos: los defectos C-1 a C-4 se corrigieron con tu aprobación (A-50) | Claude (ejecutadas) |
 | Recálculo independiente de los casos dorados (`scripts/verificar-casos-dorados.mjs`) | **64/64** | Claude (ejecutadas) |
 | Teléfono y PC en navegador local (10 tamaños de pantalla) | 10 hallazgos, 10 corregidos; montos idénticos antes y después (también tras A-50); cotización con «Precio total» y leyenda | Claude (ejecutadas) |
 | Ensayo local de respaldo y restauración (datos ficticios) | **Idéntica** (`diff` = 0). **No** equivale a un respaldo real ni a restaurar staging | Claude (ejecutadas) |
@@ -149,6 +149,7 @@ Reglas completas en [AGENTS.md](AGENTS.md).
 | [17 · Supabase: seguridad y respaldo](docs/17-supabase-seguridad-respaldo.md) | Auditoría, ajustes de Auth, respaldo y restauración, Google OAuth (#35) |
 | [18 · Encargo de Deep Research sobre IVA](docs/18-encargo-deep-research-iva.md) | Preguntas para validar la tributación antes de la opción B (#16, A-54) |
 | [19 · Plan del cotizador ampliado](docs/19-plan-cotizador-ampliado.md) | Catálogo de vehículos, inventario de carga, costo según carga, IVA en dos opciones y rutas reales: etapas, datos y decisiones (épica #42, **propuesta**) |
+| [22 · Diseño de integración con el cotizador](docs/22-diseno-integracion-cotizador.md) | Puerta P2, **propuesta no autorizada**: I-1 en el navegador sin migraciones, I-2 en la cuenta tras #52 y M3/M4, I-3 recursos en el costo con aprobación de fórmulas; fuente única de cada costo, conservación de datos, protección de históricos y decisiones D-I1 a D-I7 |
 | [21 · Diseño de datos del cotizador ampliado](docs/21-diseno-datos-cotizador.md) | Diseño técnico de #45, **versión 3, aprobado** (A-61 a A-63; fase 0 implementada en §16; corrige la auditoría y los 5 P2 de la reauditoría): módulos, contratos, inmutabilidad con 4 capas, persistencia local, medición de 16 KB con aserciones, borradores M3 y M4 ensayados en local (18/18 y 3 controles negativos), carriles paralelos y **plan de implementación por puertas** (§15) |
 | [20 · Encargos de Deep Research del cotizador](docs/20-encargos-deep-research-cotizador.md) | C-1 catálogo y mercado, C-2 costo según carga y recursos; listos para ejecutar (el IVA no se duplica) |
 

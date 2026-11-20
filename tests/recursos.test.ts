@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildCostItems, EMPTY_PARAMS } from '../src/engine/inputs';
 import {
+  equipmentAmount,
   handlingTime,
   helperCostLines,
   helpersFromV1,
@@ -257,3 +258,58 @@ describe('P1-2 · valores inválidos no suman en los totales informativos', () =
   });
 });
 
+
+describe('Reauditoría fase 1 · P2-A: cada ayudante se valida con el esquema completo', () => {
+  const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  const ok: Helper = { id: id(950), mode: 'hora', ratePerHour: 6000, hours: 3, paidSegments: ['manipulacion'] };
+  // Datos que la interfaz no produce, pero que podrían llegar en un snapshot malformado.
+  const malformados: Array<[string, unknown]> = [
+    ['tramo desconocido', { ...ok, paidSegments: ['otro'] }],
+    ['tramo repetido', { ...ok, paidSegments: ['traslado', 'traslado'] }],
+    ['más tramos que los posibles', { ...ok, paidSegments: ['manipulacion', 'traslado', 'manipulacion'] }],
+    ['id no UUID', { ...ok, id: 'h1' }],
+    ['campo extra de la otra modalidad', { ...ok, feeService: 1000 }],
+    ['modalidad desconocida', { ...ok, mode: 'jornada' }],
+    ['servicio con campo extra', { id: id(951), mode: 'servicio', feeService: 25000, ratePerHour: 6000 }],
+    ['horas como texto', { ...ok, hours: '3' }],
+  ];
+
+  it.each(malformados)('%s: «invalido», sin monto', (_n, h) => {
+    expect(helperCostLines({ helpers: [h as Helper] })[0]).toMatchObject({ amount: null, status: 'invalido' });
+  });
+
+  it('tarifa × horas que excede el tope monetario: «invalido», aunque cada campo sea válido', () => {
+    const grande: Helper = { ...ok, id: id(952), ratePerHour: 9_000_000_000, hours: 24 };
+    expect(helperCostLines({ helpers: [grande] })[0]).toMatchObject({ amount: null, status: 'invalido' });
+  });
+
+  it('sin tramos sigue siendo «faltante» (dato vacío), no inválido', () => {
+    expect(helperCostLines({ helpers: [{ ...ok, paidSegments: [] }] })[0]).toMatchObject({ status: 'faltante' });
+    expect(helperCostLines({ helpers: [ok] })[0]).toMatchObject({ amount: 18000, status: 'ok' });
+  });
+
+  it('un malformado no altera el total de los válidos', () => {
+    const s = resourcesSummary({ stops: [], helpers: [ok, { ...ok, id: id(953), paidSegments: ['otro'] } as unknown as Helper], equipment: [] });
+    expect(s).toMatchObject({ helpersKnownTotal: 18000, helpersInvalid: 1, helpersMissing: 0 });
+  });
+});
+
+describe('Reauditoría fase 1 · P2-B: equipamiento inválido aunque falte el monto', () => {
+  it('nombre vacío y monto vacío: «invalido», no «faltante»', () => {
+    expect(equipmentAmount({ label: '', amount: null })).toEqual({ amount: null, status: 'invalido' });
+    expect(equipmentAmount({ label: 'x'.repeat(61), amount: null })).toEqual({ amount: null, status: 'invalido' });
+  });
+
+  it('nombre válido y monto vacío: «faltante»', () => {
+    expect(equipmentAmount({ label: 'Mantas', amount: null })).toEqual({ amount: null, status: 'faltante' });
+  });
+
+  it('campo extra: «invalido»', () => {
+    expect(equipmentAmount({ label: 'Mantas', amount: 1000, extra: 1 } as unknown as { label: string; amount: number })).toMatchObject({ status: 'invalido' });
+  });
+
+  it('el resumen cuenta el nombre vacío como inválido, no como falta de monto', () => {
+    const s = resourcesSummary({ stops: [], helpers: [], equipment: [{ label: '', amount: null }, { label: 'Mantas', amount: null }] });
+    expect(s).toMatchObject({ equipmentInvalid: 1, equipmentMissing: 1, equipmentKnownTotal: 0 });
+  });
+});

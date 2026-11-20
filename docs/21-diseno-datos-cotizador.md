@@ -640,6 +640,19 @@ Casos dorados 64/64. Con la flag apagada, el paquete sigue sin los editores.
 - E2E: **210/210** en Pixel 7, iPhone 13 (emulado), 1366 y 1440.
 - **Sigue sin probarse:** Safari real y lector de pantalla.
 
+### 17.7 Reauditoría de la fase 1 (`cee34b6`: 0 P0, 0 P1, 2 P2) y cierre técnico
+
+[Reauditoría](https://github.com/ratatecuala/calculadora-de-costos-log/issues/45#issuecomment-7049771363): la fase 1 cumple el criterio de cierre técnico. Se corrigieron sus 2 P2:
+
+| Hallazgo | Corrección | Prueba que impide que reaparezca |
+|---|---|---|
+| **P2-A** `helperCostLines` solo validaba tarifa y horas | Cada ayudante se valida con el **esquema completo** (id UUID, modalidad, tramos permitidos y sin repetir, sin campos extra). Solo un dato vacío (monto, tarifa, horas o tramos) es «faltante». El producto tarifa × horas también debe caber en el tope monetario | 8 casos malformados (tramo desconocido o repetido, id no UUID, campo de la otra modalidad, modalidad desconocida, horas como texto) y producto sobre el tope → «inválido». Quitar el esquema completo hace fallar **15** pruebas; quitar el tope del producto, **1** |
+| **P2-B** `equipmentAmount` devolvía «faltante» antes de validar el nombre | Primero se valida el elemento completo; «faltante» es solo el monto vacío con un nombre válido | Nombre vacío o de 61 caracteres con monto vacío → «inválido»; campo extra → «inválido»; el resumen lo cuenta como inválido. Volver al orden anterior hace fallar **2** pruebas |
+
+**Resultados (Claude, 20-11-2026):** `npm test` **465/465**; casos dorados 64/64; typecheck y build sin errores; e2e de módulos 210/210 (sin cambios visibles en la interfaz). La interfaz plegable se conserva sin rediseño.
+
+**Siguiente etapa:** diseño de integración en [22](22-diseno-integracion-cotizador.md) (I-1 sin migraciones; I-2 tras #52; I-3 con aprobación de fórmulas). **No autorizado.**
+
 ## 18. Propuesta para una etapa posterior: datos de la carga aportados por el cliente (NO autorizada)
 
 **Estado: PROPUESTO.** No se implementa ningún formulario público ni recepción de datos. Requiere tu aprobación expresa y, por tratarse de datos de terceros y de una URL pública, una revisión de seguridad y privacidad (docs/06).

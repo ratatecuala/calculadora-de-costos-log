@@ -185,25 +185,29 @@ export function handlingTime(resources: Pick<ResourcesLike, 'stops'>): HandlingT
  */
 export function helperCostLines(resources: Pick<ResourcesLike, 'helpers'>): HelperCostLine[] {
   return resources.helpers.map((h): HelperCostLine => {
-    // Auditoría fase 1, P1-2: un ayudante con datos fuera de rango (30 h, tarifa negativa, decimales)
-    // NO aporta monto, aunque la tarifa y las horas existan. Faltar tramos es «faltante», no inválido.
     const base = { helperId: h.id, mode: h.mode };
+    // Reauditoría fase 1, P2-A: cada línea se valida con el ESQUEMA COMPLETO (id, modalidad,
+    // tramos permitidos y sin repetir, campos extra), no solo tarifa y horas. Lo único que se
+    // tolera como «faltante» (y no como inválido) es un dato aún vacío: monto, tarifa, horas o tramos.
+    const sinTramos = h.mode === 'hora' && Array.isArray(h.paidSegments) && h.paidSegments.length === 0;
+    const candidato = sinTramos ? { ...h, paidSegments: ['manipulacion'] } : h;
+    if (!helperSchema.safeParse(candidato).success) return { ...base, amount: null, status: 'invalido' };
     if (h.mode === 'servicio') {
-      if (h.feeService === null) return { ...base, amount: null, status: 'faltante' };
-      return clpSchema.safeParse(h.feeService).success ? { ...base, amount: h.feeService, status: 'ok' } : { ...base, amount: null, status: 'invalido' };
+      return h.feeService === null ? { ...base, amount: null, status: 'faltante' } : { ...base, amount: h.feeService, status: 'ok' };
     }
-    const rateOk = h.ratePerHour === null || clpSchema.safeParse(h.ratePerHour).success;
-    const hoursOk = h.hours === null || helperHoursSchema.safeParse(h.hours).success;
-    if (!rateOk || !hoursOk) return { ...base, amount: null, status: 'invalido' };
-    if (h.ratePerHour === null || h.hours === null || h.paidSegments.length === 0) return { ...base, amount: null, status: 'faltante' };
-    return { ...base, amount: Math.round(h.ratePerHour * h.hours), status: 'ok' };
+    if (h.ratePerHour === null || h.hours === null || sinTramos) return { ...base, amount: null, status: 'faltante' };
+    const amount = Math.round(h.ratePerHour * h.hours);
+    // El producto también debe caber en el tope monetario, aunque tarifa y horas sean válidas por separado.
+    return clpSchema.safeParse(amount).success ? { ...base, amount, status: 'ok' } : { ...base, amount: null, status: 'invalido' };
   });
 }
 
 /** Monto de un elemento de equipamiento que puede sumarse, o `null` (faltante o inválido). */
 export function equipmentAmount(e: Equipment): { amount: number | null; status: HelperCostLine['status'] } {
-  if (e.amount === null) return { amount: null, status: 'faltante' };
-  return equipmentSchema.safeParse(e).success ? { amount: e.amount, status: 'ok' } : { amount: null, status: 'invalido' };
+  // Reauditoría fase 1, P2-B: se valida el elemento COMPLETO antes de mirar el monto. Un nombre
+  // vacío (u otro error) es «inválido» aunque el monto falte; «faltante» es solo el monto vacío.
+  if (!equipmentSchema.safeParse(e).success) return { amount: null, status: 'invalido' };
+  return e.amount === null ? { amount: null, status: 'faltante' } : { amount: e.amount, status: 'ok' };
 }
 
 export interface ResourcesSummary {
