@@ -251,6 +251,17 @@ Comunicadas por el propietario por chat a Claude y **registradas literalmente** 
 | A-62 | **T-1 a T-6** según docs/21 §12: tope de 200 líneas (interfaz, local y servidor); reutilizar `service_description`; accesibilidad solo en A y B; historial local en la misma clave con versión por registro; fuentes del catálogo en `jsonb` por campo; `create_job_with_quote_v2` que reutiliza la v1 | Contratos y diseño |
 | A-63 | **Fase 0 (puerta P0)**, exclusivamente: tipos, contratos y validaciones Zod de inventario y recursos; contratos de snapshot versionado; pruebas de compatibilidad con las cotizaciones actuales; cálculos y casos dorados intactos | **No** autoriza interfaces nuevas, integración al cotizador, migraciones, fórmulas nuevas, cambios tributarios, Google Routes, despliegue ni merge del PR #34. Al terminar: commit, pruebas y revisión técnica antes de pedir la fase 1 |
 
+## Decisiones del 20-11-2026: cierre de la fase 0 y fase 1 de inventario y recursos
+
+Comunicadas por el propietario por chat a Claude y **registradas literalmente** en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7045847482). **APROBADAS.** Base: [auditoría final de la fase 0](https://github.com/ratatecuala/calculadora-de-costos-log/issues/45#issuecomment-7045719529) (0 P0, 0 P1, 2 P2 de seguimiento).
+
+| ID | Decisión | Alcance de la aprobación |
+|---|---|---|
+| — | **Fase 0 (A-63) cerrada técnicamente** (commit `87119a6`) | Los 2 P2 de seguimiento pasan a criterios de la fase 1 |
+| A-64 | **T-7:** se conservan **provisionalmente** los límites técnicos de recursos (≤ 24 h por ayudante, ≤ 20 ayudantes, ≤ 20 elementos de equipamiento, pesos enteros) y se **diseña** una solución para trabajos de más de 24 horas | Diseño (docs/21 §4.5); implementarlo requiere otra aprobación |
+| A-65 | **T-8:** `fragile: false` = «no marcado» y `handling: 'normal'` = «sin manejo especial declarado» | **Prohibido** usarlos para automatizar costos o determinar seguridad |
+| A-66 | **Fase 1 (puerta P1), solo carriles #47 (inventario) y #51 (recursos):** editores, funciones puras y pruebas; ambos detrás de una **feature flag desactivada**; teléfono y PC; comprobaciones de peso y volumen preparadas para la integración | **Sin** conexión al cotizador ni cambio del resultado económico. Bloqueados: Supabase, migraciones, IVA, Google Routes, producción, merge del PR #34, catálogo #46 e integración (P2) |
+
 **Tarea independiente:** [#52](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52), impedir el `INSERT` directo en `jobs` que omite la numeración automática. **Debe resolverse antes de autorizar M3/M4 en staging** (puerta P3).
 
 **Implementación de A-47 (decisiones menores, revisables):**

@@ -643,3 +643,84 @@ select {
   align-self: flex-start;
   margin: 0;
 }
+
+/* Inventario y recursos (#47, #51; vista previa con feature flag, A-66). */
+.field-input select {
+  border: 0;
+  outline: 0;
+  font: inherit;
+  font-size: 16px;
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  background: transparent;
+  color: var(--text);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.item-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.item-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.item-card legend {
+  padding: 0 4px;
+}
+.item-card fieldset,
+fieldset.dims,
+fieldset.segments {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.item-actions .btn2 {
+  flex: 1 1 auto;
+}
+.totals {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 12px;
+  margin: 0;
+}
+.totals dt {
+  font-weight: 600;
+}
+.totals dd {
+  margin: 0;
+}
+@media (max-width: 360px) {
+  .grid3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+

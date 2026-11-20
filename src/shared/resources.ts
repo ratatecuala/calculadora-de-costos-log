@@ -1,8 +1,9 @@
 /**
  * Contrato de recursos del servicio: paradas, ayudantes y equipamiento (fase 0, A-63; docs/21 §4).
  *
- * Solo tipos, esquema Zod y firmas. NO cambia el motor ni el costo: la modalidad por hora y el
- * tiempo de carga incompleto entran al costo solo con la aprobación de docs/21 §4.3–§4.4 (puerta P4).
+ * Tipos, esquema Zod y funciones puras (fase 1, carril #51, A-66). NO cambia el motor ni el costo:
+ * la modalidad por hora y el tiempo de carga incompleto entran al costo solo con la aprobación de
+ * docs/21 §4.3–§4.4 (puerta P4). Hasta entonces, estas funciones solo INFORMAN.
  *
  * - Accesibilidad solo en las paradas A y B (T-3, A-62).
  * - Una modalidad por ayudante (A-58): el esquema rechaza campos de la otra modalidad.
@@ -138,6 +139,91 @@ export interface HelperCostLine {
   amount: number | null;
 }
 
-// Firmas que implementa el carril 2 (#51). Se declaran aquí para fijar el contrato.
-export type HandlingTimeFn = (resources: Resources) => HandlingTime;
-export type HelperCostLinesFn = (resources: Resources) => HelperCostLine[];
+// ---------------------------------------------------------------------------
+// Funciones puras del carril 2 (#51). Reciben también borradores del editor (`ResourcesLike`), que
+// pueden estar incompletos: un dato que falta da `null`, nunca 0.
+
+/** Forma mínima que leen las funciones: la de `Resources`, sin exigir que ya sea válida. */
+export interface ResourcesLike {
+  stops: ReadonlyArray<Pick<Stop, 'role' | 'loadMinutes'>>;
+  helpers: ReadonlyArray<Helper>;
+  equipment: ReadonlyArray<Equipment>;
+}
+
+/**
+ * Minutos de carga y descarga declarados en A y B (docs/21 §4.4). Suma solo las paradas con dato y
+ * lista las que faltan. Una parada no registrada cuenta como faltante. Sin coeficientes automáticos:
+ * el piso y el ascensor son referencia para el transportista, no generan minutos.
+ */
+export function handlingTime(resources: Pick<ResourcesLike, 'stops'>): HandlingTime {
+  let minutes = 0;
+  let known = 0;
+  const missingStops: StopRole[] = [];
+  for (const role of STOP_ROLES) {
+    const v = resources.stops.find((s) => s.role === role)?.loadMinutes ?? null;
+    if (v === null) missingStops.push(role);
+    else {
+      minutes += v;
+      known += 1;
+    }
+  }
+  return { minutes: known > 0 ? minutes : null, complete: missingStops.length === 0, missingStops };
+}
+
+/**
+ * Una línea por ayudante (A-58). Por servicio: el monto declarado. Por hora: tarifa × horas,
+ * redondeado al peso; `null` si falta la tarifa, las horas o los tramos pagados. Nunca 0 por defecto.
+ */
+export function helperCostLines(resources: Pick<ResourcesLike, 'helpers'>): HelperCostLine[] {
+  return resources.helpers.map((h) => {
+    if (h.mode === 'servicio') return { helperId: h.id, mode: h.mode, amount: h.feeService };
+    const amount = h.ratePerHour !== null && h.hours !== null && h.paidSegments.length > 0 ? Math.round(h.ratePerHour * h.hours) : null;
+    return { helperId: h.id, mode: h.mode, amount };
+  });
+}
+
+export interface ResourcesSummary {
+  helperCount: number;
+  /** Suma de los montos conocidos de ayudantes. */
+  helpersKnownTotal: number;
+  /** Ayudantes sin monto calculable (faltante). Si > 0, el total es una cota inferior. */
+  helpersMissing: number;
+  equipmentKnownTotal: number;
+  equipmentMissing: number;
+  handling: HandlingTime;
+}
+
+/** Resumen interno para mostrar. INFORMATIVO: no entra al costo sin la aprobación de §4.3–§4.4. */
+export function resourcesSummary(resources: ResourcesLike): ResourcesSummary {
+  const lines = helperCostLines(resources);
+  const known = (xs: Array<number | null>) => xs.reduce<number>((a, b) => a + (b ?? 0), 0);
+  return {
+    helperCount: lines.length,
+    helpersKnownTotal: known(lines.map((l) => l.amount)),
+    helpersMissing: lines.filter((l) => l.amount === null).length,
+    equipmentKnownTotal: known(resources.equipment.map((e) => e.amount)),
+    equipmentMissing: resources.equipment.filter((e) => e.amount === null).length,
+    handling: handlingTime(resources),
+  };
+}
+
+/**
+ * Conversión de los ayudantes de la v1 («cantidad × monto por ayudante») a N ayudantes «servicio»
+ * con el mismo monto (docs/21 §4.3): la suma es idéntica a la partida actual del motor.
+ * `newId` se inyecta para que la función sea pura y probable.
+ */
+export function helpersFromV1(count: number, feePerHelper: number | null, newId: () => string): Helper[] {
+  const n = Number.isInteger(count) && count > 0 ? Math.min(count, MAX_HELPERS) : 0;
+  return Array.from({ length: n }, () => ({ id: newId(), mode: 'servicio' as const, feeService: feePerHelper }));
+}
+
+/**
+ * Cambiar la modalidad de un ayudante crea un ayudante NUEVO con el mismo id y los montos vacíos:
+ * no quedan montos residuales de la otra modalidad (#51, A-58).
+ */
+export function switchHelperMode(helper: Helper, mode: Helper['mode']): Helper {
+  if (helper.mode === mode) return helper;
+  return mode === 'servicio'
+    ? { id: helper.id, mode: 'servicio', feeService: null }
+    : { id: helper.id, mode: 'hora', ratePerHour: null, paidSegments: [], hours: null };
+}

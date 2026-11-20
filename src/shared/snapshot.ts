@@ -15,12 +15,22 @@ import {
   MAX_SUMMARY_CHARS,
   capacityEstimateSchema,
   cargoItemsSchema,
+  cargoTotalsIssue,
   cargoTotalsSchema,
   type CargoItem,
 } from './cargo';
 import { handlingTimeSchema, resourcesSchema } from './resources';
 
 const finite = z.number().finite();
+
+export const MAX_MISSING_ITEMS = 20;
+export const MAX_MISSING_CHARS = 60;
+/**
+ * Tope conservador del `internal` v2 que sube a la nube, en bytes de JSON (UTF-8). La base exige
+ * `pg_column_size(internal) <= 16384` sobre el jsonb sin comprimir, que en la medición de docs/21 §7
+ * ocupó entre 1,28 y 1,44 veces el JSON. 11.000 × 1,44 ≈ 15.840 < 16.384.
+ */
+export const MAX_CLOUD_INTERNAL_JSON_BYTES = 11000;
 
 const routeSource = z.enum(['simulado', 'google', 'declarado', 'mixto']);
 const costType = z.enum(['estimado', 'cotaInferior', 'cotaSuperior']);
@@ -98,6 +108,8 @@ export const snapshotV2Schema = z
     /** Fórmulas de costo aplicadas (docs/03). Mientras no se aprueben fórmulas nuevas, igual al motor. */
     formulaVersion: z.string().min(1),
     ...commonShape,
+    /** Acotado en v2 (seguimiento P2): partidas faltantes con nombre corto. La v1 se lee sin tope. */
+    missing: z.array(z.string().min(1).max(MAX_MISSING_CHARS)).max(MAX_MISSING_ITEMS),
     vehicle: vehicleV2Schema.nullable(),
     /** `null` si la cotización no tiene inventario. */
     cargo: cargoSnapshotSchema.nullable(),
@@ -201,23 +213,12 @@ export type CloudPayloadResult =
  * Peso, volumen y completitud se validan o reconstruyen con `cargoSummary` en la fase 1.
  */
 export function localCargoIntegrityIssue(cargo: CargoSnapshot): string | null {
-  const items = cargo.items;
-  if (items === undefined) {
+  if (cargo.items === undefined) {
     return `El registro local no trae la lista de objetos, pero su resumen indica ${cargo.totals.lines} líneas: no se copia para no perder el inventario`;
   }
-  const t = cargo.totals;
-  if (items.length !== t.lines) {
-    return `El resumen indica ${t.lines} líneas, pero la lista tiene ${items.length}: no se copia`;
-  }
-  const conPeso = items.filter((i) => i.unitWeightKg !== null).length;
-  if (conPeso !== t.linesWithWeight) {
-    return `El resumen indica ${t.linesWithWeight} líneas con peso, pero la lista tiene ${conPeso}: no se copia`;
-  }
-  const conVolumen = items.filter((i) => i.volumeM3 !== null).length;
-  if (conVolumen !== t.linesWithVolume) {
-    return `El resumen indica ${t.linesWithVolume} líneas con volumen, pero la lista tiene ${conVolumen}: no se copia`;
-  }
-  return null;
+  // Fase 1: también peso y volumen (seguimiento P2 de la auditoría final de la fase 0).
+  const problema = cargoTotalsIssue(cargo.items, cargo.totals);
+  return problema === null ? null : `${problema}: no se copia`;
 }
 
 /**
@@ -243,5 +244,9 @@ export function toCloudPayload(raw: unknown): CloudPayloadResult {
   if (problema !== null) return { ok: false, reason: problema };
   const cargoItems = internal.cargo.items ?? [];
   delete internal.cargo.items;
+  const bytes = new TextEncoder().encode(JSON.stringify(internal)).length;
+  if (bytes > MAX_CLOUD_INTERNAL_JSON_BYTES) {
+    return { ok: false, reason: `El resumen interno ocupa ${bytes} bytes y supera el tope de ${MAX_CLOUD_INTERNAL_JSON_BYTES}: no se copia` };
+  }
   return { ok: true, internal, cargoItems };
 }

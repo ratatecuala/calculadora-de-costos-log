@@ -69,7 +69,8 @@ function snapshotV2(n: number) {
     cargo: {
       mode: 'detallado',
       summary: 'Mudanza ficticia',
-      totals: { weightKg: 10 * n, volumeM3: 0.08 * n, lines: n, linesWithWeight: n, linesWithVolume: n },
+      // Con 0 líneas el total es desconocido (null), no 0 (cargoSummary).
+      totals: { weightKg: n ? 10 * n : null, volumeM3: n ? Math.round(80 * n) / 1000 : null, lines: n, linesWithWeight: n, linesWithVolume: n },
       capacity: { minTrips: 1, basis: 'peso', incomplete: false },
       handling: { minutes: 30, complete: false, missingStops: ['B'] },
       items: Array.from({ length: n }, (_, i) => item(i + 1)),

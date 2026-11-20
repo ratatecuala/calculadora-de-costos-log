@@ -3,6 +3,7 @@
 **Versión 3 · 20-11-2026 · Estado: DISEÑO; pendiente de tus decisiones (§12) y de autorizar la fase 0.**
 - La versión 2 corrigió los 5 P1 y los 3 P2 de la [auditoría sobre `cba6ffb`](https://github.com/ratatecuala/calculadora-de-costos-log/issues/45#issuecomment-7042277474) (§13.1).
 - La versión 3 corrige los 5 P2 de la [reauditoría (0 P0, 0 P1)](https://github.com/ratatecuala/calculadora-de-costos-log/issues/45#issuecomment-7044566908) (§13.2) y agrega el plan de implementación de inventario y recursos (§15).
+- **Fase 1 (A-66, 20-11-2026):** editores y funciones puras de inventario (#47) y recursos (#51), detrás de una feature flag **desactivada** y sin conexión al cotizador (§17). T-7 y T-8 decididas (A-64, A-65).
 - **Aprobado (20-11-2026):** D-4 = (b) y T-1 a T-6 (A-61, A-62) y **solo la fase 0** (A-63). La fase 0 está implementada (§16) y corregida según la [auditoría de ChatGPT](https://github.com/ratatecuala/calculadora-de-costos-log/issues/45#issuecomment-7045276976) (§13.3); la fase 1 **no** está autorizada.
 **Autorización:** [ratificación en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7041864905) (A-55 a A-60) y [aprobación del 20-11 registrada en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7044997471) (A-61 a A-63). **Siguen sin aprobar** D-2b, D-5, D-7 y D-10.
 **No hay:** interfaz nueva, integración al cotizador, migraciones en Supabase, cambios en el motor ni datos importados. Solo los contratos de la fase 0 (§16), que la aplicación todavía no usa.
@@ -133,6 +134,22 @@
    - «lo que te queda» y la rentabilidad se rotulan como máximo (cota superior), como hoy con cualquier faltante.
 5. **La comparación de rutas** (`session.ts`, horas por ruta) usa el mismo `handlingTime`. Con tiempo incompleto, la comparación queda «no concluyente» si el resultado depende de ese tiempo.
 6. **Cotizaciones v1:** se leen como estaban, con 0 cuando no se declaró. **No se reinterpretan.**
+
+### 4.5 Trabajos de más de 24 horas (T-7, A-64: DISEÑO, no implementado)
+
+**Hoy (límite provisional conservado):** un ayudante por hora admite hasta 24 h y cada parada hasta 1.440 minutos. Un valor mayor se **rechaza** con mensaje; nunca se recorta ni se vuelve 0.
+
+**Propuesta para servicios de varias jornadas** (requiere tu aprobación para programarla):
+
+| Elemento | Cambio propuesto | Compatibilidad |
+|---|---|---|
+| Ayudante por hora | Campo nuevo `workdays`: entero 1–14 (por defecto 1). `hours` pasa a ser **horas por jornada** (≤ 24). Monto = tarifa × horas × jornadas | Aditivo: sin `workdays` equivale a 1 jornada, igual que hoy |
+| Ayudante por servicio | Sin cambios: el monto cubre el servicio completo, dure lo que dure | — |
+| Tiempo del transportista | Campo opcional `workdays` a nivel de recursos, **solo informativo** hasta aprobar §4.3–§4.4: el motor sigue usando conducción + carga y descarga | Sin cambio de fórmulas |
+| Interfaz | Selector «Jornadas» junto a «Horas por jornada»; el resumen muestra «3 jornadas × 8 h» | Teléfono y PC |
+| Pruebas | 30 h en una jornada: rechazado; 3 × 10 h: aceptado; sin `workdays`: igual que hoy; tope de 14: rechazado con mensaje | — |
+
+El tope de 14 jornadas es un **supuesto** revisable. Ninguna cotización guardada cambia: el snapshot v2 todavía no se guarda en ninguna parte.
 
 ## 5. Vehículos y catálogo (carril 3, #46)
 
@@ -382,8 +399,8 @@ La marca es local a la transacción (`is_local = true`) y desaparece al terminar
 | T-5 | Fuentes del catálogo en `jsonb` por campo | Sí |
 | T-6 | Nueva función v2 que reutiliza la v1 | Sí (§8.2) |
 | §4.3 y §4.4 | Aprobación para programar la modalidad por hora y la marca de tiempo de carga incompleto | Aprobar junto con la fase de integración |
-| **T-7** (nueva, PROPUESTA) | Límites técnicos de recursos: ≤ 24 h por ayudante, ≤ 20 ayudantes, ≤ 20 elementos de equipamiento, pesos enteros ≤ 9.999.999.999 (§4.1). Hoy un trabajo de varias jornadas se **rechaza** con mensaje; no se recorta ni se vuelve 0 | Revisar con criterio de producto **antes de habilitar la interfaz** (fase 1). Alternativa: horas por jornada |
-| **T-8** (nueva, PROPUESTA) | `fragile` y `handling`: mantener los valores por defecto («no marcado», «sin manejo especial») o usar `null` para «desconocido» (implica cambiar M3) | Mantenerlos, rotulados en la interfaz y sin uso en costos ni seguridad; reconsiderar si se usan para algo más |
+| **T-7** (**decidida, A-64**: se conservan provisionalmente; diseño para más de 24 h en §4.5) | Límites técnicos de recursos: ≤ 24 h por ayudante, ≤ 20 ayudantes, ≤ 20 elementos de equipamiento, pesos enteros ≤ 9.999.999.999 (§4.1). Hoy un trabajo de varias jornadas se **rechaza** con mensaje; no se recorta ni se vuelve 0 | Revisar con criterio de producto **antes de habilitar la interfaz** (fase 1). Alternativa: horas por jornada |
+| **T-8** (**decidida, A-65**: se mantienen; prohibido usarlos para costos o seguridad) | `fragile` y `handling`: mantener los valores por defecto («no marcado», «sin manejo especial») o usar `null` para «desconocido» (implica cambiar M3) | Mantenerlos, rotulados en la interfaz y sin uso en costos ni seguridad; reconsiderar si se usan para algo más |
 | D-2b, D-5, D-7, D-10 | Sin cambios | — |
 
 ## 13. Respuesta a las auditorías
@@ -528,4 +545,49 @@ Ninguna puerta autoriza fusionar el PR #34, activar Google Routes, producción n
 | `probar-borradores.sh` (local desechable) | 18/18 + **C3 27/27** |
 | Mutaciones manuales (quitar la regla de volumen, permitir medidas con decimales, quitar `strict` del ayudante, no copiar en `readSnapshot`, dejar `items` en `toCloudPayload`; tras la auditoría: quitar la verificación de integridad, no exigir `items`, no contar líneas con peso) | **Las 8 hacen fallar las pruebas** |
 | Archivos de `src/web`, `src/engine`, `src/server` y `supabase/` | **Sin cambios** |
+
+## 17. Fase 1: inventario (#47) y recursos (#51) — implementada, sin integrar (A-66)
+
+**Autorización:** [registro en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7045847482). **No** se conecta al cotizador, **no** cambia el resultado económico y **no** toca Supabase, migraciones, IVA ni Google Routes.
+
+### 17.1 Qué se entregó
+
+| Archivo | Contenido |
+|---|---|
+| `src/shared/cargo.ts` | `cargoSummary` (Σ cantidad × valor por unidad; `null` si no hay datos), `cargoTotalsIssue` (comprobación de peso y volumen), `capacityEstimate` (cota inferior por peso y volumen; incompleta si faltan datos), `suggestServiceText` (≤ 300, sin datos internos), `floorLabel`, `CARGO_TEMPLATES` (solo nombres) |
+| `src/shared/resources.ts` | `handlingTime`, `helperCostLines`, `resourcesSummary`, `helpersFromV1`, `switchHelperMode` |
+| `src/shared/snapshot.ts` | La integridad antes de copiar ahora también compara **peso y volumen**; `missing` acotado en v2 (≤ 20 × 60); tope conservador de 11.000 bytes de JSON para el `internal` que sube a la nube |
+| `src/web/modules/inventoryDraft.ts`, `resourcesDraft.ts` | Estado de los editores como funciones puras (validación con el contrato y errores por línea y campo) |
+| `src/web/components/InventoryEditor.tsx`, `ResourcesEditor.tsx`, `ModulesPreview.tsx` | Editores y vista previa **solo en memoria** |
+| `src/web/featureFlags.ts` | `VITE_FF_CARGA_RECURSOS`, **apagada** por defecto. Con la flag apagada, Vite elimina la vista previa del paquete (verificado: 0 apariciones de sus textos) |
+| `src/web/App.tsx` | Pestaña «Carga (prueba)» **solo** con la flag encendida. Es el único archivo existente de la interfaz que cambió; el cotizador, la sesión, el guardado y el motor no importan los módulos nuevos (prueba automática) |
+| `scripts/e2e-modulos.mjs` | Prueba de navegador local, con y sin flag |
+
+### 17.2 Decisiones de interfaz (revisables)
+
+- **Volumen:** se calcula solo con las tres medidas y la regla del servidor. Si el usuario escribe otro valor, queda «declarado» y no se pisa al cambiar las medidas; un enlace permite volver al calculado. Con medidas diminutas (0 m³) la línea queda sin volumen.
+- **Modo rápido:** las líneas del modo detallado se conservan en el borrador, pero no entran al inventario; se avisa.
+- **T-8:** «Marcar como frágil» y «Sin manejo especial declarado», con la nota «son notas para ti: no cambian el costo ni certifican la seguridad». El texto sugerido no los menciona.
+- **Recursos:** los montos de ayudantes y el tiempo de carga se muestran como «informativo: aún no se incluye en el costo». Un ayudante nuevo empieza «por servicio» y sin monto; por hora, sin tramos marcados, el monto queda faltante.
+- **Pisos:** forma chilena («1.er piso», «4.º piso», «subterráneo 2»), con subterráneos −5 a −1 y pisos 1 a 60.
+- **Texto sugerido:** si una descripción contiene kg, m³, $, minutos u horas, se usa el tipo del objeto en su lugar.
+
+### 17.3 Pruebas (20-11-2026, Claude)
+
+| Prueba | Resultado |
+|---|---|
+| `npm test` | **404/404** (345 anteriores + 59 de la fase 1) |
+| `scripts/verificar-casos-dorados.mjs` | **64/64** |
+| `npm run typecheck` y `vite build` (con y sin flag) | Sin errores |
+| `scripts/e2e-modulos.mjs` en Pixel 7, iPhone 13 (emulado en Chromium), 1366 × 768 y 1440 × 900 | **100/100**: sin flag no hay pestaña; volumen calculado; totales 219 kg y 1,842 m³; estimación «al menos 2 viajes» por volumen; error de cm enteros; duplicar, eliminar y subir; tiempo incompleto; ayudante por hora sin tramos (faltante) y con tramo ($18.000); 30 h rechazadas; cambio de modalidad sin montos residuales; texto sin datos internos; sin desplazamiento horizontal; controles ≥ 44 px; **no escribe en el navegador**; 0 errores de consola |
+| Compatibilidad con el motor | La conversión de ayudantes v1 da exactamente la partida «Ayudantes» actual en 5 casos (incluido el faltante) |
+| Mutaciones manuales (peso sin cantidad, total 0 en vez de `null`, sin margen de redondeo en la capacidad, texto sin filtro, cambio de modalidad que conserva el monto, monto por hora sin tramos) | **Las 6 hacen fallar las pruebas** |
+
+**No probado:** Safari real en un iPhone (solo emulación en Chromium); lectores de pantalla (solo marcado accesible verificado); con la flag encendida en staging (no se desplegó).
+
+### 17.4 Pendiente para la integración (puerta P2, no autorizada)
+
+- Conectar los editores a `QuoteSession` y `Calculator.tsx`, guardar el snapshot v2 en el navegador (§6.3) y reemplazar el resumen guardado por `cargoSummary` al emitir.
+- El PDF, el enlace y WhatsApp solo con la descripción del servicio (prueba de lista blanca).
+- En teléfono, una mudanza de muchas líneas hace la página larga: evaluar líneas plegables al integrar.
 

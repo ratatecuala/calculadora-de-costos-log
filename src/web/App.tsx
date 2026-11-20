@@ -10,10 +10,12 @@ import { CloudVehicleRepository } from './cloud/vehicles';
 import { AccountView } from './components/AccountView';
 import { Calculator } from './components/Calculator';
 import { History } from './components/History';
+import { ModulesPreview } from './components/ModulesPreview';
 import { PublicQuote } from './components/PublicQuote';
 import { QuoteForm } from './components/QuoteForm';
 import { QuoteView } from './components/QuoteView';
 import { VehiclesView } from './components/VehiclesView';
+import { FEATURE_FLAGS } from './featureFlags';
 import { QuoteSession } from './session';
 import { browserQuoteRepository, type QuoteRepository } from './storage';
 import { draftVisibleTo, ownerOf, shouldResetDraft, VehicleListLoader, visibleVehicleState } from './vehicleList';
@@ -25,7 +27,9 @@ type View =
   | { name: 'trabajos' }
   | { name: 'ver'; job: JobRecord; owner: string }
   | { name: 'vehiculos' }
-  | { name: 'cuenta' };
+  | { name: 'cuenta' }
+  /** Vista previa de inventario y recursos: solo con la feature flag activada (A-66). */
+  | { name: 'modulos' };
 
 const PUBLIC_PATH = /^\/c\/([A-Za-z0-9_-]{43})\/?$/;
 
@@ -211,6 +215,7 @@ function MainApp() {
           {tab('trabajos', 'Mis trabajos', view.name === 'trabajos' || view.name === 'ver')}
           {tab('vehiculos', 'Mi vehículo', view.name === 'vehiculos')}
           {cloudOn ? tab('cuenta', userId ? 'Cuenta ✓' : 'Ingresar', view.name === 'cuenta') : null}
+          {FEATURE_FLAGS.modulosCargaRecursos ? tab('modulos', 'Carga (prueba)', view.name === 'modulos') : null}
         </nav>
       </header>
       <div className="banner no-print" role="status">
@@ -277,6 +282,8 @@ function MainApp() {
             }}
           />
         ) : null}
+        {/* Sin conexión con el cotizador ni con el guardado (A-66). */}
+        {FEATURE_FLAGS.modulosCargaRecursos && view.name === 'modulos' ? <ModulesPreview /> : null}
         {view.name === 'cuenta' ? <AccountView auth={auth} testPasswordLogin={cloudConfig?.testPasswordLogin ?? false} /> : null}
       </main>
     </div>

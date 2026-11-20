@@ -45,16 +45,21 @@ describe('Prueba 8 — no se expone ninguna clave de API al navegador', () => {
 
   it('el código del navegador no importa módulos del servidor ni lee variables de entorno', () => {
     const webFiles = [...filesUnder(join(root, 'src/web')), ...filesUnder(join(root, 'src/shared')), ...filesUnder(join(root, 'src/engine'))];
-    // Única excepción: la configuración PÚBLICA de Supabase (URL y clave publicable).
+    // Excepciones: la configuración PÚBLICA de Supabase (URL y clave publicable) y los interruptores
+    // de funciones en desarrollo (A-66), que solo pueden leer nombres VITE_FF_* (sí/no, sin secretos).
     const allowed = join(root, 'src/web/cloud/client.ts');
+    const flags = join(root, 'src/web/featureFlags.ts');
     for (const f of webFiles) {
       const content = readFileSync(f, 'utf8');
       expect(content, f).not.toMatch(/from ['"][./]*server\//);
-      if (f !== allowed) expect(content, f).not.toContain('import.meta.env');
+      if (f !== allowed && f !== flags) expect(content, f).not.toContain('import.meta.env');
       expect(content, f).not.toContain('process.env');
     }
     const names = [...readFileSync(allowed, 'utf8').matchAll(/VITE_[A-Z_]+/g)].map((m) => m[0]);
     expect(new Set(names)).toEqual(new Set(['VITE_SUPABASE_URL', 'VITE_SUPABASE_PUBLISHABLE_KEY', 'VITE_TEST_PASSWORD_LOGIN']));
+    const flagNames = [...readFileSync(flags, 'utf8').matchAll(/VITE_[A-Z_]+/g)].map((m) => m[0]);
+    expect(flagNames.length).toBeGreaterThan(0);
+    for (const n of flagNames) expect(n).toMatch(/^VITE_FF_[A-Z_]+$/);
   });
 
   it('el navegador rechaza una clave secreta de Supabase y no incluye claves privilegiadas', async () => {
