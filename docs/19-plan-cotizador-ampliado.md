@@ -1,7 +1,8 @@
 # 19 · Plan del cotizador ampliado: vehículo, carga, recursos, recorrido y precio
 
 **Versión 2 · 20-11-2026.** Corrige la versión 1 (`da62659`) según la [revisión de ChatGPT](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7039891866) y las prioridades del propietario.
-**Estado:** **PROPUESTA.** Ninguna decisión está aprobada (§12). No autoriza programar, cambiar fórmulas, crear o ejecutar migraciones, importar datos ni activar servicios.
+**Estado al publicar (histórico):** **PROPUESTA.** Ninguna decisión estaba aprobada (§12). No autorizaba programar, cambiar fórmulas, crear o ejecutar migraciones, importar datos ni activar servicios.
+**Estado vigente (20-11-2026, hasta `2f8e112`):** la **planificación** está aprobada (D-1, D-2, D-3, D-6, D-8 y D-9 → A-55 a A-60; D-4 → A-61). Inventario (#47) y recursos (#51) avanzaron por sus puertas: fase 0 cerrada (A-63), fase 1 cerrada técnicamente (A-66) e integración I-1 + I-1b cerrada técnicamente detrás de una flag apagada (A-68; [22 §14](22-diseno-integracion-cotizador.md)). Siguen pendientes D-2b, D-5, D-7 y D-10; C-1 y C-2 esperan su ejecución en GPT Deep Research. Catálogo (#46), costo según carga (#48), IVA (#37) y rutas reales (#49) **no han comenzado**.
 **Base:** PR #34, motor `motor-1.0.1`, esquema Supabase de 3 migraciones, decisiones hasta A-54.
 **Investigación:** [20 · Encargos C-1 y C-2](20-encargos-deep-research-cotizador.md). El IVA tiene su propia investigación en curso ([18](18-encargo-deep-research-iva.md), #16) y no se duplica.
 
@@ -290,5 +291,9 @@ Tabla original de la versión 2 (estado al proponer):
 | 5 | [#37](https://github.com/ratatecuala/calculadora-de-costos-log/issues/37) IVA | 5 | #16, D-7 |
 | 6 | [#49](https://github.com/ratatecuala/calculadora-de-costos-log/issues/49) Google Routes | 6 | #9, #19, #15, D-10 |
 | ∀ | [#50](https://github.com/ratatecuala/calculadora-de-costos-log/issues/50) Paridad teléfono/PC y e2e | — | Cada entrega |
+| Integración | [#53](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53) Inventario y recursos en el cotizador ([22](22-diseno-integracion-cotizador.md)); I-1 + I-1b cerradas técnicamente (flag apagada) | 1 y 2 | I-2: #52, M3/M4; I-3: fórmulas (§4.3–§4.4 de [21](21-diseno-datos-cotizador.md)) |
+| Antes de P3 | [#52](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52) Impedir el `INSERT` directo en `jobs` | — | Tu autorización |
+
+*Filas de #53 y #52 agregadas en la sincronización del 20-11-2026.*
 
 Enlazados en otras épicas: #3 (rutas), #16 (IVA, investigación en curso), #31 (versionado), #5 (cuentas y vehículos), #20 y #21 (combustible y peajes, fuera de esta épica).

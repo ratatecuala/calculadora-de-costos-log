@@ -1,6 +1,6 @@
 # 22 · Diseño de integración: inventario y recursos en el cotizador (puerta P2)
 
-**Versión 2 · 20-11-2026 · Estado:** D-I1 a D-I7 **APROBADAS** (A-67). **I-1 + I-1b IMPLEMENTADAS** (A-68), con C1 y C2, detrás de la flag **apagada** (§10). I-2 e I-3 **no autorizadas**.
+**Versión 2 · 20-11-2026 · Estado:** D-I1 a D-I7 **APROBADAS** (A-67). **I-1 + I-1b IMPLEMENTADAS** (A-68), con C1 y C2, detrás de la flag **apagada** (§10), y **CERRADAS TÉCNICAMENTE** por la [auditoría final](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743) sobre `2f8e112`: **0 P0 · 0 P1** (§14). **D-I8** (§12) sigue **pendiente de tu decisión**. La flag sigue apagada; I-2, I-3, #52, migraciones y despliegues **no autorizados**.
 
 **Cambios respecto de la versión 1:** resuelve la [auditoría del diseño](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7050466337) (2 P1 de diseño y 2 P2 de experiencia de usuario). La tabla del §8 resume cada uno.
 
@@ -408,4 +408,18 @@ Si el guardado **falla**, `emitted()` no se llama y el borrador se conserva. La 
 - Safari real;
 - lector de pantalla;
 - la decisión D-I8.
+
+## 14. Auditoría final y cierre técnico de I-1 + I-1b (20-11-2026)
+
+[Auditoría final de ChatGPT](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743) sobre el commit `2f8e112` (corrección de la carrera del autoguardado, §13): **0 P0 · 0 P1 · 1 P2 de producto (D-I8, sin implementar)**. Dictamen: I-1 e I-1b **aptas para el cierre técnico** de la implementación detrás de una flag apagada. ChatGPT revisa **por inspección**; las ejecuciones son de Claude (§13).
+
+**Lo que el cierre NO autoriza:** encender la flag, desplegar a staging, producción, merge del PR #34, #52, I-2 ni I-3.
+
+**Puertas que siguen cerradas antes de mostrar la flag a transportistas reales:**
+1. e2e con cuentas reales y la suite `e2e-staging-anonimo.mjs` completa (59/59) en un staging **autorizado**: en local da 54/59 y las 5 restantes solo se pueden verificar en staging;
+2. Safari en un iPhone real (hoy solo emulación en Chromium);
+3. lector de pantalla real (hoy solo marcado accesible verificado con Playwright);
+4. tu decisión sobre **D-I8** (§12). La auditoría recomienda aprobar solo la recuperación del **modo manual** (punto 1) y dejar las correcciones sobre rutas del proveedor para cuando existan rutas reales (D-10).
+
+**Cifras vigentes (Claude, 20-11-2026, commit `2f8e112`):** `npm test` 528/528; casos dorados 64/64; `e2e-integracion.mjs` 134/134 con la flag (dos corridas) y 24/24 sin ella; `e2e-modulos.mjs` 210/210; `e2e-staging-anonimo.mjs` en local 54/59.
 

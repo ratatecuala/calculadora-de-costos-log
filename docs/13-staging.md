@@ -1,6 +1,6 @@
 # 13 · Entorno de pruebas (staging): Cloudflare + Supabase
 
-**Fecha:** 18-11-2026 · **PR:** #34 (sin merge) · **Autorización:** el propietario autorizó por chat la integración y las pruebas en un entorno **gratuito de desarrollo/staging**. No autorizó producción pública, servicios de pago, facturación, Google Routes real ni merge (registrado como A-46 en [07](07-decisiones.md), pendiente de ratificación escrita en el PR).
+**Fecha:** 18-11-2026 (sincronizado el 20-11-2026: staging **no** se redesplegó desde el 18-11) · **PR:** #34 (sin merge) · **Autorización:** el propietario autorizó por chat la integración y las pruebas en un entorno **gratuito de desarrollo/staging**. No autorizó producción pública, servicios de pago, facturación, Google Routes real ni merge (registrado como A-46 en [07](07-decisiones.md), pendiente de ratificación escrita en el PR).
 
 > Distinción obligatoria (AGENTS §4): **FUNCIONA (probado en el servicio real)** · **PREPARADO (código listo, sin probar en el servicio real)** · **BLOQUEADO**.
 
@@ -38,6 +38,7 @@ Límites del plan gratuito leídos en la documentación oficial (HECHO VERIFICAD
 | Worker sirviendo la app + `/api/route` + Durable Object real | **FUNCIONA** | §5.3 |
 | Interruptor de emergencia en caliente | **FUNCIONA en Cloudflare real** | §5.3 |
 | Google Routes | **APAGADO** (proveedor simulado) | — |
+| Inventario y recursos en el cotizador (fase 1 e integración I-1 + I-1b, 20-11-2026) | **NO DESPLEGADO.** Staging conserva la versión del 18-11; el código nuevo existe solo en la rama, detrás de flags apagadas, y desplegarlo **no está autorizado** | Pruebas locales ([05](05-pruebas-y-calibracion.md), [22 §14](22-diseno-integracion-cotizador.md)) |
 
 ## 3. Esquema y seguridad (Supabase)
 
@@ -75,9 +76,9 @@ El Worker guardaba el *stub* del Durable Object entre solicitudes. En Workers, u
 ## 5. Resultados de pruebas
 
 ### 5.1 Automáticas (sin red): `npm test`
-**225 pruebas en verde** al 18-11-2026 (incluye la validación independiente del motor, [15](15-validacion-motor.md), y las regresiones de experiencia de usuario, [14](14-qa-ux.md)). Historial: 140 tras la quinta auditoría, 154 con A-47.
+*(Cifra del 18-11; hoy `npm test` da **528/528** en la rama, con código que staging aún no tiene.)* **225 pruebas en verde** al 18-11-2026 (incluye la validación independiente del motor, [15](15-validacion-motor.md), y las regresiones de experiencia de usuario, [14](14-qa-ux.md)). Historial: 140 tras la quinta auditoría, 154 con A-47.
 
-### 5.2 RLS real con dos usuarios: `scripts/verificar-rls.mjs` → **39/39**
+### 5.2 RLS real con dos usuarios: `scripts/verificar-rls.mjs` → **39/39** (40/40 tras la corrección del 18-11, §5.4 bis)
 Sesiones reales (JWT emitidos por Supabase) de los usuarios A y B y un visitante anónimo, con la clave publicable:
 - B no puede **leer, modificar ni borrar** perfiles, vehículos, trabajos, cotizaciones ni enlaces de A, ni conociendo los ids.
 - B no puede **insertar** a nombre de A, colgar una cotización de un trabajo de A, crear ni revocar enlaces de A, ni cambiar su predeterminado.
@@ -140,6 +141,7 @@ Sesiones reales (JWT emitidos por Supabase) de los usuarios A y B y un visitante
   - los contadores de numeración de A y B avanzaron, porque los números borrados no se reutilizan.
 
 ### 5.4 Flujo completo en navegador: `scripts/e2e-staging.mjs` → **39/39** (móvil Pixel 7 y escritorio 1440)
+*(Primera corrida; tras la quinta auditoría y en la repetición del 18-11 dio **41/41**, §5.4 bis.)*
 Desde la quinta auditoría incluye: al cerrar sesión no queda a la vista el vehículo de la cuenta y el borrador de la cotización queda vacío; otra cuenta en el **mismo navegador** no ve vehículos ni cotizaciones de la anterior.
 
 Anónimo (ruta simulada → costos → precio → cotización → historial local → impresión sin costos internos); copia del historial local a la cuenta (1 copia, sin duplicados); vehículo y cotización en la cuenta; enlace público; cerrar sesión (no quedan datos de la cuenta a la vista); volver a entrar (se recuperan); estado y pago persisten tras recargar; **otro dispositivo** recupera vehículo y cotización; **usuario B no ve nada de A**; enlace público sin costos y revocable; sin errores de página; **0 solicitudes a dominios externos**.

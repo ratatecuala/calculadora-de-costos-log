@@ -1,6 +1,8 @@
 # 05 · Pruebas, calibración y validación del lanzamiento gratuito
 
-**Estado:** estrategia de control propuesta. Las metas numéricas concretas se aprobarán en #12. No hay código ni viajes de validación ejecutados todavía.
+**Estado vigente (20-11-2026, hasta `2f8e112`):** `npm test` **528/528** y casos dorados **64/64**; detalle por archivo en «Pruebas del cotizador ampliado» y cifras vigentes al final. Las metas numéricas de validación real se aprobarán en #12; **no** se han hecho viajes de validación con transportistas.
+
+*Estado original (16-11-2026, histórico): estrategia de control propuesta, sin código ni viajes de validación ejecutados.*
 
 ## 1. Motor matemático — primer requisito
 
@@ -84,6 +86,33 @@ Se ejecutan con `npm test` (Vitest), sin red ni servicios externos.
 | `tests/numbering.test.ts` | Numeración (A-47): el documento muestra siempre el número emitido; conversión de `issued_number`; al importar viajan el número emitido y el `local_id`; guardar en la nube usa el número que asigna la base |
 | `tests/staging.worker.test.ts` | Staging protegido (401 sin credenciales), encabezados de seguridad, estado administrativo, falla inyectada del contador, marcas del simulador, archivos incrustados y la regresión del *stub* del Durable Object (hallazgo en Cloudflare real) |
 
+### Pruebas del cotizador ampliado (20-11-2026)
+
+Agregadas en la fase 0 (A-63), la fase 1 (A-66) y la integración I-1 + I-1b (A-68). Se ejecutan con `npm test`, sin red.
+
+| Archivo | Pruebas | Qué demuestra |
+|---|---|---|
+| `tests/contratos.cargo.test.ts` | 44 | Contrato Zod del inventario: fixtures compartidas con el servidor (C3), volumen calculado o declarado coherente, límites (200 líneas, cm enteros) y valores por defecto |
+| `tests/contratos.resources.test.ts` | 22 | Recursos: una modalidad por ayudante (A-58), paradas solo A y B (T-3), equipamiento, tiempo de carga incompleto (§4.4) y límites provisionales (T-7) |
+| `tests/contratos.snapshot.test.ts` | 30 | Cotizaciones v1 actuales intactas, snapshot v2, `toCloudPayload` con D-4 = (b) y ningún objeto perdido en silencio al copiar a la cuenta |
+| `tests/inventario.test.ts` | 39 | Resumen y totales del inventario, comprobación de peso y volumen, estimación de capacidad (solo aviso), texto sugerido del servicio sin recursos internos y editor |
+| `tests/recursos.test.ts` | 57 | Ayudantes y equipamiento sin doble contabilización, el costo del motor no cambia (§4.3), conversión de ayudantes históricos y validación con el esquema completo |
+| `tests/modulos.estado.test.ts` | 17 | Interfaz plegable: estado de cada objeto, apertura al agregar, separación de datos de la carga (cliente) y recursos internos (transportista), filas inválidas |
+| `tests/modulos.flag.test.ts` | 7 | La flag `VITE_FF_CARGA_RECURSOS` está apagada por defecto; el mismo marcado sirve a teléfono y PC |
+| `tests/integracion.test.ts` | 63 | I-1 + I-1b: versión del snapshot según la flag y el repositorio, emisión v2, costo idéntico con editores vacíos o llenos (D-I1), «Servicio» e «Incluye» (D-I5), copia mixta v1/v2 con diferidas (C2), borrador aislado por dueño (C1), interfaz idéntica con la flag apagada y autoguardado con temporizadores controlados |
+
+**Suma:** 249 (18-11) + 96 de la fase 0 (44 + 22 + 30) + 120 de la fase 1 (39 + 57 + 17 + 7) + 63 de la integración = **528**.
+
+**Navegador local (Playwright; Pixel 7, iPhone 13 emulado, 1366 y 1440):**
+
+| Script | Resultado (20-11-2026, Claude) |
+|---|---|
+| `scripts/e2e-modulos.mjs` (editores de la fase 1, con y sin flag) | **210/210** |
+| `scripts/e2e-integracion.mjs` (I-1 + I-1b con la flag) | **134/134**, dos corridas |
+| `scripts/e2e-integracion.mjs --sin-flag` | **24/24** |
+| `scripts/e2e-staging-anonimo.mjs` contra el servidor local | **54/59**: las 5 restantes son propias de staging (acceso privado 401 y `localhost` contado como dominio externo) |
+| Borradores M3/M4 en PostgreSQL local desechable (`scripts/diseno/`) | **18/18** y 3 controles negativos; C3 **27/27**; medición de 16 KB **10/10** ([21 §11](21-diseno-datos-cotizador.md)) |
+
 ### Pruebas contra servicios reales (staging, 18-11-2026)
 
 Detalle en [13 · Staging](13-staging.md) §5. Se ejecutan con credenciales desde archivos **fuera** del repositorio.
@@ -97,6 +126,8 @@ Detalle en [13 · Staging](13-staging.md) §5. Se ejecutan con credenciales desd
 | `scripts/e2e-staging.mjs` (navegador, móvil y escritorio) | **41/41** (incluye aislamiento entre sesiones y número emitido conservado al copiar) |
 
 ### Verificaciones del 18-11-2026 (sin servicios externos, salvo consultas de solo lectura a Supabase)
+
+> **Cifras de esa fecha (históricas).** Hoy `npm test` da **528/528** y `tests/engine.validation.test.ts` tiene 51 pruebas sin `it.fails` (los defectos se corrigieron con A-50). Ver «Cifras vigentes» al final.
 
 | Verificación | Resultado | Detalle |
 |---|---|---|
@@ -128,3 +159,16 @@ Detalle en [13 · Staging](13-staging.md) §5. Se ejecutan con credenciales desd
 - impresión del PDF desde un teléfono físico.
 
 El flujo completo se verificó en navegador (móvil y escritorio) contra el servidor local, sin solicitudes externas.
+
+## Cifras vigentes (20-11-2026, commit `2f8e112`)
+
+| Verificación | Resultado | Quién |
+|---|---|---|
+| `npm test` | **528/528**, typecheck y builds sin errores | Claude (ejecutadas) |
+| Casos dorados por recálculo independiente | **64/64** | Claude (ejecutadas) |
+| E2E locales del cotizador ampliado | 210/210, 134/134, 24/24 y 54/59 (tabla anterior) | Claude (ejecutadas) |
+| Staging real (versión del 18-11) | 59/59 sin cuenta, 41/41 con cuentas, RLS 40/40, numeración 17/17, Cloudflare 8/8 y 2/2 | Claude (ejecutadas el 18-11) |
+| Auditoría final de I-1 + I-1b | **0 P0 · 0 P1** ([22 §14](22-diseno-integracion-cotizador.md)) | ChatGPT, por inspección |
+
+**No probado todavía (cotizador ampliado):** la flag encendida en staging (no autorizado ni desplegado), cuentas reales con el inventario, Safari en un iPhone real y un lector de pantalla real.
+

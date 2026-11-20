@@ -1,6 +1,6 @@
 # 07 · Registro de decisiones — estado actualizado
 
-**Criterio:** lo aprobado por el propietario se distingue de alternativas propuestas. Este archivo se está actualizando en el **PR #34**, todavía sin fusionar. Nombre comercial **PENDIENTE**; no reutilizar el nombre anterior como marca.
+**Criterio:** lo aprobado por el propietario se distingue de alternativas propuestas. Este archivo se está actualizando en el **PR #34**, todavía sin fusionar. **Última sincronización: 20-11-2026**, hasta el commit `2f8e112` y la [auditoría final de I-1 + I-1b](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743) (sección final). Las secciones antiguas conservan su texto original; cuando su estado cambió, se indica con una nota de estado actual. Nombre comercial **PENDIENTE**; no reutilizar el nombre anterior como marca.
 
 ## Aprobado / dirección explícita del propietario
 
@@ -176,6 +176,11 @@ Escritas por el propietario en GitHub ([comentario en el PR #34](https://github.
 | A-47 | **Numeración de cotizaciones:** secuencia propia por cuenta, **única, correlativa y segura ante concurrencia**, asignada **atómicamente en Supabase** (no «máximo + 1» en el navegador), con unicidad por dueño en la base. Al copiar cotizaciones locales se conservan `local_id` y la idempotencia; si el número local está ocupado, se asigna un **número interno nuevo**. **Nunca** se cambia el número de un documento ya emitido: se guarda el número emitido por separado y el documento lo sigue mostrando | **APROBADO**. Implementado y probado en staging ([13](13-staging.md) §10 ter) |
 | A-48 | **README como fuente de contexto:** README principal en español con estado real, «Estado para retomar en otro chat», pruebas ejecutadas o revisadas, decisiones, riesgos y límites; **actualizado con cada avance material**; publicado en la portada de `main` mediante un **PR exclusivamente documental**, sin fusionar el PR #34 | **APROBADO**. Regla permanente en [AGENTS.md](../AGENTS.md) §10 |
 
+**Implementación de A-47 (decisiones menores, revisables):**
+- Un número local **libre** se conserva tal cual, así que la secuencia puede saltar hasta ese número.
+- Los números de cotizaciones borradas **no se reutilizan**.
+- El dueño solo puede modificar el **estado** y el **pago** de sus trabajos.
+
 ## Decisión del 18-11-2026 aprobada por escrito en el PR #40
 
 Escrita por el propietario en GitHub ([comentario en el PR #40](https://github.com/ratatecuala/calculadora-de-costos-log/pull/40#issuecomment-6968872592)) y repetida en el [PR #34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6968930515): **APROBADA**.
@@ -273,7 +278,16 @@ Comunicadas por el propietario por chat a Claude y **registradas literalmente** 
 
 **Tarea independiente:** [#52](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52), impedir el `INSERT` directo en `jobs` que omite la numeración automática. **Debe resolverse antes de autorizar M3/M4 en staging** (puerta P3).
 
-**Implementación de A-47 (decisiones menores, revisables):**
-- Un número local **libre** se conserva tal cual, así que la secuencia puede saltar hasta ese número.
-- Los números de cotizaciones borradas **no se reutilizan**.
-- El dueño solo puede modificar el **estado** y el **pago** de sus trabajos.
+## Estado técnico al 20-11-2026: cierre de I-1 + I-1b (dictamen técnico, no es una decisión nueva)
+
+La [auditoría final de ChatGPT](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743) sobre el commit `2f8e112` dictaminó **0 P0 · 0 P1 · 1 P2 de producto (D-I8, sin implementar)**: I-1 e I-1b quedan **aptas para el cierre técnico** de su implementación **detrás de la flag apagada** ([22 §14](22-diseno-integracion-cotizador.md)). Es un dictamen técnico de revisión, **no** una aprobación del propietario: no habilita la flag, staging, producción ni merge.
+
+| Tema | Estado vigente |
+|---|---|
+| I-1 + I-1b (A-68) | **Implementadas y cerradas técnicamente** (0 P0, 0 P1). Flag `VITE_FF_INTEGRACION_CARGA` **apagada**; el costo no cambia |
+| **D-I8:** recuperar en el borrador los km y minutos escritos a mano ([22 §12](22-diseno-integracion-cotizador.md)) | **PROPUESTA, pendiente de tu decisión.** No implementada. ChatGPT recomienda aprobar solo el modo manual (punto 1) |
+| Encender la flag para transportistas reales | **NO AUTORIZADO.** Puertas que siguen cerradas y deben cumplirse antes de pedirlo: e2e con cuentas reales y la suite 59/59 en un staging autorizado; Safari en un iPhone real; lector de pantalla; decisión D-I8 |
+| [#52](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52) (`INSERT` directo en `jobs`) | Registrada como tarea independiente; **implementación no autorizada**. Debe resolverse antes de M3/M4 (puerta P3) |
+| I-2 (M3, M4 y copia de v2 con líneas a la cuenta) | **NO AUTORIZADO** |
+| I-3 (recursos en el costo) | **NO AUTORIZADO**; requiere aprobar las fórmulas de docs/21 §4.3–§4.4 y casos dorados nuevos |
+| Migraciones, despliegues (staging incluido), Google Routes, IVA, producción y merge del PR #34 | **NO AUTORIZADOS** |

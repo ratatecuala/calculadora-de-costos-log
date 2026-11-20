@@ -110,6 +110,8 @@ Alternativa evitando peajes: **$44.199 estimados** con los supuestos del prototi
 
 ## 8. Antes de programar
 
+> **Estado vigente (20-11-2026):** la programación se autorizó por etapas (A-44 y siguientes) y la lista de abajo se conserva como antecedente del 16-11. La interfaz plegable del inventario y los recursos (pedido del propietario) está en [21 §17.5](21-diseno-datos-cotizador.md) y su integración en «Cotizar» en [22 §10](22-diseno-integracion-cotizador.md), detrás de flags apagadas.
+
 - Dirección v4 completa comunicada como aprobada (A-21); **ratificar en el PR #34**. El copy final se ajusta en las pruebas de comprensión sin cambiar el significado.
 - Aprobar la **propuesta de arquitectura** ([02 §8](02-arquitectura.md)) y el proveedor de cuentas (#35).
 - Verificar en el proyecto real Maps Embed/Routes, SKU de tráfico y control de consumo (#19), sin exceder el gasto autorizado.

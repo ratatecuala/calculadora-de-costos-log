@@ -1,6 +1,6 @@
 # 06 · Seguridad y privacidad — aplicación gratuita con cuentas
 
-**Estado:** requisitos mínimos y temas por investigar (#15, #17, #18). La arquitectura, proveedor de identidad y política de datos aún necesitan aprobación. Repositorio público; nombre comercial pendiente.
+**Estado:** requisitos mínimos y temas por investigar (#15, #17, #18). *Sincronizado el 20-11-2026:* se agregó el inventario de datos guardados en el navegador (§2); el aviso de privacidad (#17) sigue pendiente. La arquitectura, proveedor de identidad y política de datos aún necesitan aprobación. Repositorio público; nombre comercial pendiente.
 
 ## 1. Reglas innegociables
 
@@ -24,6 +24,18 @@
 | Datos de Maps | Origen/destino y respuesta externa | Tránsito mínimo por Worker/Google; almacenamiento restringido según términos |
 | Métricas | Uso de flujos, errores y recurrencia | Agregadas o seudónimas, sin rutas personales en logs |
 | Fotos | **No se implementan en v1** | Pro futuro: privacidad, permisos y retención por diseñar |
+
+**Datos guardados en el navegador (estado al 20-11-2026):**
+
+| Clave de `localStorage` | Contenido | Regla |
+|---|---|---|
+| `cotizador.trabajos.v1` | Historial local de cotizaciones (v1 y, solo sin cuenta y con la flag de integración encendida, v2 con inventario y recursos) | Solo en ese navegador; sin respaldo; se avisa al usuario |
+| `cotizador.vehiculos.v1` | Perfiles de «Mi vehículo» sin cuenta | Ídem |
+| `cotizador.negocio.v1` | Datos comerciales del emisor | Ídem |
+| `cotizador.borrador.v1` | Borrador sin emitir (I-1b): direcciones, costos, vehículo, inventario y recursos escritos por el usuario; **nunca** datos del proveedor de rutas | Solo del modo sin cuenta; no se ofrece a otra identidad (C1); se borra al emitir o descartar |
+| `cotizador.migracion.v1` | Registro de la copia del historial local a la cuenta: por identificador de cuenta, los identificadores de cotizaciones y vehículos ya copiados, y las diferidas con su número y motivo | No contiene costos, montos ni direcciones |
+
+El inventario y los recursos **no** aparecen en el PDF, el enlace público ni WhatsApp (D-I7, A-67): el cliente ve solo la descripción del servicio.
 
 **No guardar**: datos reales de otros proyectos, contraseñas de Google, credenciales bancarias, fotos con metadatos GPS ni secretos del usuario.
 

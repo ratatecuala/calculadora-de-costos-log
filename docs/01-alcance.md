@@ -2,6 +2,8 @@
 
 **Estado:** dirección funcional actualizada el 16-11-2026. El propietario aprobó **la identidad blanca/azul/grafito y las pantallas inicial y calculadora de v4**; y el 16-11-2026 el propietario aprobó la **extensión completa del diseño v4** y los criterios funcionales (decisiones A-21 a A-29 en [07](07-decisiones.md)). La arquitectura y las cuotas están propuestas en [02](02-arquitectura.md) y esperan aprobación. Nombre comercial **PENDIENTE**. Ver [guía UX v4](10-diseno-ux.md).
 
+> **Estado vigente (20-11-2026, hasta `2f8e112`):** el alcance de esta página sigue vigente con los cambios de A-31 a A-45 (Google Routes Essentials, sin mapa integrado, «Mi vehículo»). La calculadora, el cotizador, el PDF, el historial y las cuentas **funcionan** en local y en un staging privado gratuito; las rutas son **simuladas** y no hay producción. El **cotizador ampliado** (inventario de carga, recursos, catálogo, costo según carga, IVA en dos opciones y rutas reales) se planifica en [19](19-plan-cotizador-ampliado.md): inventario y recursos ya están en «Cotizar» para el modo sin cuenta, **detrás de una flag apagada** y sin cambiar el costo ([22](22-diseno-integracion-cotizador.md)). La arquitectura vigente está en [02 §9](02-arquitectura.md).
+
 ## 1. Qué se construye primero
 
 Una herramienta web **gratuita para cotizar fletes y mudanzas pequeñas o medianas en Chile**, orientada a transportistas que utilizan auto, camioneta, furgón u otro vehículo liviano de trabajo. **Camiones de alto tonelaje quedan fuera del alcance inicial.** La inclusión y reglas específicas de motocicletas y camiones livianos necesitan validación técnica.

@@ -17,12 +17,13 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 | Rama de desarrollo | `claude/determined-volta-q9xvli` |
 | PR de trabajo | [#34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34): **abierto, sin merge**. Ahí están el código, las auditorías de ChatGPT y las decisiones escritas del propietario |
 | Punto de partida | **Siempre la punta (último commit) de la rama de desarrollo**, en su [historial](https://github.com/ratatecuala/calculadora-de-costos-log/commits/claude/determined-volta-q9xvli) |
-| Rama de trabajo de la sesión del 18-11 | `claude/nice-brown-hxu4m5`, adelantada a la rama de desarrollo por *fast-forward* al cerrar la sesión |
-| Último cambio de código | 20-11-2026: **integración I-1 + I-1b** (A-68): inventario y recursos en «Cotizar» solo sin cuenta, snapshot v2 en el navegador, copia mixta a la cuenta y recuperación del borrador, detrás de la flag `VITE_FF_INTEGRACION_CARGA` **apagada**; el costo no cambia y staging no se redesplegó. Antes, 18-11-2026: A-50 (validación de entradas del motor y rótulo del margen, **sin cambiar fórmulas**: casos dorados 64/64), A-51 («Precio total» y leyenda), aviso de texto inválido en los campos y correcciones de experiencia de usuario (docs/14). Staging redesplegado con esa versión |
-| Auditorías de ChatGPT | 7 rondas sobre el flujo general, más una revisión focalizada de A-47: **aceptada técnicamente para staging, sin hallazgos P0/P1**. ChatGPT revisa **por inspección**; no ejecuta las pruebas |
+| Rama de trabajo de las sesiones del 18 al 20-11 | `claude/nice-brown-hxu4m5`, adelantada a la rama de desarrollo por *fast-forward* tras cada entrega (nunca *force-push*) |
+| Último commit de código | `2f8e112` (20-11-2026). Después solo hay commits documentales |
+| Último cambio de código | 20-11-2026: **integración I-1 + I-1b** (A-68): inventario y recursos en «Cotizar» solo sin cuenta, snapshot v2 en el navegador, copia mixta a la cuenta y recuperación del borrador, detrás de la flag `VITE_FF_INTEGRACION_CARGA` **apagada**; el costo no cambia y staging no se redesplegó. **Cerrada técnicamente** por la [auditoría final](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743) (0 P0 · 0 P1). Antes, 18-11-2026: A-50 (validación de entradas del motor y rótulo del margen, **sin cambiar fórmulas**: casos dorados 64/64), A-51 («Precio total» y leyenda), aviso de texto inválido en los campos y correcciones de experiencia de usuario (docs/14). Staging redesplegado con esa versión |
+| Auditorías de ChatGPT | **Flujo general:** 7 rondas y una revisión focalizada de A-47, aceptado técnicamente para staging, sin P0/P1. **Cotizador ampliado:** diseño #45 (auditoría y reauditoría), fase 0 (auditoría y cierre), fase 1 (auditoría y cierre), diseño de integración y tres rondas de I-1 + I-1b; la [final](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743), sobre `2f8e112`, dio **0 P0 · 0 P1 · 1 P2 de producto (D-I8)**. ChatGPT revisa **por inspección**; no ejecuta las pruebas |
 | `main` | Solo publica este README de continuidad. **El código y los documentos técnicos siguen en la rama del PR #34, que no está integrado.** Toda fusión requiere aprobación del propietario |
 | Conflicto con `main` | **Resuelto en la rama**: se integró `main` conservando el README de desarrollo (`main` solo tenía el README de portada) |
-| Siguiente acción | Auditoría final de ChatGPT de I-1 + I-1b ([22 §13](docs/22-diseno-integracion-cotizador.md)) y tu decisión sobre D-I8 (recuperar km y minutos manuales, §12); después, por separado: #52 → M3 y M4 (I-2); ejecutar C-1 y C-2 en GPT Deep Research; crear el cliente OAuth de Google y hacer el primer respaldo real |
+| Siguiente acción | **Tu decisión sobre D-I8** (recuperar en el borrador los km y minutos escritos a mano, [22 §12](docs/22-diseno-integracion-cotizador.md); ChatGPT recomienda aprobar solo el modo manual). Después, cada una con su propia autorización: las puertas para encender la flag ([22 §14](docs/22-diseno-integracion-cotizador.md): staging autorizado con cuentas reales y 59/59, Safari en iPhone real, lector de pantalla); #52 → M3 y M4 (I-2); I-3 con aprobación de fórmulas; ejecutar C-1 y C-2 en GPT Deep Research; crear el cliente OAuth de Google y hacer el primer respaldo real |
 
 **Cómo retomar:** leer este README → [AGENTS.md](AGENTS.md) (reglas y autorizaciones) → [07 · Decisiones](docs/07-decisiones.md) → [13 · Staging](docs/13-staging.md) → los últimos comentarios del PR #34.
 
@@ -33,7 +34,7 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 | Calculadora y cotizador (motor de costos, precio, PDF, WhatsApp) | **Funciona** (local y staging) |
 | Experiencia en teléfono y en PC/notebook (A-49) | **Paridad verificada en local** del 320 al 1440 px (10 problemas corregidos, [14](docs/14-qa-ux.md)) y **en staging redesplegado** el 18-11: PC 1440/1366 y teléfono Pixel 7/iPhone 13, **59/59** sin cuenta |
 | Validación independiente del motor (#24) | **Casos dorados 64/64** por recálculo independiente; sin errores de fórmula. Los 4 hallazgos de entradas y textos (C-1 a C-4) **corregidos** con tu aprobación (A-50), sin cambiar fórmulas ([15](docs/15-validacion-motor.md)) |
-| Cotizador ampliado: inventario, recursos, catálogo de vehículos, costo según carga, IVA en dos opciones y rutas reales | **Planificación aprobada** (A-55 a A-60). **Diseño #45 versión 3 aprobado** (D-4 = b y T-1 a T-6: A-61, A-62). **Fase 0 cerrada** (A-63). **Fase 1 cerrada** (A-66). **Integración I-1 + I-1b implementada** (A-67, A-68; [22 §10](docs/22-diseno-integracion-cotizador.md)): en «Cotizar» solo sin cuenta, snapshot v2 en el navegador, copia mixta a la cuenta y borrador recuperable, detrás de la flag **apagada**; el costo no cambia. I-2 (requiere #52, M3 y M4), I-3, migraciones y cambios de costo **no autorizados** |
+| Cotizador ampliado: inventario, recursos, catálogo de vehículos, costo según carga, IVA en dos opciones y rutas reales | **Planificación aprobada** (A-55 a A-60). **Diseño #45 versión 3 aprobado** (D-4 = b y T-1 a T-6: A-61, A-62). **Fase 0 cerrada** (A-63). **Fase 1 cerrada** (A-66). **Integración I-1 + I-1b implementada y cerrada técnicamente** (A-67, A-68; 0 P0 · 0 P1, [22 §14](docs/22-diseno-integracion-cotizador.md)): en «Cotizar» solo sin cuenta, snapshot v2 en el navegador, copia mixta a la cuenta y borrador recuperable, detrás de la flag **apagada** (no visible para nadie); el costo no cambia. D-I8 **pendiente de tu decisión**. Encender la flag, I-2 (requiere #52, M3 y M4), I-3, migraciones, despliegue y cambios de costo **no autorizados** |
 | IVA en la cotización (#16) | La cotización muestra **«Precio total»** y la leyenda **«Esta cotización no es factura ni boleta.»** (A-51). Las reglas por tipo de transportista y de cliente (opción B) siguen **sin implementar**, a la espera de validación tributaria ([16](docs/16-iva-cotizaciones.md)) |
 | Distancias y tiempos de ruta | **Simulados**. La app lo indica en cada resultado. Google Routes **no está conectado** |
 | Uso sin cuenta (historial en el navegador) | **Funciona**, con aviso de que no hay respaldo en la nube |
@@ -76,7 +77,7 @@ Detalle: [02 · Arquitectura](docs/02-arquitectura.md) y [13 · Staging](docs/13
 | Borradores M3 y M4 del diseño #45 en PostgreSQL **local desechable** (`scripts/diseno/probar-borradores.sh`), **sin tocar Supabase** | **18/18** y 3 controles negativos que fallan como corresponde (20-11). **C3** (fixtures compartidas con Zod): **27/27**, tras corregir en M3 un `CHECK` que dejaba pasar líneas con dos medidas. Medición de 16 KB con aserciones: **10/10** (`scripts/diseno/medir-16kb.sh`) | Claude (ejecutadas) |
 | Integración I-1 + I-1b en navegador local (`scripts/e2e-integracion.mjs`): Pixel 7, iPhone 13 emulado, 1366 y 1440 | **134/134** con la flag (dos corridas; incluye emitir < 1 s después del último cambio y recargar) y **24/24** sin ella; además `e2e-staging-anonimo.mjs` en local 54/59 (5 fallas propias de staging: 401 y `localhost` como dominio externo). Sin cuentas reales ni Safari real | Claude (ejecutadas) |
 | Editores de inventario y recursos (fase 1, interfaz plegable) en navegador local, con y sin flag (`scripts/e2e-modulos.mjs`): Pixel 7, iPhone 13 emulado, 1366 y 1440 | **210/210** (20-11), con capturas; incluye foco al cerrar, cambio de modo y totales con datos inválidos. No probado en Safari real ni con lector de pantalla | Claude (ejecutadas) |
-| Revisión independiente del código | 7 auditorías, más la [revisión de los cinco frentes del 18-11](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6970465877) (sin bloqueos nuevos; PR #41 apto para tu decisión) | ChatGPT, **por inspección**: no reproduce las ejecuciones |
+| Revisión independiente del código | Flujo general: 7 auditorías y la [revisión de los cinco frentes del 18-11](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6970465877). Cotizador ampliado: auditorías del diseño, de las fases 0 y 1 y de la integración; [final de I-1 + I-1b](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743): **0 P0 · 0 P1** | ChatGPT, **por inspección**: no reproduce las ejecuciones |
 
 Las credenciales de los scripts se leen siempre de archivos **fuera** del repositorio.
 
@@ -91,6 +92,13 @@ Fuente: [07 · Decisiones](docs/07-decisiones.md). Una decisión está **APROBAD
   - **A-50:** margen sobre el precio de venta con rótulo corregido; validación de entradas, con aviso en el campo si se escribe algo que no es número; sin «$-0»; margen con decimales visible. No incluye recargos ni precio negativos (NE-1 y NE-10, sin decidir).
   - **A-51:** «Precio total» y leyenda «Esta cotización no es factura ni boleta.» **Transitorio:** no habilita cotizaciones comerciales reales hasta validar la política tributaria.
 - **APROBADAS el 20-11** ([ratificación en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7041864905)): **A-55 a A-60**, que aprueban la planificación del cotizador ampliado (no su desarrollo), el alcance inicial de vehículos, las investigaciones C-1 y C-2, los ayudantes por hora o por servicio, solo el diseño de migraciones y el catálogo piloto de hasta 15 versiones.
+- **APROBADAS el 20-11** (comunicadas por chat y registradas literalmente en #43 por la misma cuenta, AGENTS.md §6.7):
+  - **A-61 y A-62:** diseño #45 versión 3, con D-4 = (b) y T-1 a T-6 ([registro](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7044997471)).
+  - **A-63:** fase 0 (contratos y pruebas). **Cerrada.**
+  - **A-64 y A-65:** T-7 (límites provisionales de recursos) y T-8 (`fragile` y `handling` no sirven para costos ni seguridad) ([registro](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7045847482)).
+  - **A-66:** fase 1, editores de inventario y recursos detrás de una flag apagada. **Cerrada técnicamente.**
+  - **A-67 y A-68:** D-I1 a D-I7 e implementación de I-1 + I-1b con C1 y C2 ([registro](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7050929523)). **Cerrada técnicamente** (0 P0 · 0 P1).
+- **PENDIENTES de tu decisión:** D-I8 (km y minutos manuales en el borrador), D-2b, D-5, D-7 y D-10.
 - **APROBADAS el 18-11 ([registro de decisiones en el PR #34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6972739332)):**
   - **A-52:** Supabase en plan gratuito con respaldo propio. El primer respaldo real lo ejecutas tú.
   - **A-53:** Google OAuth en modo *Testing*. Tú creas el cliente OAuth.
@@ -109,6 +117,7 @@ Fuente: [07 · Decisiones](docs/07-decisiones.md). Una decisión está **APROBAD
   - **IVA (16, A-54):** «Precio total» y leyenda implementados (A-51). La opción B espera el informe de **GPT Deep Research** ([encargo](docs/18-encargo-deep-research-iva.md)), que ejecutas tú.
   - **Supabase (17, A-52):** se queda en el plan gratuito con respaldo propio. Pendiente el **primer respaldo real**, que haces tú porque requiere la contraseña de la base, y elegir el segundo lugar donde guardar los respaldos.
   - **Google OAuth (A-53):** pendiente que **crees el cliente** en modo *Testing*. El registro por correo queda abierto mientras Google esté en *Testing*; antes de abrir al público se cerrará con un *hook*. La protección de contraseñas filtradas **requiere el plan Pro**.
+  - **Cotizador ampliado (22 §14):** antes de encender la flag para transportistas faltan e2e con cuentas reales y la suite 59/59 en un staging autorizado, Safari en un iPhone real, un lector de pantalla real y la decisión D-I8. #52 debe resolverse antes de M3/M4.
   - **Experiencia de usuario (14):** filtro del historial, precio fijo en el teléfono y propuestas menores.
   - **Antes de lanzar:** dominio, nombre comercial y aviso de privacidad (#17).
 - **Antes de usar Google Routes real:**
@@ -127,6 +136,10 @@ Fuente: [07 · Decisiones](docs/07-decisiones.md). Una decisión está **APROBAD
 - crear cuentas o servicios nuevos;
 - publicar secretos;
 - cambiar las fórmulas del motor.
+- encender `VITE_FF_CARGA_RECURSOS` o `VITE_FF_INTEGRACION_CARGA` fuera de pruebas locales;
+- implementar D-I8, #52, I-2 o I-3;
+- ejecutar migraciones o redesplegar staging;
+- cambiar el IVA o activar reglas tributarias.
 
 Reglas completas en [AGENTS.md](AGENTS.md).
 
@@ -138,21 +151,25 @@ Reglas completas en [AGENTS.md](AGENTS.md).
 | [01 · Alcance](docs/01-alcance.md) | Funciones gratuitas, flujo y exclusiones |
 | [02 · Arquitectura](docs/02-arquitectura.md) | Arquitectura, política de consultas e implementación |
 | [03 · Motor de costos](docs/03-motor-de-costos.md) | Fórmulas, cotas y casos dorados |
-| [05 · Pruebas](docs/05-pruebas-y-calibracion.md) | Pruebas automáticas y reales |
+| [04 · Fuentes de datos](docs/04-fuentes-de-datos.md) | Fuentes de datos y restricciones de uso |
+| [05 · Pruebas](docs/05-pruebas-y-calibracion.md) | Pruebas automáticas y reales; inventario por archivo y cifras vigentes |
 | [06 · Seguridad y privacidad](docs/06-seguridad-y-privacidad.md) | Datos, cotizaciones compartidas y control de cargos |
 | [07 · Decisiones](docs/07-decisiones.md) | Registro de decisiones y su estado |
+| [08 · Hoja de ruta](docs/08-hoja-de-ruta.md) | Estado vigente por frente y hoja de ruta histórica del 16-11 |
+| [09 · Revisión y aprobación](docs/09-revision-y-aprobacion.md) | Protocolo de revisión y aprobación |
 | [10 · Diseño UX/UI v4](docs/10-diseno-ux.md) | Diseño aprobado |
 | [11 · Auditoría Google Maps](docs/11-auditoria-google-maps.md) | Costos y condiciones de Google |
+| [12 · Alternativas de mapas](docs/12-alternativas-mapas.md) | Comparación preliminar de proveedores (no aprobada) |
 | [13 · Staging](docs/13-staging.md) | Recursos, RLS, pruebas reales, interruptores, respaldo y pasos manuales |
 | [14 · QA de experiencia de usuario](docs/14-qa-ux.md) | Teléfono y PC/notebook: hallazgos, correcciones y paridad por flujo |
 | [15 · Validación del motor](docs/15-validacion-motor.md) | Recálculo independiente, hallazgos y decisiones (#24) |
 | [16 · IVA en las cotizaciones](docs/16-iva-cotizaciones.md) | Normativa chilena, documento tributario vs cotización y propuesta (#16) |
 | [17 · Supabase: seguridad y respaldo](docs/17-supabase-seguridad-respaldo.md) | Auditoría, ajustes de Auth, respaldo y restauración, Google OAuth (#35) |
 | [18 · Encargo de Deep Research sobre IVA](docs/18-encargo-deep-research-iva.md) | Preguntas para validar la tributación antes de la opción B (#16, A-54) |
-| [19 · Plan del cotizador ampliado](docs/19-plan-cotizador-ampliado.md) | Catálogo de vehículos, inventario de carga, costo según carga, IVA en dos opciones y rutas reales: etapas, datos y decisiones (épica #42, **propuesta**) |
-| [22 · Diseño de integración con el cotizador](docs/22-diseno-integracion-cotizador.md) | **Versión 2**, D-I1 a D-I7 aprobadas e **I-1 + I-1b implementadas** (§10). Puerta P2: v2 solo en el navegador; copia mixta v1/v2 con diferidas; recuperación del borrador (I-1b) antes de habilitar a usuarios; «Incluye» con casilla explícita; I-1 en el navegador sin migraciones, I-2 en la cuenta tras #52 y M3/M4, I-3 recursos en el costo con aprobación de fórmulas; fuente única de cada costo, conservación de datos, protección de históricos y decisiones D-I1 a D-I7 |
-| [21 · Diseño de datos del cotizador ampliado](docs/21-diseno-datos-cotizador.md) | Diseño técnico de #45, **versión 3, aprobado** (A-61 a A-63; fase 0 implementada en §16; corrige la auditoría y los 5 P2 de la reauditoría): módulos, contratos, inmutabilidad con 4 capas, persistencia local, medición de 16 KB con aserciones, borradores M3 y M4 ensayados en local (18/18 y 3 controles negativos), carriles paralelos y **plan de implementación por puertas** (§15) |
+| [19 · Plan del cotizador ampliado](docs/19-plan-cotizador-ampliado.md) | Catálogo de vehículos, inventario de carga, costo según carga, IVA en dos opciones y rutas reales: etapas, datos y decisiones (épica #42; planificación **aprobada**, A-55 a A-60) |
 | [20 · Encargos de Deep Research del cotizador](docs/20-encargos-deep-research-cotizador.md) | C-1 catálogo y mercado, C-2 costo según carga y recursos; listos para ejecutar (el IVA no se duplica) |
+| [21 · Diseño de datos del cotizador ampliado](docs/21-diseno-datos-cotizador.md) | Diseño técnico de #45, **versión 3, aprobado** (A-61 a A-63; fase 0 cerrada en §16, fase 1 cerrada en §17; corrige la auditoría y los 5 P2 de la reauditoría): módulos, contratos, inmutabilidad con 4 capas, persistencia local, medición de 16 KB con aserciones, borradores M3 y M4 ensayados en local (18/18 y 3 controles negativos), carriles paralelos y **plan de implementación por puertas** (§15) |
+| [22 · Diseño de integración con el cotizador](docs/22-diseno-integracion-cotizador.md) | **Versión 2**, D-I1 a D-I7 aprobadas e **I-1 + I-1b implementadas** (§10) y **cerradas técnicamente** (§14, 0 P0 · 0 P1); D-I8 pendiente (§12). Puerta P2: v2 solo en el navegador; copia mixta v1/v2 con diferidas; recuperación del borrador (I-1b) antes de habilitar a usuarios; «Incluye» con casilla explícita; I-1 en el navegador sin migraciones, I-2 en la cuenta tras #52 y M3/M4, I-3 recursos en el costo con aprobación de fórmulas; fuente única de cada costo, conservación de datos, protección de históricos y decisiones D-I1 a D-I7 |
 
 ## Probar localmente (sin cuentas ni servicios externos)
 

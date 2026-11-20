@@ -1,12 +1,16 @@
 # 21 · Diseño técnico de datos del cotizador ampliado (#45)
 
-**Versión 3 · 20-11-2026 · Estado: DISEÑO; pendiente de tus decisiones (§12) y de autorizar la fase 0.**
+**Versión 3 · 20-11-2026.**
+> **Estado vigente (sincronizado el 20-11-2026, hasta `2f8e112`):** diseño **aprobado** (A-61, A-62). **Fase 0 cerrada** (A-63, §16). **Fase 1 cerrada técnicamente** (A-66, §17.7). **Integración I-1 + I-1b implementada y cerrada técnicamente** detrás de la flag apagada (A-67, A-68; [22 §14](22-diseno-integracion-cotizador.md)). Pendientes de tu decisión: D-2b, D-5, D-7, D-10 y D-I8. **No autorizados:** encender las flags, la puerta P3 (M3/M4, después de #52), la P4 (I-3, recursos en el costo), despliegues, Google Routes, IVA y merge del PR #34.
+>
+> *Estado al publicar la versión 3 (histórico): DISEÑO; pendiente de tus decisiones (§12) y de autorizar la fase 0.*
+
 - La versión 2 corrigió los 5 P1 y los 3 P2 de la [auditoría sobre `cba6ffb`](https://github.com/ratatecuala/calculadora-de-costos-log/issues/45#issuecomment-7042277474) (§13.1).
 - La versión 3 corrige los 5 P2 de la [reauditoría (0 P0, 0 P1)](https://github.com/ratatecuala/calculadora-de-costos-log/issues/45#issuecomment-7044566908) (§13.2) y agrega el plan de implementación de inventario y recursos (§15).
 - **Fase 1 (A-66, 20-11-2026):** editores y funciones puras de inventario (#47) y recursos (#51), detrás de una feature flag **desactivada** y sin conexión al cotizador (§17). T-7 y T-8 decididas (A-64, A-65).
-- **Aprobado (20-11-2026):** D-4 = (b) y T-1 a T-6 (A-61, A-62) y **solo la fase 0** (A-63). La fase 0 está implementada (§16) y corregida según la [auditoría de ChatGPT](https://github.com/ratatecuala/calculadora-de-costos-log/issues/45#issuecomment-7045276976) (§13.3); la fase 1 **no** está autorizada.
+- **Aprobado (20-11-2026):** D-4 = (b) y T-1 a T-6 (A-61, A-62) y **solo la fase 0** (A-63). La fase 0 está implementada (§16) y corregida según la [auditoría de ChatGPT](https://github.com/ratatecuala/calculadora-de-costos-log/issues/45#issuecomment-7045276976) (§13.3); la fase 1 **no** estaba autorizada en ese momento (la autorizó A-66).
 **Autorización:** [ratificación en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7041864905) (A-55 a A-60) y [aprobación del 20-11 registrada en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7044997471) (A-61 a A-63). **Siguen sin aprobar** D-2b, D-5, D-7 y D-10.
-**No hay:** interfaz nueva, integración al cotizador, migraciones en Supabase, cambios en el motor ni datos importados. Solo los contratos de la fase 0 (§16), que la aplicación todavía no usa.
+**Al publicar la versión 3 no había** interfaz nueva, integración al cotizador, migraciones en Supabase, cambios en el motor ni datos importados; solo los contratos de la fase 0 (§16). **Hoy** existen los editores de la fase 1 (§17) y la integración I-1 + I-1b ([22 §10](22-diseno-integracion-cotizador.md)), ambos detrás de flags **apagadas**. Siguen sin existir migraciones nuevas en Supabase, cambios en el motor y datos importados.
 **Ensayos:** los borradores SQL y las mediciones se ejecutaron en un PostgreSQL 16 **local y desechable**, con las 3 migraciones reales del repositorio (§11).
 
 ## 0. Resumen
@@ -389,6 +393,8 @@ La marca es local a la transacción (`is_local = true`) y desaparece al terminar
 
 ## 12. Decisiones técnicas pendientes del propietario
 
+> **Estado actual (20-11-2026):** D-4 = (b) y T-1 a T-6 **aprobadas** (A-61, A-62); T-7 y T-8 **decididas** (A-64, A-65). Siguen **pendientes** §4.3 y §4.4 (se aprueban con I-3), D-2b, D-5, D-7 y D-10. La tabla conserva la redacción con que se propusieron.
+
 | ID | Decisión | Recomendación |
 |---|---|---|
 | **D-4** | Inventario en la nube: (a), (b) o (c) | **(b)** (§7 y §8.1) |
@@ -443,7 +449,9 @@ No programa funciones de la aplicación, no ejecuta migraciones en Supabase, no 
 
 ## 15. Plan de implementación: inventario y recursos (cuando se autorice)
 
-**Nada de esta sección está autorizado.** Cada puerta indica qué aprobación tuya la abre. El orden es el de §9; aquí se detalla para los carriles 1 (inventario, #47) y 2 (recursos, #51), más lo que ambos necesitan de datos e integración. El carril 3 (catálogo) sigue esperando C-1 y M1.
+> **Estado actual (20-11-2026):** P0 cerrada (A-63). P1 cerrada técnicamente (A-66). P2: solo **I-1 + I-1b** (A-68), cerrada técnicamente con la flag apagada; la vista previa en staging **no** está autorizada. P3 y P4 **no autorizadas**.
+
+**Texto original:** nada de esta sección estaba autorizado. Cada puerta indica qué aprobación tuya la abre. El orden es el de §9; aquí se detalla para los carriles 1 (inventario, #47) y 2 (recursos, #51), más lo que ambos necesitan de datos e integración. El carril 3 (catálogo) sigue esperando C-1 y M1.
 
 ### 15.1 Puertas de aprobación
 
@@ -591,6 +599,8 @@ Ninguna puerta autoriza fusionar el PR #34, activar Google Routes, producción n
 - El PDF, el enlace y WhatsApp solo con la descripción del servicio (prueba de lista blanca).
 - En teléfono, una mudanza de muchas líneas hace la página larga: evaluar líneas plegables al integrar.
 
+> **Estado actual:** estos puntos se resolvieron con I-1 + I-1b (A-68): editores conectados a la sesión, snapshot v2 en el navegador, PDF, enlace y WhatsApp solo con la descripción del servicio, y líneas plegables (§17.5). Detalle en [22 §10](22-diseno-integracion-cotizador.md).
+
 ### 17.5 Interfaz plegable y separación cliente / transportista (20-11-2026, pedido del propietario)
 
 Mejora visual dentro de la fase 1 (A-66). **No** elimina información ni funciones, **no** cambia contratos, validaciones ni cálculos, y sigue sin conexión al cotizador.
@@ -651,7 +661,7 @@ Casos dorados 64/64. Con la flag apagada, el paquete sigue sin los editores.
 
 **Resultados (Claude, 20-11-2026):** `npm test` **465/465**; casos dorados 64/64; typecheck y build sin errores; e2e de módulos 210/210 (sin cambios visibles en la interfaz). La interfaz plegable se conserva sin rediseño.
 
-**Siguiente etapa:** diseño de integración en [22](22-diseno-integracion-cotizador.md) (I-1 sin migraciones; I-2 tras #52; I-3 con aprobación de fórmulas). **No autorizado.**
+**Siguiente etapa:** diseño de integración en [22](22-diseno-integracion-cotizador.md) (I-1 sin migraciones; I-2 tras #52; I-3 con aprobación de fórmulas). **No autorizado** en ese momento. **Estado actual:** A-67 aprobó el diseño y A-68 autorizó I-1 + I-1b, ya implementadas y cerradas técnicamente ([22 §10 y §14](22-diseno-integracion-cotizador.md)); I-2 e I-3 siguen sin autorizar.
 
 ## 18. Propuesta para una etapa posterior: datos de la carga aportados por el cliente (NO autorizada)
 

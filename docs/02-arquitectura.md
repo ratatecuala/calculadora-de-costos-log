@@ -2,6 +2,8 @@
 
 **Estado:** la arquitectura anterior «sin cuentas, sin BD y sin mapa» quedó **superada** por el nuevo alcance. La dirección visual v4 está aprobada como dirección general, y los criterios funcionales A-21 a A-29 fueron comunicados por el propietario y están pendientes de ratificación en el PR #34. Por encargo del propietario (A-30), la **§8 propone el cierre de la arquitectura**; las cifras de proveedores, leídas vía buscador, están en [04](04-fuentes-de-datos.md) y §8.2. **Proveedores, cuotas y gastos siguen sin aprobar** hasta el OK del propietario a este documento y a #35. No autoriza crear cuentas, código, despliegues ni facturación.
 
+> **Estado vigente (20-11-2026, hasta `2f8e112`):** el cierre propuesto en §8 quedó superado en parte por decisiones posteriores: Google Routes Essentials como proveedor, desconectado (A-32, §9); sin mapa integrado (A-35); staging gratuito en Cloudflare y Supabase (A-46, [13](13-staging.md)); Supabase en plan gratuito con respaldo propio (A-52). La implementación vigente está en §9.2 y el cotizador ampliado en §9.3. **No hay producción.** §8 se conserva como antecedente.
+
 ## 1. Principios que se conservan
 
 - Código simple y mantenible; **un proyecto** en vez de microservicios prematuros.
@@ -325,3 +327,21 @@ tests/        pruebas Vitest (presupuesto, concurrencia, SKU, motor, sesión, se
   - la procedencia y la retención se llevan por campo (km y minutos);
   - los tramos con distancia o duración ausente, inválida o cero se rechazan (`src/server/validateRoute.ts`), y una velocidad implícita fuera de 3–130 km/h genera una advertencia visible;
   - cada cotización guarda una copia de los datos del emisor.
+
+### 9.3 Cotizador ampliado: inventario y recursos (20-11-2026)
+
+Diseño en [21](21-diseno-datos-cotizador.md) (datos) y [22](22-diseno-integracion-cotizador.md) (integración). Todo funciona **solo en el navegador**, detrás de dos flags **apagadas** por defecto (`src/web/featureFlags.ts`): `VITE_FF_CARGA_RECURSOS` (vista previa de los editores, fase 1) y `VITE_FF_INTEGRACION_CARGA` (integración I-1 + I-1b). Con la flag apagada, el código viaja en el paquete pero no se activa y la interfaz es idéntica a la anterior.
+
+```
+src/shared/   cargo.ts, resources.ts (contratos Zod), snapshot.ts (v1/v2), audiencia.ts (cliente/transportista)
+src/web/modules/   estado de los editores (inventoryDraft, resourcesDraft, estado, integracion)
+src/web/components/   CargoSection, InventoryEditor, ResourcesEditor, Disclosure, DraftBanner, ModulesPreview
+src/web/draftStore.ts   borrador sin emitir (I-1b) y autoguardado
+```
+
+- **El motor no cambia** (A-63, A-66, A-68): inventario y recursos **solo informan**; el costo es idéntico con los editores vacíos o llenos.
+- **Snapshot:** v1 (sin `schemaVersion`) y v2 (`schemaVersion: 2`). En I-1 la v2 se guarda **solo en el navegador** (sin cuenta); con cuenta se sigue emitiendo v1.
+- **Copia a la cuenta:** las cotizaciones locales se clasifican en v1, v2 con solo resumen, v2 con líneas e ilegibles; se envían solo las compatibles, con el `internal` preparado y validado y un tope de 11.000 bytes UTF-8 por cada v2 (C2). Las que requieren I-2 quedan **diferidas** y se informan.
+- **Borrador (I-1b):** clave `cotizador.borrador.v1`, solo del modo sin cuenta; al iniciar sesión se conserva aislado (C1); se borra al emitir.
+- **Sin migraciones:** `job_cargo_items` y `create_job_with_quote_v2` (M3, M4) existen solo como borradores ensayados en un PostgreSQL local ([21 §8](21-diseno-datos-cotizador.md)); ejecutarlas es la puerta P3, no autorizada.
+
