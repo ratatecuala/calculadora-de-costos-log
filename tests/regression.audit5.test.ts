@@ -123,7 +123,18 @@ function localJob(n: number): JobRecord {
     status: 'borrador',
     payment: 'pendiente',
     waypoints: [],
-    internal: {} as JobRecord['internal'],
+    // v1 válida: desde I-1 (auditoría P1-2) una v1 ilegible no se envía a la base.
+    internal: {
+      routeSource: 'simulado',
+      km: null,
+      minutes: null,
+      costEstimate: 1000,
+      costType: 'estimado',
+      suggestedPrice: 1200,
+      margin: 0.15,
+      missing: [],
+      engineVersion: 'motor-1.0.1',
+    },
   };
 }
 

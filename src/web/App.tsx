@@ -16,7 +16,7 @@ import { QuoteForm } from './components/QuoteForm';
 import { QuoteView } from './components/QuoteView';
 import { VehiclesView } from './components/VehiclesView';
 import { DraftBanner } from './components/DraftBanner';
-import { DraftStore, type StoredDraft } from './draftStore';
+import { decidirAutoguardado, DraftStore, type StoredDraft } from './draftStore';
 import { FEATURE_FLAGS } from './featureFlags';
 import { emptyInventoryDraft } from './modules/inventoryDraft';
 import { emptyResourcesDraft } from './modules/resourcesDraft';
@@ -184,8 +184,9 @@ function MainApp() {
     const unsubscribe = target.subscribe(() => {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
-        if (currentOwnerRef.current !== 'local' || offerPending.current) return;
-        if (!target.hasDraftContent()) return;
+        const accion = decidirAutoguardado(currentOwnerRef.current, offerPending.current, target.hasDraftContent());
+        if (accion === 'borrar') draftStore.clear('local');
+        if (accion !== 'escribir') return;
         const w = draftStore.write('local', target.draftData());
         setDraftNotice(w.ok ? null : w.reason);
       }, 1000);
@@ -202,7 +203,8 @@ function MainApp() {
     void vehicleList.switchTo(userId ?? 'local', vehicleRepository).then((result) => {
       if (!result) return;
       const preferred = result.vehicles.find((v) => v.id === result.defaultId);
-      if (preferred && !sessionRef.current.getSnapshot().vehicle) sessionRef.current.selectVehicle(preferred);
+      // Automático: no cuenta como trabajo del usuario para el borrador (auditoría I-1, P1-1).
+      if (preferred && !sessionRef.current.getSnapshot().vehicle) sessionRef.current.selectDefaultVehicle(preferred);
     });
   }, [userId, vehicleRepository, vehicleList]);
 

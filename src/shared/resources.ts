@@ -87,8 +87,20 @@ const helperHora = z
   })
   .strict();
 
-/** `.strict()` en cada modalidad: un ayudante «servicio» con `ratePerHour` se rechaza (A-58). */
-export const helperSchema = z.discriminatedUnion('mode', [helperServicio, helperHora]);
+/**
+ * `.strict()` en cada modalidad: un ayudante «servicio» con `ratePerHour` se rechaza (A-58).
+ * Además, tarifa × horas debe caber en el tope monetario aunque cada campo sea válido (auditoría
+ * I-1, P1-3): así la validación que bloquea la emisión coincide con `helperCostLines`.
+ */
+export const helperSchema = z.discriminatedUnion('mode', [helperServicio, helperHora]).superRefine((h, ctx) => {
+  if (h.mode === 'hora' && h.ratePerHour !== null && h.hours !== null && Math.round(h.ratePerHour * h.hours) > MAX_CLP) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['hours'],
+      message: 'Tarifa × horas supera el monto máximo permitido: revisa la tarifa o las horas',
+    });
+  }
+});
 export type Helper = z.output<typeof helperSchema>;
 
 export const equipmentSchema = z

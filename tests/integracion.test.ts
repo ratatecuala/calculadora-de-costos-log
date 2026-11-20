@@ -10,15 +10,16 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 import { suggestServiceText } from '../src/shared/cargo';
+import { helperCostLines } from '../src/shared/resources';
 import { isSnapshotV2, toClientQuote, type JobInternalV1, type JobRecord } from '../src/shared/clientQuote';
 import { MAX_CLOUD_INTERNAL_JSON_BYTES, readSnapshot, snapshotV2Schema, toCloudPayload } from '../src/shared/snapshot';
 import { clasificarParaCopia, mensajeCopia, MIGRATION_KEY, migrateLocalToCloud, pendingLocalData } from '../src/web/cloud/migration';
 import { jobWithQuotePayload, jobFromRow } from '../src/web/cloud/mappers';
-import { DRAFT_KEY, DraftStore } from '../src/web/draftStore';
+import { decidirAutoguardado, DRAFT_KEY, DraftStore } from '../src/web/draftStore';
 import { buildJobRecord, CargoInvalidError } from '../src/web/jobs';
 import { alternarIncluye, avisosDuplicado, bloqueoEmision, includesPorDefecto, includesSegunCasilla } from '../src/web/modules/integracion';
 import { addItem, newDraftItem, setMode, updateItem } from '../src/web/modules/inventoryDraft';
-import { addHelper, addEquipment, emptyResourcesDraft, setHelperMode, toggleSegment, updateEquipment, updateHelper, updateStop } from '../src/web/modules/resourcesDraft';
+import { addHelper, addEquipment, emptyResourcesDraft, setHelperMode, toggleSegment, updateEquipment, updateHelper, updateStop, validateResources } from '../src/web/modules/resourcesDraft';
 import { saveQuote, snapshotVersionFor } from '../src/web/saveQuote';
 import { QuoteSession, type RouteClient } from '../src/web/session';
 import { createQuoteRepository, type QuoteRepository } from '../src/web/storage';
@@ -610,5 +611,180 @@ describe('Interfaz con la flag apagada: idéntica a hoy (X1, D-I6)', () => {
     const props = { session: conCarga(sesionLista()), vehicles: [], onManageVehicles: () => undefined, onCreateQuote: () => undefined };
     expect(renderToStaticMarkup(createElement(Calculator, props))).not.toContain('Detalle de la carga y recursos');
     expect(renderToStaticMarkup(createElement(Calculator, { ...props, cargoEnabled: true }))).toContain('Detalle de la carga y recursos');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Auditoría de bb907b7 (0 P0 · 3 P1 · 1 P2)
+// ---------------------------------------------------------------------------
+
+describe('P1-1 · el borrador conserva costos y vehículo, y lo borrado no reaparece', () => {
+  const vehiculo = { id: 'veh-ficticio', name: 'Camioneta ficticia', type: 'camioneta' as const, fuel: 'diesel' as const, kmPerL: 11, wearPerKm: 30, createdAt: '', updatedAt: '' };
+
+  /** Simula el autoguardado de App sobre un almacenamiento y devuelve lo que habría al «recargar». */
+  function autoguardar(ds: DraftStore, s: QuoteSession, owner = 'local', ofertaPendiente = false) {
+    const accion = decidirAutoguardado(owner, ofertaPendiente, s.hasDraftContent());
+    if (accion === 'borrar') ds.clear('local');
+    if (accion === 'escribir') ds.write('local', s.draftData());
+    return accion;
+  }
+
+  it('solo un cambio de costo: se guarda y se recupera al recargar', () => {
+    const ds = new DraftStore(new MemoryKeyValueStore());
+    const s = new QuoteSession(noRoutes);
+    s.setParams({ fuelPricePerL: 1250, helpers: 2 });
+    expect(s.hasDraftContent()).toBe(true);
+    expect(autoguardar(ds, s)).toBe('escribir');
+    const r = ds.read('local');
+    expect(r.status === 'ok' && r.draft.data.params).toMatchObject({ fuelPricePerL: 1250, helpers: 2 });
+  });
+
+  it('margen, recargos y un vehículo elegido por el usuario también cuentan', () => {
+    for (const cambiar of [(s: QuoteSession) => s.setMargin(0.2), (s: QuoteSession) => s.setSurcharges(5000), (s: QuoteSession) => s.selectVehicle(vehiculo)]) {
+      const s = new QuoteSession(noRoutes);
+      cambiar(s);
+      expect(s.hasDraftContent()).toBe(true);
+    }
+    const ds = new DraftStore(new MemoryKeyValueStore());
+    const s = new QuoteSession(noRoutes);
+    s.selectVehicle(vehiculo);
+    autoguardar(ds, s);
+    const r = ds.read('local');
+    expect(r.status === 'ok' && r.draft.data.vehicle?.id).toBe('veh-ficticio');
+  });
+
+  it('el vehículo predeterminado aplicado AUTOMÁTICAMENTE no crea un borrador', () => {
+    const s = new QuoteSession(noRoutes);
+    s.selectDefaultVehicle(vehiculo);
+    expect(s.getSnapshot().vehicle?.id).toBe('veh-ficticio');
+    expect(s.hasDraftContent()).toBe(false);
+    // Pero si el usuario ya había escrito algo, el vehículo forma parte de su trabajo.
+    const t = new QuoteSession(noRoutes);
+    t.setInputs({ origin: 'Calle Ficticia 1' });
+    t.selectDefaultVehicle(vehiculo);
+    t.setInputs({ origin: '' });
+    expect(t.hasDraftContent()).toBe(true);
+  });
+
+  it('escribir solo el origen y luego borrarlo: el borrador guardado se elimina y no reaparece', () => {
+    const ds = new DraftStore(new MemoryKeyValueStore());
+    const s = new QuoteSession(noRoutes);
+    s.setInputs({ origin: 'Calle Ficticia 1, Ñuñoa' });
+    expect(autoguardar(ds, s)).toBe('escribir');
+    expect(ds.read('local').status).toBe('ok');
+    s.setInputs({ origin: '' });
+    expect(s.hasDraftContent()).toBe(false);
+    expect(autoguardar(ds, s)).toBe('borrar');
+    expect(ds.read('local')).toEqual({ status: 'none' });
+  });
+
+  it('borrar todo el inventario y los costos también limpia el borrador', () => {
+    const ds = new DraftStore(new MemoryKeyValueStore());
+    const s = conCarga(sesionLista());
+    autoguardar(ds, s);
+    s.restoreDraft(new QuoteSession(noRoutes).draftData()); // el usuario deja todo como al inicio
+    expect(autoguardar(ds, s)).toBe('borrar');
+    expect(ds.read('local')).toEqual({ status: 'none' });
+  });
+
+  it('con una oferta pendiente o con cuenta, el autoguardado no toca lo guardado', () => {
+    expect(decidirAutoguardado('local', true, false)).toBe('nada');
+    expect(decidirAutoguardado('local', true, true)).toBe('nada');
+    expect(decidirAutoguardado('user-A', false, true)).toBe('nada');
+    expect(decidirAutoguardado('user-A', false, false)).toBe('nada');
+    const ds = new DraftStore(new MemoryKeyValueStore());
+    const s = conCarga(sesionLista());
+    autoguardar(ds, s);
+    const vacia = new QuoteSession(noRoutes);
+    expect(autoguardar(ds, vacia, 'local', true)).toBe('nada');
+    expect(autoguardar(ds, vacia, 'user-A')).toBe('nada');
+    expect(ds.read('local').status).toBe('ok');
+  });
+
+  it('tras recargar y recuperar, los costos y el vehículo vuelven', () => {
+    const ds = new DraftStore(new MemoryKeyValueStore());
+    const s = new QuoteSession(noRoutes);
+    s.setParams({ helperFee: 18000 });
+    s.selectVehicle(vehiculo);
+    autoguardar(ds, s);
+    const nueva = new QuoteSession(noRoutes);
+    const r = ds.read('local');
+    if (r.status === 'ok') nueva.restoreDraft(r.draft.data);
+    expect(nueva.getSnapshot().params.helperFee).toBe(18000);
+    expect(nueva.getSnapshot().vehicle?.id).toBe('veh-ficticio');
+    expect(nueva.hasDraftContent()).toBe(true);
+  });
+});
+
+describe('P1-2 · la copia valida también las v1 y difiere las ilegibles sin interrumpir las válidas', () => {
+  const ilegibles: Array<[string, unknown]> = [
+    ['null', null],
+    ['truncada', { routeSource: 'simulado' }],
+    ['costo como texto', { ...(jobV1(1).internal as object), costEstimate: 'mucho' }],
+    ['arreglo', []],
+    ['número', 42],
+  ];
+
+  it('una v1 legible es elegible y se envía el registro ORIGINAL', () => {
+    const j = jobV1(1);
+    const c = clasificarParaCopia(j);
+    expect(c.clase).toBe('v1');
+    expect(c.envio).toBe(j);
+  });
+
+  it.each(ilegibles)('v1 %s: ilegible, con motivo', (_n, internal) => {
+    const c = clasificarParaCopia({ ...jobV1(2), internal: internal as JobRecord['internal'] });
+    expect(c.clase).toBe('ilegible');
+    expect(c.motivo).toBeTruthy();
+    expect(c.envio).toBeUndefined();
+  });
+
+  it('mezcla de v1 válidas e ilegibles: se copian las válidas y las ilegibles nunca llegan a la base', async () => {
+    const jobs = [jobV1(1), { ...jobV1(2), internal: null as unknown as JobRecord['internal'] }, jobV2Resumen(3), { ...jobV1(4), internal: { routeSource: 'simulado' } as unknown as JobRecord['internal'] }];
+    const h = await historial(jobs);
+    const sb = fakeSupabase();
+    const r = await migrateLocalToCloud({ supabase: sb.client, userId: 'A', localQuotes: h.localQuotes, localVehicles: sinVehiculos, store: h.store, isCurrentUser: () => true });
+    expect(sb.rpc).toHaveBeenCalledTimes(2);
+    expect(r).toMatchObject({ jobsCopied: 2, verified: true });
+    expect(r.deferred.map((d) => [d.number, d.clase]).sort()).toEqual([
+      [2, 'ilegible'],
+      [4, 'ilegible'],
+    ]);
+    for (const e of sb.enviados) expect(e.internal).not.toBeNull();
+    expect(mensajeCopia(r)).toContain('no se pudieron preparar');
+  });
+});
+
+describe('P1-3 · tarifa × horas sobre el tope monetario bloquea la emisión', () => {
+  const id = '00000000-0000-4000-8000-0000000000c3';
+  const conAyudante = (rate: number, hours: number) => {
+    let r = addHelper(emptyResourcesDraft(), id);
+    r = setHelperMode(r, id, 'hora');
+    r = updateHelper(r, id, { ratePerHour: rate, hours });
+    return toggleSegment(r, id, 'manipulacion');
+  };
+
+  it('9.000.000.000 × 24 h: validateResources lo rechaza en «horas», igual que helperCostLines', () => {
+    const r = conAyudante(9_000_000_000, 24);
+    const v = validateResources(r);
+    expect(v.resources).toBeNull();
+    expect(v.errors[`${id}.hours`]).toMatch(/supera el monto máximo/);
+    expect(helperCostLines({ helpers: r.helpers })[0]).toMatchObject({ status: 'invalido' });
+  });
+
+  it('el botón queda bloqueado y el guardado final también lo rechaza', () => {
+    const s = sesionLista();
+    s.setResources(conAyudante(9_000_000_000, 24));
+    expect(bloqueoEmision(s.getSnapshot().cargo, s.getSnapshot().resources)).toMatch(/supera el monto máximo/);
+    expect(() => buildJobRecord(s, form, issuer, meta(), { version: 2 })).toThrow(CargoInvalidError);
+  });
+
+  it('justo en el tope sí se acepta; el costo del motor no cambia', () => {
+    const r = conAyudante(416_666_666, 24); // 9.999.999.984 ≤ 9.999.999.999
+    expect(validateResources(r).resources).not.toBeNull();
+    const s = sesionLista();
+    const antes = s.computation('habitual')!.measures;
+    s.setResources(conAyudante(9_000_000_000, 24));
+    expect(s.computation('habitual')!.measures).toEqual(antes);
   });
 });

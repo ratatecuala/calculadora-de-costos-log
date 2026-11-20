@@ -161,6 +161,20 @@ export class DraftStore {
   }
 }
 
+export type AccionBorrador = 'escribir' | 'borrar' | 'nada';
+
+/**
+ * Qué hace el autoguardado tras un cambio (auditoría I-1, P1-1):
+ * - con cuenta o con una oferta de recuperación pendiente: nada (no se pisa lo guardado);
+ * - con contenido del usuario (cualquier diferencia con la línea base): se escribe;
+ * - si el usuario dejó todo como al inicio (borró lo que había escrito): se BORRA el borrador
+ *   guardado, para que lo eliminado no reaparezca al recargar.
+ */
+export function decidirAutoguardado(owner: string, ofertaPendiente: boolean, hayContenido: boolean): AccionBorrador {
+  if (owner !== 'local' || ofertaPendiente) return 'nada';
+  return hayContenido ? 'escribir' : 'borrar';
+}
+
 /** «hace 5 min», «hace 2 h», «hace 3 días». */
 export function haceCuanto(savedAt: string, now: Date = new Date()): string {
   const min = Math.max(0, Math.round((now.getTime() - new Date(savedAt).getTime()) / 60000));

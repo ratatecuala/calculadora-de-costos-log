@@ -183,6 +183,7 @@ export class QuoteSession {
     initial: Partial<SessionState> = {},
   ) {
     this.state = { ...initialState(), ...initial };
+    this.baseline = JSON.stringify(this.draftData());
   }
 
   // ---- Suscripción (useSyncExternalStore) ----
@@ -332,19 +333,27 @@ export class QuoteSession {
     });
   }
 
-  /** ¿El borrador tiene algo que valga la pena guardar o recuperar? */
+  /**
+   * Línea base del borrador (auditoría I-1, P1-1): el estado «sin trabajo del usuario». Se fija al
+   * crear la sesión y, si corresponde, después de aplicar AUTOMÁTICAMENTE el vehículo predeterminado
+   * (`selectDefaultVehicle`), que no es trabajo del usuario. Cualquier diferencia con la base
+   * —direcciones, costos, margen, recargos, vehículo, inventario o recursos— es contenido.
+   */
+  private baseline: string;
+
+  /** ¿Hay algo escrito o elegido por el usuario respecto de la línea base? */
   hasDraftContent(): boolean {
-    const s = this.state;
-    const r = s.resources;
-    return (
-      s.inputs.origin.trim() !== '' ||
-      s.inputs.destination.trim() !== '' ||
-      s.cargo.items.length > 0 ||
-      s.cargo.summary.trim() !== '' ||
-      r.helpers.length > 0 ||
-      r.equipment.length > 0 ||
-      r.stops.some((x) => x.floor !== null || x.elevator !== null || x.stairs !== null || x.carryMeters !== null || x.access.trim() !== '' || x.loadMinutes !== null)
-    );
+    return JSON.stringify(this.draftData()) !== this.baseline;
+  }
+
+  /**
+   * Aplica el vehículo predeterminado de forma AUTOMÁTICA. Si la sesión estaba en su línea base,
+   * la base pasa a incluir ese vehículo: no se ofrece como «borrador» algo que el usuario no hizo.
+   */
+  selectDefaultVehicle(profile: VehicleProfile): void {
+    const enBase = !this.hasDraftContent();
+    this.selectVehicle(profile);
+    if (enBase) this.baseline = JSON.stringify(this.draftData());
   }
 
   /**

@@ -316,3 +316,50 @@ No implementa la integración, no modifica el motor ni las fórmulas, no toca el
 - **Código en el paquete:** con la flag apagada, el código de la integración viaja en el paquete pero **no se activa**. Las rutas de render y los efectos dependen de la constante apagada; las pruebas sin flag lo verifican.
 - **Estimación de viajes en el cotizador:** no se muestra hasta que el vehículo tenga carga útil y volumen (catálogo #46).
 
+## 11. Respuesta a la auditoría de `bb907b7` (0 P0 · 3 P1 · 1 P2)
+
+[Auditoría](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7051593580). Todo dentro de A-68: flag apagada, sin cambios en el motor, Supabase ni las migraciones.
+
+| Hallazgo | Corrección | Prueba que impide que reaparezca |
+|---|---|---|
+| **P1-1** El autoguardado ignoraba costos, margen, recargos y vehículo, y no borraba lo que el usuario vaciaba | `QuoteSession.hasDraftContent()` compara **todo** `draftData()` con una **línea base**. La base es el estado inicial, más el vehículo predeterminado si se aplicó **automáticamente** (`selectDefaultVehicle`), que no es trabajo del usuario. `decidirAutoguardado`: con contenido se escribe; sin contenido se **borra** el borrador guardado; con una oferta pendiente o con cuenta, no se toca nada | Unitarias: solo un costo; margen, recargos y vehículo elegido; vehículo automático sin borrador falso; escribir y borrar el origen (se elimina); vaciar todo; oferta pendiente y cuenta; recuperar costos y vehículo. E2E en 4 tamaños: un cambio solo de costo se ofrece al recargar y vuelve; lo escrito y borrado no reaparece. Reintroducir el defecto hace fallar **4** pruebas, quitar el borrado **2** y quitar la base del vehículo automático **1** |
+| **P1-2** La copia no validaba las v1 | `clasificarParaCopia` llama a `toCloudPayload` para **todas**. Una v1 ilegible (null, truncada, tipos inesperados, arreglo, número) queda **diferida** con su motivo y nunca llega a la base; una v1 legible se envía **original** | 5 casos ilegibles; v1 legible igual a la original; mezcla con válidas, donde solo las válidas llaman a la base y el resultado está verificado. Reintroducir el defecto hace fallar **6** pruebas. La fixture de la quinta auditoría usaba `internal: {}` (inválido) y se cambió por una v1 válida |
+| **P1-3** Tarifa × horas sobre el tope no bloqueaba la emisión | El producto se valida en `helperSchema` (`superRefine`, error en «horas»), así que `validateResources`, `bloqueoEmision`, `snapshotV2From` y `helperCostLines` coinciden | 9.000.000.000 × 24 h: rechazo con el error en «horas»; botón bloqueado; guardado final rechazado; justo en el tope (416.666.666 × 24) se acepta; el costo del motor no cambia. Reintroducir el defecto hace fallar **2** pruebas |
+| **P2** El borrador no recupera los km y minutos escritos a mano | **Propuesta en §12, no implementada** | — |
+
+**Resultados (Claude, 20-11-2026):**
+
+| Prueba | Resultado |
+|---|---|
+| `npm test` | **521/521** |
+| Casos dorados | **64/64** |
+| Typecheck y 3 builds | Sin errores |
+| `e2e-integracion.mjs` con la flag | **122/122**, dos corridas seguidas |
+| `e2e-integracion.mjs --sin-flag` | **24/24** |
+| `e2e-staging-anonimo.mjs` en local, sin y con flag | **54/59** (las mismas 5 fallas propias de staging) |
+| `e2e-modulos.mjs` | **210/210** |
+| Mutaciones de esta corrección | **5/5** detectadas |
+
+**Nota sobre la prueba de navegador:** la verificación «el costo vuelve» ahora espera el valor hasta 3 s en lugar de leerlo una sola vez. El campo sincroniza su texto después de renderizar: en la primera corrida, 2 de 4 tamaños leyeron antes de esa sincronización.
+
+## 12. Propuesta (P2, NO implementada): recuperar km y minutos escritos a mano
+
+**Problema:** el borrador recupera direcciones, costos, vehículo, inventario y recursos, pero no los kilómetros y minutos que el usuario escribió. En modo manual son su único dato de recorrido.
+
+**Qué se guardaría** (solo datos del usuario, nunca del proveedor, A-38):
+
+| Caso | Se guarda | No se guarda |
+|---|---|---|
+| Ruta en **modo manual** (todos los tramos escritos por el usuario) | `manualLegs` (km y minutos de cada tramo) y la clave de las direcciones con que se escribieron | — |
+| Ruta del proveedor con **correcciones** del usuario | Solo los valores corregidos (`overrides`), con la clave de las direcciones y la cantidad de tramos | Los km y minutos del proveedor, la ruta, su retención y la cuota |
+| Precio | — | El precio elegido y su confirmación |
+
+**Cómo se recuperarían:**
+1. **Modo manual:** al recuperar, el recorrido vuelve en modo manual con esos tramos y la marca «Recuperado de tu borrador: revisa los km y minutos». El costo se calcula con ellos como hoy, y el precio **siempre** se escribe y se confirma de nuevo.
+2. **Correcciones sobre una ruta del proveedor:** no se aplican solas. Después de volver a calcular la ruta, si la clave de las direcciones y la cantidad de tramos coinciden, se ofrece «Tenías correcciones en el tramo 1 (23 km): ¿aplicarlas?». Si no coinciden, se descartan con un aviso.
+3. Si las direcciones cambiaron después de recuperar, los tramos manuales quedan **desactualizados**, con la regla actual de la sesión, y no se usan.
+
+**Pruebas propuestas:** recuperar un modo manual de 3 tramos; correcciones aplicadas solo con la clave y los tramos iguales; no persistir ningún dato del proveedor (prueba estática del contenido guardado); precio nunca recuperado; cambio de direcciones que desactualiza.
+
+**Decisión pendiente (propuesta D-I8):** incluirlo en I-1b, como corrección, o dejarlo para una entrega posterior. **Recomendación:** incluir el **modo manual** (punto 1) en I-1b, porque es dato propio y simple, y dejar las correcciones sobre rutas del proveedor (punto 2) para cuando haya rutas reales (D-10).
+

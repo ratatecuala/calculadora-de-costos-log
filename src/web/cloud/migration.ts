@@ -52,17 +52,20 @@ export const MOTIVO_DETALLE_CARGA = 'Tiene detalle de carga: la cuenta aún no p
 
 /**
  * Clasificación previa de una cotización local (docs/22 §2.5). No modifica el registro.
- * - v1 (sin `schemaVersion`): elegible, se envía tal cual, igual que hasta hoy.
+ * - TODAS se validan con `toCloudPayload` (auditoría I-1, P1-2), también las v1: una ilegible
+ *   (null, truncada, con tipos inesperados) queda DIFERIDA y nunca llega a la base, sin
+ *   interrumpir la copia de las válidas.
+ * - v1 legible: elegible, y se envía el registro ORIGINAL tal cual, igual que hasta hoy.
  * - v2 sin líneas: elegible con el `internal` validado y medido en bytes (C2).
- * - v2 con líneas: diferida hasta I-2. - Ilegible (malformada, incompleta o sobre el tope): diferida.
+ * - v2 con líneas: diferida hasta I-2.
  */
 export function clasificarParaCopia(job: JobRecord): Clasificada {
   const internal = job.internal as unknown;
+  const p = toCloudPayload(internal);
+  if (!p.ok) return { job, clase: 'ilegible', motivo: p.reason };
   if (typeof internal !== 'object' || internal === null || !('schemaVersion' in internal)) {
     return { job, clase: 'v1', envio: job };
   }
-  const p = toCloudPayload(internal);
-  if (!p.ok) return { job, clase: 'ilegible', motivo: p.reason };
   if (p.cargoItems.length > 0) return { job, clase: 'v2-con-lineas', motivo: MOTIVO_DETALLE_CARGA };
   return { job, clase: 'v2-resumen', envio: { ...job, internal: p.internal as JobRecord['internal'] } };
 }

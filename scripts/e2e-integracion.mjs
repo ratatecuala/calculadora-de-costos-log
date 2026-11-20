@@ -82,6 +82,28 @@ try {
       continue;
     }
 
+    // 0. Auditoría I-1, P1-1: solo un costo se recupera al recargar; lo borrado no reaparece.
+    await page.getByLabel('Rendimiento').fill('9');
+    await page.waitForTimeout(1500);
+    await page.reload({ waitUntil: 'networkidle' });
+    const soloCosto = page.getByTestId('oferta-borrador');
+    check('P1-1: un cambio solo de costo se ofrece al recargar', await soloCosto.isVisible().catch(() => false));
+    await soloCosto.getByRole('button', { name: 'Recuperar' }).click();
+    // El campo sincroniza su texto después de renderizar: se espera el valor (máx. 3 s), no se lee una sola vez.
+    const vuelve = await page
+      .waitForFunction(() => [...document.querySelectorAll('input')].some((i) => i.getAttribute('aria-labelledby')?.length && i.value === '9'), null, { timeout: 3000 })
+      .then(() => true)
+      .catch(() => false);
+    check('P1-1: el costo vuelve', vuelve && (await page.getByLabel('Rendimiento').inputValue()) === '9');
+    await page.getByLabel('Rendimiento').fill('');
+    await page.getByLabel('Desde (A)').fill('Calle Temporal 9');
+    await page.waitForTimeout(1500);
+    await page.getByLabel('Desde (A)').fill('');
+    await page.waitForTimeout(1500);
+    await page.reload({ waitUntil: 'networkidle' });
+    check('P1-1: lo borrado no reaparece (sin oferta)', (await page.getByTestId('oferta-borrador').count()) === 0);
+    check('P1-1: el borrador guardado se eliminó', await page.evaluate(() => !JSON.parse(localStorage.getItem('cotizador.borrador.v1') ?? '{}').local));
+
     // 1. Sección presente y plegada; costo de referencia sin detalle.
     const seccion = page.locator('button.disclosure-head').filter({ hasText: 'Detalle de la carga y recursos' });
     check('detalle de carga presente y cerrado', (await seccion.getAttribute('aria-expanded')) === 'false');
