@@ -219,6 +219,28 @@ El propietario encargó planificar la ampliación: catálogo de vehículos, inve
 
 Las decisiones **D-1 a D-10** están en #43, cada una con su estado: pendiente de aprobación, dependiente de una investigación o no autorizada. **Ninguna está aprobada.** La recomendación de ChatGPT no equivale a aprobación. **No autoriza** programar, cambiar fórmulas, crear o ejecutar migraciones, importar datos ni activar servicios.
 
+## Decisiones del 20-11-2026 sobre el cotizador ampliado, ratificadas por escrito en #43
+
+Escritas por el propietario en GitHub ([ratificación en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7041864905)). **APROBADAS.** Corresponden a D-1, D-2, D-3, D-6, D-8 y D-9 del plan [19](19-plan-cotizador-ampliado.md) §12.
+
+| ID | Decisión (ID del plan) | Alcance de la aprobación |
+|---|---|---|
+| A-55 | **Planificación por etapas y carriles paralelos** (D-1): diseño de datos #45 primero; inventario #47 y recursos #51 en paralelo; catálogo #46; fórmulas #48; IVA #37; rutas #49 | **Planificación, NO desarrollo** |
+| A-56 | **Alcance inicial** (D-2): camionetas, furgones y camiones livianos/medianos usados en Chile | Sin el límite liviano/mediano (D-2b, pendiente) |
+| A-57 | **Investigaciones C-1 (#22) y C-2 (#44) con GPT Deep Research** (D-3), con los encargos de docs/20 versión 2 | Las ejecuta el propietario; Claude no investiga en profundidad por su cuenta |
+| A-58 | **Ayudantes por hora o por servicio** (D-6): una modalidad por ayudante, horas pagadas explícitas y sin costos duplicados | **No autoriza programar** el nuevo cálculo |
+| A-59 | **Solo el diseño** de migraciones y cambios de esquema (D-8) | Cada ejecución en staging requiere autorización individual y respaldo real previo |
+| A-60 | **Catálogo piloto de hasta 15 versiones** (D-9), con datos verificables y `null` sin fuente | **No autoriza importar datos** |
+
+**Siguen pendientes:**
+- D-2b (clasificación de camiones);
+- D-4 (almacenamiento del inventario; con datos de medición en [21](21-diseno-datos-cotizador.md) §7);
+- D-5 (fórmulas);
+- D-7 (IVA);
+- D-10 (Google Routes).
+
+**Autorizado además:** el diseño técnico documental de #45 ([21](21-diseno-datos-cotizador.md)). **No autorizado:** implementar, ejecutar migraciones, modificar el motor, activar servicios de pago, importar datos, producción ni merge.
+
 **Implementación de A-47 (decisiones menores, revisables):**
 - Un número local **libre** se conserva tal cual, así que la secuencia puede saltar hasta ese número.
 - Los números de cotizaciones borradas **no se reutilizan**.

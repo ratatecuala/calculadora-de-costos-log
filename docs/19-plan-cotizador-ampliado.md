@@ -248,7 +248,9 @@ Antes de copiar datos se verifican la licencia y las condiciones de reutilizaci�
 
 ## 12. Decisiones: estado
 
-**Ninguna está aprobada.** «Recomendada» significa que Claude y ChatGPT coinciden en sugerirla, no que la hayas aprobado.
+> **Actualización 20-11-2026:** el propietario **aprobó** D-1, D-2, D-3, D-6, D-8 y D-9 ([ratificación en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7041864905)), registradas como **A-55 a A-60** en [07](07-decisiones.md), con el alcance limitado que indica cada una. Siguen pendientes D-2b, D-4, D-5, D-7 y D-10. El diseño de #45 está en [21](21-diseno-datos-cotizador.md).
+
+Tabla original de la versión 2 (estado al proponer):
 
 | ID | Decisión | Estado | Recomendación |
 |---|---|---|---|
