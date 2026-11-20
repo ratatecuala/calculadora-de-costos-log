@@ -147,7 +147,7 @@ Reglas completas en [AGENTS.md](AGENTS.md).
 | [17 · Supabase: seguridad y respaldo](docs/17-supabase-seguridad-respaldo.md) | Auditoría, ajustes de Auth, respaldo y restauración, Google OAuth (#35) |
 | [18 · Encargo de Deep Research sobre IVA](docs/18-encargo-deep-research-iva.md) | Preguntas para validar la tributación antes de la opción B (#16, A-54) |
 | [19 · Plan del cotizador ampliado](docs/19-plan-cotizador-ampliado.md) | Catálogo de vehículos, inventario de carga, costo según carga, IVA en dos opciones y rutas reales: etapas, datos y decisiones (épica #42, **propuesta**) |
-| [21 · Diseño de datos del cotizador ampliado](docs/21-diseno-datos-cotizador.md) | Diseño técnico de #45: módulos, contratos, snapshot v2, compatibilidad, medición de 16 KB, borradores de Supabase y carriles paralelos (**para auditoría**) |
+| [21 · Diseño de datos del cotizador ampliado](docs/21-diseno-datos-cotizador.md) | Diseño técnico de #45, **versión 2** (corrige la auditoría de ChatGPT): módulos, contratos, inmutabilidad, persistencia local, medición reproducible de 16 KB, borradores M3 y M4 ensayados en local (16/16) y carriles paralelos (**para nueva auditoría**) |
 | [20 · Encargos de Deep Research del cotizador](docs/20-encargos-deep-research-cotizador.md) | C-1 catálogo y mercado, C-2 costo según carga y recursos; listos para ejecutar (el IVA no se duplica) |
 
 ## Probar localmente (sin cuentas ni servicios externos)

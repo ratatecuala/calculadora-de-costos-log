@@ -1,100 +1,84 @@
 # 21 · Diseño técnico de datos del cotizador ampliado (#45)
 
-**Versión 1 · 20-11-2026 · Estado: DISEÑO para auditoría.** No hay código, migraciones ejecutadas ni datos importados.
-**Autorización:** [ratificación del propietario en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7041864905): D-1, D-2, D-3, D-6, D-8 (solo **diseño** de migraciones) y D-9. Siguen **sin aprobar** D-2b, D-4, D-5, D-7 y D-10.
-**Base:** plan [19](19-plan-cotizador-ampliado.md) versión 2 · esquema actual en `supabase/migrations/` (3 migraciones) · motor `motor-1.0.1` (no cambia).
+**Versión 2 · 20-11-2026 · Estado: DISEÑO para una nueva auditoría.** Corrige los 5 P1 y los 3 P2 de la [auditoría de ChatGPT sobre `cba6ffb`](https://github.com/ratatecuala/calculadora-de-costos-log/issues/45#issuecomment-7042277474); la tabla de §13 resume cómo quedó cada uno.
+**Autorización:** [ratificación del propietario en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7041864905): A-55 a A-60. **Siguen sin aprobar** D-2b, D-4, D-5, D-7 y D-10.
+**No hay:** código de la aplicación, migraciones en Supabase, cambios en el motor ni datos importados.
+**Ensayos:** los borradores SQL y las mediciones se ejecutaron en un PostgreSQL 16 **local y desechable**, con las 3 migraciones reales del repositorio (§11).
 
 ## 0. Resumen
 
-- **Cuatro módulos independientes** con contratos fijos:
+- **Cuatro módulos independientes con contrato fijo:**
   - inventario (#47);
   - recursos (#51);
   - vehículos y catálogo (#46);
-  - costo según carga (#48), este último bloqueado.
-- **Primero se publica un paquete de «contratos»:** tipos, esquemas y lector de snapshot versionado. Después, cada carril trabaja en sus propios archivos.
-- **Inventario y recursos básicos se diseñan ya**, sin esperar C-1 ni C-2. Todos sus campos los declara el usuario y ninguno tiene valores por defecto.
-- **Medición real del límite de 16 KB** (§7):
-  - el snapshot `internal` con inventario cabe hasta unas **40 líneas** (S3, 97 % del límite);
-  - una casa con 80 líneas **ya lo excede**.
-  - **Recomendación para D-4** (sigue pendiente de tu decisión): las líneas del inventario van en una tabla propia e **inalterable**, `job_cargo_items`, y el snapshot del documento guarda solo un **resumen** compacto.
-- **Compatibilidad:**
-  - las cotizaciones emitidas no se tocan;
-  - `internal` sin `schemaVersion` se lee como versión 1;
-  - los vehículos y el historial local actuales funcionan sin cambios.
-- **El motor económico no cambia** en este diseño. Los módulos nuevos solo **informan**, salvo la modalidad de ayudantes «por servicio», que reproduce exactamente el cálculo actual.
+  - costo según carga (#48), bloqueado hasta D-5.
+- **El motor no cambia.** Los módulos nuevos solo **informan**, salvo dos ajustes que necesitarán tu aprobación al programarse (§4.3):
+  - la modalidad de ayudantes por hora;
+  - la marca de tiempo de carga incompleto.
+- **Límite de 16 KB (§7, con inserciones reales):**
+  - el snapshot con las líneas adentro admite **unas 47 líneas**; una casa de 80 se rechaza;
+  - con la opción (b), el snapshot guarda solo un resumen de ~2,5 KB, incluso con 200 líneas.
+  - Recomendación para **D-4** (pendiente): opción **(b)**.
+- **Inmutabilidad probada (§8.1):** en la nube, el dueño **solo puede leer** las líneas. Se escriben una sola vez, en la misma transacción que crea la cotización.
+- **Numeración e idempotencia sin cambios (§8.2):** el guardado v2 **reutiliza** la función actual.
+- **Persistencia local definida (§6.3):** el navegador guarda la lista completa y la transfiere íntegra al copiarla a la cuenta.
+- **Cotizaciones históricas intactas** (§6.2): no se recalculan, no se reescriben y se leen como versión 1.
 
 ## 1. Principios de arquitectura
 
-1. **Módulos con contrato fijo.** Cada módulo expone tipos, un esquema Zod y funciones puras de resumen. Ningún módulo importa la interfaz de otro.
-2. **El motor (`src/engine`) no cambia.** Un **adaptador** (`src/shared/costInputs.ts`, carril 4) traduce inventario y recursos a las entradas del motor, y solo se activa con fórmulas aprobadas (D-5).
-3. **null ≠ 0** (A-18). Todo dato opcional desconocido es `null` y nunca bloquea la cotización.
-4. **Snapshot inmutable por cotización.** El documento emitido conserva los datos con los que se calculó: vehículo, inventario, recursos y versiones.
-5. **Aditivo y no destructivo** en Supabase. Una migración por cambio, autorizada individualmente y con respaldo real previo (D-8, A-52).
-6. **Paridad teléfono y PC** (A-49). Los mismos contratos sirven a ambas interfaces.
+1. **Módulos con contrato fijo:** tipos, esquema Zod y funciones puras de resumen. Ningún módulo importa la interfaz de otro.
+2. **El motor (`src/engine`) no cambia.** El adaptador `src/shared/costInputs.ts` traduce los módulos a las entradas del motor. Todo efecto nuevo en el costo requiere aprobación (D-5, o §4.3 para los dos ajustes de completitud y ayudantes).
+3. **null ≠ 0 (A-18).** Lo desconocido es `null` y nunca se presenta un costo como completo si falta un dato que lo afecta (§4.4).
+4. **Snapshot inmutable por cotización** (A-47), en la nube y en el navegador.
+5. **Cambios aditivos en Supabase.** Una migración por cambio, con autorización individual y respaldo previo (A-59).
+6. **Paridad teléfono y PC (A-49).**
 
 ## 2. Mapa de módulos y contratos
 
-```text
-                        ┌──────────────────────────────┐
-                        │  Contratos (fase 0, carril D) │
-                        │  src/shared/cargo.ts          │
-                        │  src/shared/resources.ts      │
-                        │  src/shared/vehicleCatalog.ts │
-                        │  src/shared/snapshot.ts (v1/v2)│
-                        └──────────────┬───────────────┘
-        ┌───────────────────┬──────────┴─────────┬───────────────────────┐
-        ▼                   ▼                    ▼                       ▼
- Carril 1: inventario  Carril 2: recursos   Carril 3: vehículos   Carril 4: costo por carga
- InventoryEditor.tsx   ResourcesEditor.tsx  VehiclePicker.tsx     costInputs.ts (adaptador)
- cargoSummary()        resourcesSummary()   catálogo + vínculo    BLOQUEADO (C-2, D-5)
- capacityEstimate()    helperCostLines()
-        │                   │                    │
-        └─────── QuoteSession: slots inventory/resources/vehicle (sin tocar el motor) ───────┘
-```
+| Módulo | Archivos del contrato (fase 0) | Funciones puras |
+|---|---|---|
+| Inventario | `src/shared/cargo.ts` | `cargoSummary(inv)`, `capacityEstimate(summary, vehicle)`, `suggestServiceText(inv, res)` |
+| Recursos | `src/shared/resources.ts` | `resourcesSummary(res)`, `helperCostLines(res)`, `handlingTime(res)` |
+| Vehículos | `src/shared/vehicleCatalog.ts` | `isCatalogFuel(f)`, `copyFromCatalog(entry)` |
+| Snapshot | `src/shared/snapshot.ts` | `readSnapshot(raw)` (v1 o v2 → v2 normalizado), `toCloudPayload(local)` (§6.3) |
+| Costo (bloqueado) | `src/shared/costInputs.ts` | `toEngineInputs(...)` (§4.3–§4.4) |
 
-**Funciones puras del contrato (sin efectos):**
+**Firmas:**
 
-| Función | Entrada | Salida | Uso |
-|---|---|---|---|
-| `cargoSummary(inv)` | Inventario | Totales de peso y volumen **con su completitud** (`linesWithWeight`, etc.) y texto resumen | Interfaz, snapshot, estimación de capacidad |
-| `capacityEstimate(summary, vehicle)` | Resumen + carga útil y volumen (o `null`) | `{ minTrips, basis: 'peso' \| 'volumen', incomplete, reason }` o `null` | **Solo aviso** (cota inferior; nunca tarifa) |
-| `resourcesSummary(res)` | Recursos | Minutos declarados por parada, ayudantes por modalidad, líneas de equipamiento | Interfaz y snapshot |
-| `helperCostLines(res)` | Recursos | Una línea por ayudante: `{ mode, amount \| null }` | Carril 4 y compatibilidad (§4.3) |
-| `readSnapshot(raw)` | `internal` de cualquier versión | Snapshot v2 normalizado (lectura de v1 sin pérdida) | Historial, PDF, enlace, copia a la cuenta |
+| Función | Firma | Nota |
+|---|---|---|
+| `capacityEstimate` | `→ { minTrips: number, basis: 'peso' \| 'volumen', incomplete: boolean } \| { minTrips: null, reason: string }` | Solo aviso: cota inferior, nunca tarifa ni garantía |
+| `handlingTime` | `→ { minutes: number \| null, complete: boolean, missingStops: ('A' \| 'B')[] }` | §4.4 |
+| `suggestServiceText` | `→ string ≤ 300` | Sin pesos, volúmenes, montos ni tiempos (§6.4) |
 
 ## 3. Inventario (carril 1, #47)
 
-### 3.1 Esquema `CargoItem` y `CargoInventory`
+### 3.1 `CargoItem` (sin `id`: la posición es el orden de la lista)
 
-| Campo | Tipo | Regla |
-|---|---|---|
-| `kind` | texto ≤ 30 | Tipo de objeto. Lista abierta y sugerida (`refrigerador`, `lavadora`, `sofa`, `cama`, `cajas`, `otro`) |
-| `description` | texto 1–80 | Obligatorio |
-| `qty` | entero 1–999 | Por defecto 1 |
-| `unitWeightKg` | número > 0 y ≤ 5.000, o `null` | Peso por unidad |
-| `dimsCm` | `{ l, w, h }` > 0 y ≤ 2.000, o `null` | Las tres o ninguna |
-| `volumeM3` | número > 0 y ≤ 100, o `null` | Por unidad |
-| `volumeSource` | `'calculado' \| 'declarado' \| null` | Calculado = l × w × h / 10⁶ cuando hay dimensiones; el usuario puede declararlo |
-| `fragile` | booleano | Por defecto `false` |
-| `handling` | `'normal' \| 'pesado' \| 'voluminoso' \| 'requiere2'` | Por defecto `normal` |
+| Campo | Tipo y límites |
+|---|---|
+| `kind` | texto 1–30 (lista abierta sugerida: `refrigerador`, `lavadora`, `sofa`, `cama`, `cajas`, `otro`) |
+| `description` | texto 1–80, obligatorio |
+| `qty` | entero 1–999 (por defecto 1) |
+| `unitWeightKg` | número > 0 y ≤ 5.000, o `null` |
+| `dimsCm` | `{ l, w, h }`, cada uno > 0 y ≤ 2.000, o `null` (las tres o ninguna) |
+| `volumeM3` + `volumeSource` | número > 0 y ≤ 100 con `'calculado' \| 'declarado'`, o ambos `null` |
+| `fragile` | booleano (por defecto `false`) |
+| `handling` | `'normal' \| 'pesado' \| 'voluminoso' \| 'requiere2'` (por defecto `normal`) |
 
 `CargoInventory = { mode: 'rapido' | 'detallado', summary: texto ≤ 200, items: CargoItem[] }`
-- **Modo rápido:** sin líneas o con una sola, más el texto `summary`.
-- **Límite de líneas:** 200 por cotización en la interfaz (decisión técnica T-1).
 
-### 3.2 Totales y completitud
+**Tope T-1 (pendiente; recomendado 200 líneas):** se exige en **tres lugares**:
+1. el esquema Zod, usado en la interfaz y en el almacenamiento local;
+2. la función de guardado del servidor (`create_job_with_quote_v2`, error 22023);
+3. la función privada de inserción.
 
-- `weightKg = Σ qty × unitWeightKg` **solo** de las líneas con peso. Se informa `linesWithWeight / lines`.
-- Si falta alguna línea, el total se rotula «al menos X kg (faltan datos)». Es la misma idea de cota que usa el motor.
-- El volumen sigue la misma regla.
-- **No hay plantillas con pesos ni volúmenes precargados.** Las referencias solo se agregan con fuente (C-2), y en una tabla aparte y versionada.
+### 3.2 Totales y estimación de capacidad
 
-### 3.3 Estimación de capacidad (aviso)
-
-- Se calcula `minTrips = máx(⌈peso / carga útil⌉, ⌈volumen / volumen de carga⌉)` solo con los datos presentes.
-- Siempre muestra: «estimación mínima; no garantiza que la carga quepa por forma, acomodo o puertas».
-- Sin carga útil ni volumen del vehículo, devuelve `null` con su motivo («el vehículo no tiene carga útil registrada»).
-- **No** modifica el precio ni sugiere sobrecargar.
+- **Totales:** se suman solo las líneas con dato y se informa la completitud (`linesWithWeight / lines`). Si falta alguna, se muestra «al menos X kg».
+- **`capacityEstimate`:** la cantidad de viajes es una **cota inferior**. Siempre se muestra con el aviso «no garantiza que la carga quepa (forma, acomodo, puertas)».
+- **Sin datos del vehículo:** si falta la carga útil o el volumen, `minTrips: null` y se explica el motivo.
+- **No** modifica el precio. **No** hay plantillas con pesos precargados: solo con fuente (C-2).
 
 ## 4. Recursos (carril 2, #51)
 
@@ -102,180 +86,275 @@
 
 | Bloque | Campos |
 |---|---|
-| `stops[]` (A y B) | `role: 'A' \| 'B'`, `floor: entero −5..60 \| null`, `elevator: 'si' \| 'no' \| 'noCabe' \| null`, `stairs: boolean \| null`, `carryMeters: 0..1.000 \| null`, `access: texto ≤ 120`, `loadMinutes: 0..1.440 \| null` |
-| `helpers[]` | `id`, `mode: 'servicio' \| 'hora'`, `feeService` (solo en el modo servicio), `ratePerHour` (solo en el modo hora), `paidSegments: ('manipulacion' \| 'traslado')[]` (solo en el modo hora), `hours: número \| null` (horas pagadas declaradas) |
+| `stops[]` (A y B; T-3) | `role`, `floor: −5..60 \| null`, `elevator: 'si' \| 'no' \| 'noCabe' \| null`, `stairs: boolean \| null`, `carryMeters: 0..1.000 \| null`, `access: texto ≤ 120`, `loadMinutes: 0..1.440 \| null` |
+| `helpers[]` | `id` (uuid), `mode: 'servicio' \| 'hora'`; servicio: `feeService`; hora: `ratePerHour`, `paidSegments: ('manipulacion' \| 'traslado')[]` y `hours: número \| null` |
 | `equipment[]` | `label: texto ≤ 60`, `amount: CLP ≥ 0 \| null` |
 
-### 4.2 Reglas contra la doble contabilización (D-6, aprobada como planificación)
+### 4.2 Sin doble contabilización (A-58)
 
-1. **Una modalidad por ayudante** (el esquema lo valida). En el modo servicio, `ratePerHour`, `paidSegments` y `hours` deben ir vacíos, y al revés.
-2. **Horas pagadas explícitas:** en el modo hora, `hours` lo declara el transportista y `paidSegments` documenta qué cubren. Sin `hours`, el costo de ese ayudante es **faltante** (`null`), nunca 0.
-3. **Tiempo del transportista** (conducción + carga y descarga): alimenta gastos fijos y meta por hora, como hoy. Las horas de los ayudantes **no** se suman a ese tiempo.
-4. **Equipamiento:** líneas declaradas que se suman a «otros gastos». No hay porcentajes.
+1. **Una modalidad por ayudante:** el esquema rechaza campos de la otra modalidad.
+2. **Modalidad por hora:** `hours` lo declara el transportista. Si falta, ese ayudante tiene costo `null` (faltante), nunca 0.
+3. **Las horas de los ayudantes no se suman** al tiempo del transportista. Ese tiempo es conducción más carga y descarga, y alimenta gastos fijos y meta por hora, igual que hoy.
+4. **El equipamiento** se suma como líneas declaradas, sin porcentajes.
 
-### 4.3 Compatibilidad con el motor actual
+### 4.3 Compatibilidad con el motor
 
-- **Hoy:** `TripParams.helpers` (cantidad) y `helperFee` (un monto por ayudante), con el ítem «Ayudantes» = cantidad × monto.
-- **Conversión v1 → v2:** N ayudantes con modalidad «servicio» y el mismo `feeService`. El ítem resultante es **idéntico** (casos dorados 64/64).
-- **Modalidad «hora»:** el ítem «Ayudantes» sería Σ líneas, con `null` si alguna falta. Es un desembolso declarado (tarifa × horas que escribe el usuario), sin coeficiente. Igual **requiere tu aprobación para programarlo**, porque cambia lo que recibe el motor (D-6 aprobó la planificación, no el código).
-- **`loadMinutes` por parada:** el motor recibe la suma de A + B en el campo actual «carga y descarga». Si una parada no tiene dato, se usa solo lo declarado y se rotula. **No hay coeficientes** por piso ni por ascensor: el piso y el ascensor solo orientan al transportista.
+| Situación | Entrada al motor | ¿Cambia el resultado actual? |
+|---|---|---|
+| Ayudantes v1 (cantidad × monto) | Se convierten en N ayudantes «servicio» con el mismo monto | **No**: casos dorados 64/64 |
+| Todos los ayudantes «servicio» | Ítem «Ayudantes» = Σ montos | No (equivale a la v1) |
+| Algún ayudante «hora» | Ítem «Ayudantes» = Σ líneas, `null` si alguna falta | Sí: **requiere aprobación para programarlo** (A-58 aprobó la planificación, no el código) |
+| Tiempo de carga incompleto | §4.4 | Sí, solo en la completitud: **requiere aprobación** |
+
+### 4.4 Tiempo de carga y descarga incompleto (P1-5)
+
+**Problema:**
+- Hoy `TripParams.loadMinutes` es un número obligatorio y la interfaz convierte el campo vacío en 0 (`v ?? 0`). Es una brecha ya registrada en docs/15.
+- Si se sumaran solo los minutos de una parada conocida, los gastos fijos (CF) y la meta (R) parecerían completos sin estarlo.
+
+**Contrato propuesto:**
+1. `handlingTime(res)` devuelve `{ minutes, complete, missingStops }`, donde `minutes` suma solo las paradas con dato.
+2. Si `complete === false`, el adaptador entrega al motor:
+   - los minutos conocidos, que son una **cota inferior válida**, porque los minutos faltantes solo agregan costo;
+   - **dos partidas faltantes** (`amount: null`): `tiempoCargaPendiente` en la categoría `fijo` y otra igual en `remuneracion`.
+3. El motor actual ya trata `null` como faltante: CF, R y el costo pasan a **cota inferior** y el precio sugerido se rotula «al menos». **No se cambian fórmulas ni el código del motor.**
+4. **Interfaz:**
+   - muestra «Costo parcial: falta el tiempo de carga en B»;
+   - la cotización se puede emitir como **indicativa**;
+   - «lo que te queda» y la rentabilidad se rotulan como máximo (cota superior), como hoy con cualquier faltante.
+5. **La comparación de rutas** (`session.ts`, horas por ruta) usa el mismo `handlingTime`. Con tiempo incompleto, la comparación queda «no concluyente» si el resultado depende de ese tiempo.
+6. **Cotizaciones v1:** se leen como estaban, con 0 cuando no se declaró. **No se reinterpretan.**
 
 ## 5. Vehículos y catálogo (carril 3, #46)
 
-### 5.1 Catálogo global `vehicle_catalog`
+### 5.1 Catálogo `vehicle_catalog` (borrador M1)
 
-| Columna | Tipo | Nota |
-|---|---|---|
-| `id` | uuid | — |
-| `segment` | `'camioneta' \| 'furgon' \| 'camionLiviano'` | `camionMediano` **solo** cuando D-2b esté resuelta (migración aparte) |
-| `make`, `model`, `version` | texto | `version` puede ser `''` |
-| `year_from`, `year_to` | entero o `null` | — |
-| `engine`, `fuel` | texto | Combustible: los mismos valores que hoy más `electrico`, `hibrido` y `gnc` (los no líquidos no usan la fórmula de litros) |
-| `km_per_l_ref` + `km_per_l_cycle` | numérico o `null` + `'WLTP' \| 'WLTC' \| 'NEDC' \| null` | Referencial |
-| `curb_weight_kg`, `gvw_kg`, `payload_kg` | numérico o `null` | — |
-| `cargo_volume_m3`, `cargo_l_mm`, `cargo_w_mm`, `cargo_h_mm`, `door_w_mm`, `door_h_mm` | numérico o `null` | — |
-| `sources` | jsonb | `{ campo: { url, title, retrievedAt, confidence } }`. **Todo campo no nulo debe tener fuente** (`check` + prueba) |
-| `data_version` | texto | Cambia con cada actualización |
+| Columna | Nota |
+|---|---|
+| `segment` | `'camioneta' \| 'furgon' \| 'camionLiviano'`. `camionMediano` solo después de D-2b |
+| `make`, `model`, `version`, `year_from`, `year_to`, `engine` | Texto y enteros |
+| `fuel` | **Piloto: solo `'gasolina' \| 'diesel'`**, que es un subconjunto de `vehicles.fuel` (P2-6). Eléctricos, híbridos y GNC **quedan fuera del piloto**: un híbrido que consume combustible líquido requiere un análisis propio antes de clasificarlo. `isCatalogFuel` protege el tipo y **no** hace falta migrar `vehicles.fuel` |
+| `km_per_l_ref`, `km_per_l_cycle` | Referencial, con ciclo WLTP, WLTC o NEDC, o `null` |
+| `curb_weight_kg`, `gvw_kg`, `payload_kg`, `cargo_volume_m3`, `cargo_*_mm`, `door_*_mm` | Numéricos o `null` |
+| `sources jsonb` | `{ campo: { url, title, retrievedAt, confidence } }`. Restricción: **todo campo no nulo tiene fuente** |
+| `data_version` | Texto |
 
-- Con D-9 aprobada: **hasta 15 versiones**, `null` permitido y ninguna sin fuente.
-- La carga se hace con una migración de datos revisada y autorizada, **no** con una importación masiva.
+- **RLS:** `SELECT` para `anon` y `authenticated`; **sin escritura por la API**.
+- **Datos:** hasta 15 versiones (A-60), cargadas con una migración de datos revisada y autorizada.
 
-### 5.2 «Mis vehículos» (`vehicles`, columnas nuevas y opcionales)
+### 5.2 «Mis vehículos» (borrador M2)
 
-`catalog_id` (FK a `vehicle_catalog`, `on delete set null`), `make`, `model`, `model_year`, `version`, `payload_kg`, `cargo_volume_m3`, `cargo_l_mm`, `cargo_w_mm`, `cargo_h_mm`.
-- **Al elegir del catálogo** se **copian** los valores a «Mis vehículos». Desde ese momento son del usuario y los puede ajustar.
-- **Si el catálogo cambia,** se muestra «hay datos nuevos» y no se aplica nada solo.
-- **Vehículos existentes:** columnas nuevas en `null`. **Funcionan igual que hoy:** el motor solo usa `km_per_l` y `wear_per_km`.
-- **Rendimiento y desgaste cargados** (`km_per_l_loaded`, `wear_per_km_loaded`) **no se agregan todavía.** Dependen de C-2 y D-5, en una migración aparte.
+- **Columnas nuevas y opcionales:** `catalog_id` (FK, `on delete set null`), `make`, `model`, `model_year`, `version`, `payload_kg`, `cargo_volume_m3` y `cargo_*_mm`. Se amplía el `GRANT UPDATE` del dueño a esas columnas.
+- **Elegir del catálogo** copia los valores, que el usuario puede ajustar. Si después el catálogo cambia, se ofrece «hay datos nuevos» y nada se aplica solo.
+- **Vehículos existentes:** columnas en `null`; funcionan igual que hoy.
+- **Sin rendimiento ni desgaste «cargado»:** dependen de C-2 y D-5.
 
-### 5.3 Modo sin cuenta
+## 6. Snapshot versionado, persistencia local y compatibilidad
 
-El catálogo es de lectura pública (`anon`), así que el modo sin cuenta también puede usarlo. Para eso «Mis vehículos» local (`cotizador.vehiculos.v1`) incorpora los mismos campos opcionales en un esquema versionado (§6.3).
-
-## 6. Snapshot versionado y compatibilidad histórica
-
-### 6.1 Snapshot `internal` v2 (propuesto)
+### 6.1 Snapshot `internal` v2
 
 ```text
 { schemaVersion: 2, formulaVersion, engineVersion,
-  routeSource, km, minutes, costEstimate, costType, suggestedPrice, margin, missing,   ← igual que la v1
+  routeSource, km, minutes, costEstimate, costType, suggestedPrice, margin, missing,          ← igual que la v1
   vehicle: { …v1, catalogId, catalogDataVersion, make, model, modelYear, version, payloadKg, cargoVolumeM3 },
-  cargo:   { mode, summary, totals: { weightKg, volumeM3, lines, linesWithWeight, linesWithVolume },
-             capacity: { minTrips, basis, incomplete } | null,
-             items?: CargoItem[]     ← solo si D-4 = (a); con D-4 = (b) las líneas van en job_cargo_items },
+  cargo: { mode, summary, totals, capacity, handling: { minutes, complete, missingStops },
+           items?: CargoItem[] },   ← en la NUBE: solo con D-4 = (a). En el NAVEGADOR: siempre (§6.3)
   resources: { stops, helpers, equipment } }
 ```
 
-### 6.2 Reglas de compatibilidad
+### 6.2 Compatibilidad histórica
 
 | Caso | Comportamiento |
 |---|---|
-| `internal` sin `schemaVersion` | Se lee como **versión 1**: sin inventario ni recursos; los ayudantes se convierten como en §4.3 solo para mostrarlos. **Nunca se reescribe** |
-| `client_quotes` | Sigue **sin `UPDATE`** (A-47). Columnas nuevas opcionales y nulas en las cotizaciones históricas |
-| PDF, enlace y WhatsApp de una cotización histórica | Iguales que antes (prueba de regresión con fixtures v1) |
-| Número emitido e interno (A-47) | Sin cambios |
-| `get_public_quote` | Lista blanca intacta. Si se agrega `service_summary`, se amplía la lista con una prueba (T-2) |
+| `internal` sin `schemaVersion` | Versión 1. `readSnapshot` la normaliza **solo para mostrarla** y **nunca la reescribe** |
+| `client_quotes` y `jobs.internal` | Sin `UPDATE` del dueño (A-47; probado en T11) |
+| PDF, enlace y WhatsApp de cotizaciones v1 | Idénticos (prueba con fixtures v1) |
+| Números interno y emitido | Sin cambios (T8, T12, T14) |
+| Función de guardado v1 | Sigue disponible e igual (T12) |
 
-### 6.3 Historial y vehículos locales (sin cuenta)
+### 6.3 Persistencia en el navegador y copia a la cuenta (P1-3)
 
-- Claves actuales `cotizador.trabajos.v1` y `cotizador.vehiculos.v1`: se **leen** con el mismo lector (`readSnapshot`). Los registros nuevos se escriben con `schemaVersion: 2` **en la misma clave**, porque cada registro declara su versión. No hay migración destructiva.
-- **Espacio:** localStorage suele permitir unos 5 MB por origen. Un snapshot S5 (~60 KB) daría unas 80 cotizaciones locales. Mitigación: tope de líneas (T-1) y aviso de espacio, que hoy ya existe como error de guardado visible.
-- **Copia a la cuenta:** el historial local v1 y v2 se convierte con el mismo lector; idempotencia por `local_id`, igual que hoy.
+**Dónde se guarda:**
+- En la **misma clave** `cotizador.trabajos.v1`, con la versión **por registro** (T-4).
+- Cada cotización nueva lleva **el snapshot v2 con la lista completa** en `internal.cargo.items`. El límite de 16 KB es una restricción de la **base de datos**, no del navegador.
 
-## 7. Medición del límite de 16 KB
+**Lectura:** `readSnapshot` lee registros v1 y v2. Los v1 no tienen inventario.
 
-**Método:**
-- **Snapshots:** generados por `scripts/diseno/medir-snapshot-16kb.mjs` con la forma v2 propuesta y datos **ficticios**.
-- **Inserción:** en un PostgreSQL 16 local y desechable, en una tabla con la **misma restricción de staging**: `check (jsonb_typeof(internal)='object' and pg_column_size(internal) <= 16384)`.
-- **Hallazgo:** la restricción se evalúa sobre el valor **sin comprimir**. Una lectura posterior del valor ya almacenado (comprimido) muestra cifras menores que **no** sirven para predecir el rechazo.
+**Copia a la cuenta** (`migrateLocalToCloud`, con cliente fijado a la sesión como hoy):
+- **Con D-4 = (b):** `toCloudPayload` separa `items` y los envía **completos** en `p_cargo_items` a `create_job_with_quote_v2`. El `internal` que sube conserva el resumen (`totals`, `capacity`, `handling`) sin las líneas.
+- **Con D-4 = (a):** sube igual que en el navegador, si cabe en 16 KB (unas 47 líneas). Si no cabe, se avisa y esa cotización **no se copia**: queda intacta en el navegador.
+- **Idempotencia:** por `local_id`, igual que hoy. Una copia repetida devuelve `NULL`, no duplica líneas y no gasta número (T8).
+- **Atomicidad:** si falla cualquier línea, no se crea la cotización en la nube y el registro local queda intacto (T7).
+- **Lo local nunca se borra** al copiar.
 
-| Caso | Bytes JSON | `pg_column_size` (sin comprimir) | % del límite | Inserción con la restricción |
-|---|---|---|---|---|
-| v1 actual (sin inventario) | 407 | 494 | 3 % | Aceptada |
-| S1 un refrigerador | 2.299 | 2.770 | 17 % | Aceptada |
-| S2 depto 1 dormitorio (15 líneas) | 6.047 | 7.462 | 46 % | Aceptada |
-| S3 depto 3 dormitorios (40 líneas) | 12.749 | 15.850 | **97 %** | Aceptada (al límite) |
-| S4 casa grande (80 líneas) | 23.485 | 29.286 | 179 % | **Rechazada** |
-| S4b casa grande sin `id` por línea (80) | 19.805 | 25.446 | 155 % | **Rechazada** |
-| S5 extremo (150 líneas, textos al máximo) | 51.092 | 61.610 | 376 % | **Rechazada** |
-| S5b extremo sin `id` (150) | 44.192 | 54.410 | 332 % | **Rechazada** |
-| S6 sin agrupar (300 líneas) | 82.488 | 103.146 | 630 % | **Rechazada** |
+**Cuota del navegador (localStorage, ~5 MB):**
+- Antes de guardar se valida el tamaño. Si `setItem` falla, se muestra el error de guardado que ya existe (`QuoteStorageError`).
+- **No se escribe nada parcial**: se reemplaza el arreglo completo o nada.
+- Con el tope de 200 líneas, una cotización pesa hasta ~60 KB.
 
-Con recursos completos (2 paradas, 3 ayudantes y 4 líneas de equipamiento), cada línea de inventario ocupa unos **330 bytes**.
+### 6.4 Texto del servicio para el cliente (P2-7)
 
-**Opciones para D-4 (decisión tuya; sigue pendiente):**
+- **No se agrega `service_summary`** (se elimina el borrador M5). Se **reutiliza** `service_description`, que ya existe en `jobs` y `client_quotes`: ≤ 300 caracteres, lista blanca del enlace, PDF y WhatsApp.
+- **Generación:** `suggestServiceText` arma una **sugerencia editable** a partir de los tipos y cantidades del inventario y del piso o ascensor. Por ejemplo: «Traslado de 1 refrigerador y 6 cajas; origen 4.º piso sin ascensor».
+- **Nunca incluye** pesos, volúmenes, montos, tiempos ni costos.
+- **La lista blanca de `get_public_quote` no cambia.**
 
-| Opción | Cabida | Inmutabilidad | Complejidad | Evaluación |
-|---|---|---|---|---|
-| (a) Todo en `internal`, con tope de ~35 líneas | Hasta un depto de 3 dormitorios; **no** una casa | Total (un solo documento) | Baja | Limita mudanzas reales |
-| **(b) `job_cargo_items` + resumen en `internal`** | Cientos de líneas | Filas **sin `UPDATE`**, insertadas en la **misma transacción** que el trabajo y borradas solo en cascada con él | Media | **Recomendada** |
-| (c) Subir el límite de `internal` a 64 KB | Hasta unas 150 líneas | Total | Baja | Se mueve el problema, el tamaño crece sin control y S6 igual excede |
+## 7. Medición del límite de 16 KB (P1-4, corregida)
 
-## 8. Cambios propuestos a Supabase (solo diseño; ninguno ejecutado)
+**Método reproducible:**
+- **Comando:** `PGHOST=… PGPORT=… PGUSER=… scripts/diseno/medir-16kb.sh` crea una base local desechable, ejecuta y la elimina.
+- **Restricción:** el script **copia literalmente** la restricción de `jobs.internal` desde la migración inicial y la imprime al final (`pg_get_constraintdef`):
+  `CHECK ((jsonb_typeof(internal) = 'object') AND (pg_column_size(internal) <= 16384))`.
+- **Inserción:** cada caso es un `INSERT` en su **propio bloque**, con transacción independiente, que registra éxito o error y su SQLSTATE.
+- **Medición previa:** se mide `pg_column_size(literal::jsonb)`, que es lo que evalúa el CHECK. Lo almacenado puede comprimirse por [TOAST](https://www.postgresql.org/docs/16/storage-toast.html) y medir menos, así que **no sirve para predecir el rechazo**.
+- **Datos:** ficticios, con la forma del contrato (§3.1 y §6.1).
+- **Resultado:** PostgreSQL 16.15, 20-11-2026.
 
-Cada bloque es **una migración aparte**. Requiere tu autorización individual y respaldo real previo. Antes, se ensaya en local (ruta B de docs/17).
+| Caso | Bytes JSON | `pg_column_size` antes de almacenar | % del límite | `INSERT` | SQLSTATE |
+|---|---|---|---|---|---|
+| v1 actual (sin inventario) | 374 | 494 | 3,0 | Aceptado | — |
+| (a) S1 un refrigerador | 2.115 | 2.786 | 17,0 | Aceptado | — |
+| (a) S2 depto 1 dormitorio, 15 líneas | 4.873 | 6.766 | 41,3 | Aceptado | — |
+| (a) S3 depto 3 dormitorios, 40 líneas | 9.820 | 13.902 | 84,9 | Aceptado | — |
+| (a) S3b 45 líneas | 10.801 | 15.318 | 93,5 | Aceptado | — |
+| (a) S4 casa grande, 80 líneas | 17.728 | 25.306 | 154,5 | **Rechazado** | 23514 |
+| (a) S5 extremo, 150 líneas y textos al máximo | 40.391 | 54.082 | 330,1 | **Rechazado** | 23514 |
+| (a) S6 200 líneas (tope T-1) | 41.444 | 59.514 | 363,2 | **Rechazado** | 23514 |
+| (b) resumen de 80 líneas | 1.899 | 2.474 | 15,1 | Aceptado | — |
+| (b) resumen de 200 líneas, textos al máximo | 2.051 | 2.626 | 16,0 | Aceptado | — |
 
-| # | Migración (borrador) | Contenido | Depende de |
+**Lectura de los datos:**
+- Cada línea ocupa unos **285 bytes** sin comprimir. Con la opción (a), el máximo práctico es **~47 líneas**.
+- Con la opción (b), el snapshot no crece con el inventario: ~2,5 KB.
+- `p_cargo_items` con 200 líneas y textos al máximo pesa ~68 KB. Es solo referencia: es un parámetro de la función y no está sujeto al límite de `internal`.
+- **Corrección de la versión 1:** sus cifras (por ejemplo, «40 líneas al 97 %») se midieron con una línea que incluía `id`, que ya no es parte del contrato, y con un script que no reproducía las inserciones. Esas cifras se reemplazan por estas.
+
+**Opciones para D-4 (decisión tuya, pendiente):**
+
+| Opción | Cabida en la nube | Inmutabilidad | Evaluación |
 |---|---|---|---|
-| M1 | `vehicle_catalog` | Tabla de §5.1; `check` de fuentes por campo; RLS; `GRANT SELECT` a `anon` y `authenticated`; **sin** `INSERT/UPDATE/DELETE` por la API | D-9 (aprobada como diseño), informe C-1 para los datos |
-| M2 | `vehicles` ampliado | Columnas opcionales de §5.2 y FK `catalog_id` (`on delete set null`); `GRANT UPDATE` ampliado a las columnas nuevas | M1 |
-| M3 | `job_cargo_items` | Si D-4 = (b): tabla con `owner_id`, `job_id`, `position`, campos de §3.1; FK compuesta `(owner_id, job_id)` → `jobs(owner_id, id)` `on delete cascade`; RLS `SELECT/INSERT/DELETE` por dueño; **sin `UPDATE`** | D-4 |
-| M4 | Guardado atómico v2 | Nueva función `create_job_with_quote_v2(p_job, p_quote, p_cargo_items)` que inserta trabajo, cotización y líneas en **una** transacción; la v1 se mantiene para clientes antiguos | M3 |
-| M5 | `client_quotes.service_summary` | Texto ≤ 300 para el cliente; ampliar `get_public_quote` y su lista blanca, con prueba | T-2 |
-| — | `tax_mode`, `tax_rate` | **No en este diseño:** van con #37, después del informe de #16 (D-7) | D-7 |
+| (a) Todo en `internal`, con tope ~45 líneas | Hasta un depto de 3 dormitorios; **no** una casa | Total | Limita mudanzas reales |
+| **(b) `job_cargo_items` + resumen en `internal`** | 200 líneas (T-1) | **Probada** (§8.1): solo lectura; escritura única en la transacción de guardado | **Recomendada** |
+| (c) Subir el límite a 64 KB | ~150 líneas; 200 no caben | Total | Mueve el problema |
 
-**RLS propuesto:**
+## 8. Supabase: borradores ensayados en local (ninguno ejecutado en Supabase)
 
-| Objeto | `anon` | `authenticated` (dueño) | `authenticated` (otro usuario) |
-|---|---|---|---|
-| `vehicle_catalog` | `SELECT` | `SELECT` | `SELECT` |
-| `vehicles` (columnas nuevas) | — | `SELECT/INSERT/UPDATE/DELETE` | — |
-| `job_cargo_items` | — | `SELECT/INSERT/DELETE` (sin `UPDATE`) | — |
-| `get_public_quote` | `EXECUTE` (lista blanca) | `EXECUTE` | `EXECUTE` |
+Los borradores están en `scripts/diseno/borradores/`, **fuera** de `supabase/migrations`, para que ninguna herramienta los aplique.
+- **Ensayo:** `scripts/diseno/probar-borradores.sh` crea una base local con un stub de Supabase (`stub-supabase.sql`), aplica las **3 migraciones reales**, luego M3 y M4, y ejecuta las pruebas (§11.1).
+- **Ejecución en staging:** requiere tu autorización individual y respaldo real previo (A-59).
 
-**Verificaciones que se agregan** (cuando se autorice ejecutar):
-- **`verificar-rls.mjs`:** el catálogo se puede leer pero no escribir; B no ve líneas de A; ninguna línea se puede modificar.
-- **`verificar-restauracion.sql`:** conteos e invariantes de las tablas nuevas.
-- **Prueba de fuentes:** ningún valor del catálogo sin fuente.
+### 8.1 M3 · `job_cargo_items` inalterable (P1-1)
 
-## 9. Distribución de tareas paralelas (desarrollo posterior, cuando se autorice)
+| Regla | Cómo se garantiza | Prueba |
+|---|---|---|
+| El dueño solo **lee** sus líneas | `GRANT SELECT` únicamente; RLS `owner_id = auth.uid()` | T2 (INSERT), T3 (UPDATE), T4 (DELETE) rechazados con 42501; T5 (B no ve las de A) |
+| Escritura **única**, dentro de la transacción de guardado | `private.insert_cargo_items` (SECURITY DEFINER, `search_path=''`, esquema no expuesto por la API) exige: (1) trabajo del usuario; (2) creado **en esta transacción** (`created_at = now()`); (3) sin líneas previas; (4) ≤ 200 líneas | T6 (cotización con líneas), **T6b** (cotización emitida sin líneas): ambas rechazadas |
+| Las defensas no son redundantes | **Control:** sin la condición (2), **T6b falla** («se agregaron líneas a una cotización emitida sin líneas») | Ejecutado (§11.1) |
+| Borrado | Solo **en cascada** cuando el dueño elimina el trabajo completo, una función que ya existe (`jobs_delete`) y borra también la cotización y sus enlaces. Es un caso distinto de alterar un documento: el documento deja de existir completo | T13 |
+| `internal` no se reescribe | Permisos actuales: el dueño solo actualiza `status` y `payment` | T11 |
 
-| Fase | Carril | Entrega | Archivos propios (sin solaparse) | Puede empezar |
+### 8.2 M4 · `create_job_with_quote_v2` (P1-2)
+
+**Diseño:**
+- La v2 **llama a la v1 sin modificarla** y, en la misma transacción, inserta las líneas.
+- Se conservan **exactamente** los invariantes de la v1: identidad por `auth.uid()`, `private.allocate_quote_number` con `FOR UPDATE`, `issued_number` conservado al importar, idempotencia por `(owner_id, local_id)` y el retorno `{id, number, issued_number}` o `NULL`.
+
+| Invariante | Prueba |
+|---|---|
+| Guardado con líneas en una transacción | T1 (3 líneas), T9b (200 líneas) |
+| Una línea inválida revierte **todo**: sin trabajo y sin avance del contador (sin huecos) | T7 |
+| Importación repetida: `NULL`, sin líneas duplicadas, sin gastar número, número emitido conservado | T8 |
+| > 200 líneas: rechazo **antes** de asignar número | T9 |
+| `anon` no puede guardar | T10 |
+| La v1 sigue igual; B tiene su propia secuencia | T12 |
+| 20 guardados simultáneos con líneas: números únicos y correlativos | T14 |
+
+### 8.3 Resto de los borradores
+
+- **M1** (catálogo) y **M2** («Mis vehículos»), según §5.
+- **M5 eliminado** (§6.4).
+- **IVA** (`tax_mode`, `tax_rate`): solo con #37 y D-7.
+
+## 9. Distribución de tareas paralelas (cuando se autorice el desarrollo)
+
+| Fase | Carril | Entrega | Archivos propios | Puede empezar |
 |---|---|---|---|---|
-| 0 | D | **Contratos:** tipos y esquemas Zod de inventario, recursos y catálogo; `readSnapshot` v1/v2; fixtures v1 de regresión | `src/shared/cargo.ts`, `resources.ts`, `vehicleCatalog.ts`, `snapshot.ts`, `tests/contratos.*` | Con tu autorización de desarrollo |
-| 1 | 1 | Editor de inventario (rápido y detallado), `cargoSummary`, aviso de capacidad | `src/web/components/Inventory*.tsx`, `src/shared/cargoSummary.ts`, `tests/inventario.*` | Al terminar la fase 0 |
-| 1 | 2 | Editor de recursos (paradas, ayudantes, equipamiento), `resourcesSummary`, conversión v1 de ayudantes | `src/web/components/Resources*.tsx`, `src/shared/resourcesSummary.ts`, `tests/recursos.*` | Al terminar la fase 0, en paralelo con el carril 1 |
-| 1 | 3 | Selector de catálogo y «Mis vehículos» ampliado (con datos de prueba **sin** valores reales hasta C-1) | `src/web/components/VehiclePicker*.tsx`, `src/web/cloud/vehicleCatalog.ts`, `tests/catalogo.*` | Al terminar la fase 0; los datos reales, tras C-1 y M1 |
-| 2 | Integración | Ranuras en `QuoteSession` y `Calculator.tsx` para los tres editores; snapshot v2 al guardar | `src/web/session.ts`, `Calculator.tsx`, `jobs.ts` (**un solo responsable**) | Tras los carriles 1 a 3 |
-| 3 | 4 | Adaptador `costInputs` y fórmulas aprobadas | `src/shared/costInputs.ts`, motor | **Bloqueado:** C-2 y D-5 |
+| 0 | D | Contratos (§2), fixtures v1 de regresión y pruebas de esquema | `src/shared/{cargo,resources,vehicleCatalog,snapshot}.ts`, `tests/contratos.*` | Con tu autorización |
+| 1 | 1 | Editor de inventario, `cargoSummary`, `capacityEstimate`, `suggestServiceText` | `src/web/components/Inventory*.tsx`, `tests/inventario.*` | Tras la fase 0 |
+| 1 | 2 | Editor de recursos, `handlingTime`, `helperCostLines`, conversión v1 | `src/web/components/Resources*.tsx`, `tests/recursos.*` | Tras la fase 0 |
+| 1 | 3 | Selector de catálogo y «Mis vehículos» ampliado (sin datos reales hasta C-1 y M1) | `src/web/components/VehiclePicker*.tsx`, `src/web/cloud/vehicleCatalog.ts`, `tests/catalogo.*` | Tras la fase 0 |
+| 1 | Datos | Persistencia local v2 y copia a la cuenta (§6.3) | `src/web/storage.ts`, `src/web/cloud/migration.ts`, `tests/persistencia.*` | Tras la fase 0 y D-4 |
+| 2 | Integración | Ranuras en `QuoteSession` y `Calculator.tsx`; guardado v2 | `session.ts`, `Calculator.tsx`, `jobs.ts`, `saveQuote.ts` (**un solo responsable**) | Tras la fase 1 |
+| 3 | 4 | Adaptador `costInputs` con §4.3 y §4.4 y fórmulas aprobadas | `src/shared/costInputs.ts` | **Bloqueado:** aprobación §4.3–§4.4, C-2 y D-5 |
 | ∀ | QA | e2e por carril en Pixel 7, iPhone 13, 1366 y 1440 (#50) | `scripts/e2e-*` | Con cada carril |
-
-**Reglas de coordinación:**
-- Ningún carril edita archivos de otro.
-- `session.ts`, `Calculator.tsx` y `jobs.ts` se tocan **solo** en la integración.
-- Cada carril llega en su propio PR o commit, con pruebas.
-- Los casos dorados 64/64 deben seguir en verde en cada entrega.
 
 ## 10. Criterios de aceptación del diseño
 
-- [ ] Auditoría de ChatGPT sin hallazgos P0/P1.
-- [ ] Decisión del propietario sobre D-4, con los datos de §7.
-- [ ] Decisiones técnicas T-1 a T-6 (§11) resueltas o diferidas de forma explícita.
-- [ ] Autorización expresa para empezar la fase 0 de desarrollo, que hoy **no** está autorizada.
+- [ ] Nueva auditoría de ChatGPT sin P0 ni P1.
+- [x] Borradores M3 y M4 ensayados en local: **16 de 16 pruebas** (T1–T14, T6b y T9b) y control negativo de T6b (§11.1).
+- [x] Medición de 16 KB reproducible con la restricción real y un `INSERT` independiente por caso (§7).
+- [ ] Decisión del propietario sobre D-4 y T-1 a T-6 (§12).
+- [ ] Aprobación expresa de §4.3 y §4.4 antes de programar el adaptador.
+- [ ] Autorización expresa para iniciar la fase 0 de desarrollo (**hoy no autorizada**).
 
-## 11. Decisiones técnicas pendientes del propietario
+## 11. Pruebas
+
+### 11.1 Ejecutadas (base local desechable; PostgreSQL 16.15; 3 migraciones reales + M3 y M4)
+
+| Pruebas | Resultado |
+|---|---|
+| `probar-borradores.sh`: T1–T14, T6b y T9b | **16/16 OK** |
+| Control negativo: M3 sin `created_at = now()` | **T6b falla**: la prueba detecta la defensa faltante |
+| `medir-16kb.sh` | Tabla de §7 |
+| `npm test` (sin cambios en la aplicación) | 249/249 |
+
+### 11.2 Por implementar en el desarrollo (criterios de aceptación de cada carril)
+
+| ID | Prueba | Carril |
+|---|---|---|
+| C1 | Contratos Zod: límites de §3.1 y §4.1; una modalidad por ayudante; 201 líneas rechazadas | 0 |
+| C2 | `readSnapshot` lee fixtures v1 reales y no modifica nada | 0 |
+| L1 | Copia a la cuenta de un registro v1: idéntico al flujo actual | Datos |
+| L2 | Copia de un registro v2 con 120 líneas: 120 filas en `job_cargo_items`, `internal` con resumen | Datos |
+| L3 | Copia repetida: sin duplicados ni números gastados | Datos |
+| L4 | Una línea inválida: nada se copia; lo local queda intacto | Datos |
+| L5 | `setItem` lanza `QuotaExceededError`: error visible y ninguna escritura parcial | Datos |
+| L6 | Con D-4 = (a): una cotización de 80 líneas no se copia y queda local, con aviso | Datos |
+| H1 | Paradas A y B con minutos: costo igual al actual con la suma | 2 y 4 |
+| H2 | Falta la parada B: CF, R y el costo pasan a cota inferior; el precio, «al menos» | 2 y 4 |
+| H3 | Comparación de rutas no concluyente si depende del tiempo faltante | 4 |
+| H4 | Cotización v1 con carga 0: se muestra igual que antes | 0 |
+| S1 | `suggestServiceText` nunca contiene kg, m³, $ ni minutos | 1 |
+| K1 | El catálogo no tiene ningún valor sin fuente; combustible solo gasolina o diésel en el piloto | 3 |
+| G1 | Casos dorados 64/64 en cada entrega | ∀ |
+
+## 12. Decisiones técnicas pendientes del propietario
 
 | ID | Decisión | Recomendación |
 |---|---|---|
-| **D-4** | Inventario: (a) en `internal` con tope, (b) tabla `job_cargo_items` + resumen o (c) subir el límite | **(b)**, por la medición de §7 |
-| T-1 | Tope de líneas de inventario por cotización | 200 en la interfaz (en local, ~60 KB por cotización como máximo) |
-| T-2 | `service_summary` para el cliente: generado automáticamente, editable o ambos; ampliar la lista blanca del enlace público | Generado y editable; ampliar la lista con prueba |
-| T-3 | Datos de accesibilidad también para la parada «base» | No: solo A y B (la base es del transportista) |
-| T-4 | Historial local: misma clave con versión por registro, o clave nueva `v2` | Misma clave, versión por registro (sin migración destructiva) |
-| T-5 | Fuentes del catálogo: `sources jsonb` por campo o tabla aparte de fuentes | `jsonb` por campo (piloto de ≤ 15 versiones) |
-| T-6 | Guardado: nueva función `create_job_with_quote_v2` o modificar la actual | Nueva función; la actual sigue disponible |
-| D-2b, D-5, D-7, D-10 | Siguen pendientes (§12 del plan) | Sin cambios |
+| **D-4** | Inventario en la nube: (a), (b) o (c) | **(b)** (§7 y §8.1) |
+| T-1 | Tope de líneas por cotización (en la interfaz, en local y en el servidor) | 200 |
+| T-2 | Texto del servicio: **reutilizar `service_description`** con una sugerencia editable (§6.4) | Sí (se elimina `service_summary`) |
+| T-3 | Accesibilidad solo en A y B | Sí |
+| T-4 | Historial local: misma clave con versión por registro | Sí |
+| T-5 | Fuentes del catálogo en `jsonb` por campo | Sí |
+| T-6 | Nueva función v2 que reutiliza la v1 | Sí (§8.2) |
+| §4.3 y §4.4 | Aprobación para programar la modalidad por hora y la marca de tiempo de carga incompleto | Aprobar junto con la fase de integración |
+| D-2b, D-5, D-7, D-10 | Sin cambios | — |
 
-## 12. Lo que este diseño NO hace
+## 13. Respuesta a la auditoría de `cba6ffb`
 
-No programa funciones, no ejecuta migraciones, no modifica el motor ni sus fórmulas, no carga datos al catálogo, no implementa IVA y no activa Google Routes. La medición de §7 se hizo en un PostgreSQL **local y desechable**, sin tocar Supabase.
+| Hallazgo | Corrección | Dónde | Evidencia |
+|---|---|---|---|
+| P1-1 Inventario no inmutable | Solo `SELECT`; escritura única dentro del guardado; borrado solo en cascada del trabajo completo (caso documentado) | §8.1, M3 | T2–T6b, T11, T13; control negativo |
+| P1-2 M4 sin invariantes | La v2 reutiliza la v1; invariantes listados | §8.2, M4 | T1, T7, T8, T9, T9b, T12, T14 |
+| P1-3 Persistencia local | Lista completa en el registro local v2; `toCloudPayload` → `p_cargo_items`; idempotencia; cuota | §6.3 | L1–L6 (desarrollo) + T7 y T8 (servidor) |
+| P1-4 Medición no reproducible | Restricción copiada de la migración; `INSERT` independiente por caso; tamaño previo; versión | §7 | `medir-16kb.sh` |
+| P1-5 Tiempo parcial | `handlingTime` con completitud; partidas faltantes para CF y R sin cambiar el motor; v1 sin reinterpretar | §4.4 | H1–H4 (desarrollo) |
+| P2-6 Combustibles | Piloto solo gasolina y diésel; `isCatalogFuel`; sin migrar `vehicles.fuel` | §5.1 | K1 |
+| P2-7 `service_summary` duplicado | Se elimina; se reutiliza `service_description` con una sugerencia sin datos internos | §6.4 | S1 |
+| P2-8 Fixtures ≠ contrato | `CargoItem` sin `id`; `capacity.minTrips`; T-1 en la interfaz, en local y en el servidor | §2, §3, §7 | Script v2, T9 y T9b |
+
+## 14. Lo que este diseño NO hace
+
+No programa funciones de la aplicación, no ejecuta migraciones en Supabase, no modifica el motor ni sus fórmulas, no importa datos al catálogo, no implementa IVA y no activa Google Routes. Todo ensayo se hizo en un PostgreSQL **local y desechable**.
