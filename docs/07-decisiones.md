@@ -205,6 +205,10 @@ El propietario las eligió en la sesión de Claude, sobre las opciones recomenda
 
 También se aprobó integrar **solo** el PR #41 (README de portada). No autoriza fusionar el PR #34.
 
+## Propuesta del 20-11-2026: cotizador ampliado (PROPUESTA, no aprobada)
+
+El propietario encargó planificar la ampliación: catálogo de vehículos, inventario de carga, costo según carga, IVA en dos opciones y rutas reales. Plan en [19](19-plan-cotizador-ampliado.md), encargos en [20](20-encargos-deep-research-cotizador.md) y backlog en la épica #42 (sub-issues #43 a #50, más #22 y #37). Las decisiones **D-1 a D-10** están en #43. **No autoriza** programar, cambiar fórmulas, crear migraciones, importar datos ni activar servicios.
+
 **Implementación de A-47 (decisiones menores, revisables):**
 - Un número local **libre** se conserva tal cual, así que la secuencia puede saltar hasta ese número.
 - Los números de cotizaciones borradas **no se reutilizan**.
