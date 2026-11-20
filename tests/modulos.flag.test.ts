@@ -17,15 +17,16 @@ const root = new URL('../', import.meta.url);
 const read = (p: string) => readFileSync(new URL(p, root), 'utf8');
 
 describe('Feature flag de inventario y recursos', () => {
-  it('está desactivada por defecto', () => {
+  it('está desactivada por defecto (vista previa e integración I-1)', () => {
     expect(FEATURE_FLAGS.modulosCargaRecursos).toBe(false);
+    expect(FEATURE_FLAGS.integracionCarga).toBe(false);
   });
 
   it('ningún archivo .env del repositorio la activa', () => {
     const envs = readdirSync(root).filter((f) => f.startsWith('.env'));
     // Solo se informa el nombre del archivo, nunca su contenido (puede tener secretos locales).
-    for (const f of envs) expect(/VITE_FF_CARGA_RECURSOS\s*=\s*1/.test(read(f)), f).toBe(false);
-    expect(read('wrangler.jsonc')).not.toMatch(/VITE_FF_CARGA_RECURSOS/);
+    for (const f of envs) expect(/VITE_FF_(CARGA_RECURSOS|INTEGRACION_CARGA)\s*=\s*1/.test(read(f)), f).toBe(false);
+    expect(read('wrangler.jsonc')).not.toMatch(/VITE_FF_/);
   });
 
   it('App solo muestra la vista previa con la flag activada', () => {
@@ -34,15 +35,18 @@ describe('Feature flag de inventario y recursos', () => {
     expect(app).toMatch(/FEATURE_FLAGS\.modulosCargaRecursos && view\.name === 'modulos' \? <ModulesPreview \/>/);
   });
 
-  it('el cotizador, la sesión, el motor y el guardado NO importan los módulos nuevos', () => {
-    const protegidos = ['src/web/session.ts', 'src/web/components/Calculator.tsx', 'src/web/jobs.ts', 'src/web/saveQuote.ts', 'src/web/storage.ts', 'src/web/cloud/quotes.ts', 'src/web/cloud/migration.ts'];
-    for (const f of protegidos) {
-      const src = read(f);
-      expect(src, f).not.toMatch(/shared\/(cargo|resources|snapshot)|modules\/|InventoryEditor|ResourcesEditor|ModulesPreview/);
-    }
+  it('el motor no importa los módulos nuevos, y el costo de la sesión no lee inventario ni recursos (D-I1)', () => {
     for (const f of readdirSync(new URL('src/engine/', root))) {
-      expect(read(`src/engine/${f}`), f).not.toMatch(/shared\/(cargo|resources)|modules\//);
+      expect(read(`src/engine/${f}`), f).not.toMatch(/shared\/(cargo|resources|snapshot)|modules\//);
     }
+    // I-1 (A-68) integra los editores a la sesión, pero el cálculo de costo no los usa.
+    const session = read('src/web/session.ts');
+    const computation = session.slice(session.indexOf('  computation(kind: RouteKind)'), session.indexOf('  comparisonResult('));
+    expect(computation.length).toBeGreaterThan(100);
+    expect(computation).not.toMatch(/\bcargo\b|\bresources\b/);
+    const fingerprint = session.slice(session.indexOf('  private costFingerprint()'), session.indexOf('  priceNeedsConfirmation()'));
+    // «recargos» aparece en un comentario: se buscan las palabras exactas.
+    expect(fingerprint).not.toMatch(/\bcargo\b|\bresources\b/);
   });
 });
 

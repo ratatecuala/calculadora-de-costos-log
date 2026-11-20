@@ -9,4 +9,10 @@
  */
 export const FEATURE_FLAGS = {
   modulosCargaRecursos: import.meta.env.VITE_FF_CARGA_RECURSOS === '1',
+  /**
+   * Integración I-1 + I-1b (A-68, docs/22 v2): editores dentro de «Cotizar» (solo sin cuenta),
+   * snapshot v2 en el navegador, copia mixta a la cuenta y recuperación del borrador.
+   * **Apagada** salvo `VITE_FF_INTEGRACION_CARGA=1` en pruebas locales.
+   */
+  integracionCarga: import.meta.env.VITE_FF_INTEGRACION_CARGA === '1',
 } as const;

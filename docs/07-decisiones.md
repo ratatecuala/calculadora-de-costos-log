@@ -262,6 +262,15 @@ Comunicadas por el propietario por chat a Claude y **registradas literalmente** 
 | A-65 | **T-8:** `fragile: false` = «no marcado» y `handling: 'normal'` = «sin manejo especial declarado» | **Prohibido** usarlos para automatizar costos o determinar seguridad |
 | A-66 | **Fase 1 (puerta P1), solo carriles #47 (inventario) y #51 (recursos):** editores, funciones puras y pruebas; ambos detrás de una **feature flag desactivada**; teléfono y PC; comprobaciones de peso y volumen preparadas para la integración | **Sin** conexión al cotizador ni cambio del resultado económico. Bloqueados: Supabase, migraciones, IVA, Google Routes, producción, merge del PR #34, catálogo #46 e integración (P2) |
 
+## Decisiones del 20-11-2026: integración I-1 + I-1b (docs/22 v2)
+
+Comunicadas por el propietario por chat a Claude y **registradas literalmente** en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7050929523). **APROBADAS.** Base: [docs/22 v2](22-diseno-integracion-cotizador.md) y [su auditoría](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7050906514).
+
+| ID | Decisión | Alcance de la aprobación |
+|---|---|---|
+| A-67 | **D-I1 a D-I7** de docs/22 §6: costos actuales como única fuente; solo sin cuenta; no emitir con datos inválidos; borrador persistente (I-1b); «Servicio» con botón voluntario e «Incluye» con casilla explícita; flag nueva apagada; sin inventario en el PDF, el enlace ni WhatsApp | Diseño de I-1 |
+| A-68 | **Implementar I-1 + I-1b juntas**, con **C1** (el borrador local se conserva aislado al iniciar sesión, sin mostrarlo ni mezclarlo con cuentas) y **C2** (a la nube solo el `internal` preparado y validado, con medición en bytes para todos los v2); copia segura de las cotizaciones compatibles y diferidas las que requieren I-2; flag `VITE_FF_INTEGRACION_CARGA` **apagada** | **No** autoriza I-2, I-3, #52, migraciones, motor económico, IVA, Google Routes, despliegues ni merge del PR #34 |
+
 **Tarea independiente:** [#52](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52), impedir el `INSERT` directo en `jobs` que omite la numeración automática. **Debe resolverse antes de autorizar M3/M4 en staging** (puerta P3).
 
 **Implementación de A-47 (decisiones menores, revisables):**

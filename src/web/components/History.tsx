@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { formatClp } from '../../engine/rounding';
-import type { JobRecord, JobStatus } from '../../shared/clientQuote';
+import { isSnapshotV2, type JobRecord, type JobStatus } from '../../shared/clientQuote';
 import { formatDate } from '../format';
 import type { JobPatch, QuoteRepository } from '../storage';
 
@@ -77,6 +77,8 @@ export function History({ repository, onOpen, banner }: Props) {
             </div>
             {job.internal.costType !== 'estimado' ? <span className="tag tag-missing">Costo parcial</span> : null}
             {job.internal.routeSource === 'simulado' ? <span className="tag tag-warn">Calculada con datos simulados</span> : null}
+            {/* Solo v2 (I-1): una cotización histórica v1 se ve exactamente igual que antes. */}
+            {isSnapshotV2(job.internal) && job.internal.cargo ? <span className="tag tag-neutral">Con detalle de carga</span> : null}
             <div className="row-gap">
               <select aria-label={`Estado de la cotización N° ${String(job.number).padStart(4, '0')}`} value={job.status} onChange={(e) => void update(job, { status: e.target.value as JobStatus })}>
                 {Object.entries(STATUS_LABEL).map(([k, v]) => (

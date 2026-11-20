@@ -9,6 +9,8 @@ export interface BusinessProfile {
   email: string;
 }
 
+import type { SnapshotV2 } from './snapshot';
+
 export type JobStatus = 'borrador' | 'enviada' | 'aceptada' | 'rechazada' | 'realizada';
 
 /** Registro interno del trabajo (solo para el transportista). */
@@ -43,8 +45,15 @@ export interface JobRecord {
   issuer?: BusinessProfile;
   /** Direcciones escritas por el usuario (dato propio), para el enlace «Ver ruta en Google Maps». */
   waypoints: Array<{ role: 'base' | 'A' | 'B'; address: string }>;
-  /** Datos internos: nunca llegan al cliente. */
-  internal: {
+  /**
+   * Datos internos: nunca llegan al cliente. Versionados (docs/21 §6): v1 sin `schemaVersion`
+   * (todo lo emitido hasta hoy) o v2 con inventario y recursos (I-1, solo en el navegador).
+   */
+  internal: JobInternal;
+}
+
+/** Snapshot interno v1 (el formato de todas las cotizaciones emitidas antes de I-1). */
+export interface JobInternalV1 {
     routeSource: 'simulado' | 'google' | 'declarado' | 'mixto';
     /** Km y minutos solo si su retención lo permite (A-38); si no, null. */
     km: number | null;
@@ -66,7 +75,13 @@ export interface JobRecord {
       /** Campos ajustados solo para esta cotización. */
       adjusted: string[];
     } | null;
-  };
+  }
+
+export type JobInternal = JobInternalV1 | SnapshotV2;
+
+/** ¿Es un snapshot v2? (Una v1 no tiene `schemaVersion`.) */
+export function isSnapshotV2(internal: JobInternal): internal is SnapshotV2 {
+  return (internal as { schemaVersion?: unknown }).schemaVersion === 2;
 }
 
 export interface ClientQuote {

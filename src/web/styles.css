@@ -950,3 +950,48 @@ fieldset.segments {
 .warn .item-actions {
   margin-top: 8px;
 }
+
+/* Integración I-1 en «Cotizar» (A-68). */
+.cargo-integrada {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 16px 16px;
+}
+@media (min-width: 1100px) {
+  .cargo-integrada {
+    padding: 0 28px 20px;
+  }
+}
+.disclosure.card-like {
+  border-radius: 12px;
+}
+.disclosure.card-like > .disclosure-head {
+  min-height: 64px;
+  padding: 12px 16px;
+}
+.disclosure.card-like > .disclosure-head .disclosure-title {
+  font-size: 16px;
+}
+.disclosure.card-like > .disclosure-body {
+  padding: 4px 16px 16px;
+}
+.avisos {
+  margin: 0;
+  padding-left: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sugerencia-servicio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  background: var(--blue-soft);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.sugerencia-servicio .sub {
+  flex: 1 1 240px;
+  color: var(--blue-dark);
+}

@@ -106,7 +106,7 @@ export const snapshotV2Schema = z
   .object({
     schemaVersion: z.literal(2),
     /** Fórmulas de costo aplicadas (docs/03). Mientras no se aprueben fórmulas nuevas, igual al motor. */
-    formulaVersion: z.string().min(1),
+    formulaVersion: z.string().min(1).max(40),
     ...commonShape,
     /** Acotado en v2 (seguimiento P2): partidas faltantes con nombre corto. La v1 se lee sin tope. */
     missing: z.array(z.string().min(1).max(MAX_MISSING_CHARS)).max(MAX_MISSING_ITEMS),
@@ -239,11 +239,14 @@ export function toCloudPayload(raw: unknown): CloudPayloadResult {
   const parsed = snapshotV2Schema.safeParse(raw);
   if (!parsed.success) return { ok: false, reason: `Snapshot inválido: ${issues(parsed.error)}` };
   const internal = structuredClone(parsed.data);
-  if (internal.cargo === null) return { ok: true, internal, cargoItems: [] };
-  const problema = localCargoIntegrityIssue(internal.cargo);
-  if (problema !== null) return { ok: false, reason: problema };
-  const cargoItems = internal.cargo.items ?? [];
-  delete internal.cargo.items;
+  let cargoItems: CargoItem[] = [];
+  if (internal.cargo !== null) {
+    const problema = localCargoIntegrityIssue(internal.cargo);
+    if (problema !== null) return { ok: false, reason: problema };
+    cargoItems = internal.cargo.items ?? [];
+    delete internal.cargo.items;
+  }
+  // C2 (auditoría de docs/22 v2): el tope en bytes UTF-8 se mide en TODO v2, también sin carga.
   const bytes = new TextEncoder().encode(JSON.stringify(internal)).length;
   if (bytes > MAX_CLOUD_INTERNAL_JSON_BYTES) {
     return { ok: false, reason: `El resumen interno ocupa ${bytes} bytes y supera el tope de ${MAX_CLOUD_INTERNAL_JSON_BYTES}: no se copia` };

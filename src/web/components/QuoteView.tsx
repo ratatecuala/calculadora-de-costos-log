@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { formatClp } from '../../engine/rounding';
 import { toClientQuote, whatsappUrl, type BusinessProfile, type ClientQuote, type JobRecord } from '../../shared/clientQuote';
 import { googleMapsDirectionsUrl } from '../../shared/mapsUrl';
+import { readSnapshot } from '../../shared/snapshot';
 import { CloudQuoteRepository, type QuoteShare } from '../cloud/quotes';
 import { formatDate } from '../format';
 import type { QuoteRepository } from '../storage';
@@ -51,6 +52,7 @@ export function QuoteView({ job, repository, onBack }: Props) {
           {String(job.issuedNumber).padStart(4, '0')}.
         </p>
       ) : null}
+      <InternalCargo job={job} />
       {repository instanceof CloudQuoteRepository ? <SharePanel repository={repository} jobId={job.id} /> : null}
       <QuoteDocument q={q} />
     </div>
@@ -233,3 +235,42 @@ function Item({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+const nf = (v: number, d = 1) => new Intl.NumberFormat('es-CL', { maximumFractionDigits: d }).format(v);
+
+/**
+ * Detalle de carga INTERNO de una cotización v2 (I-1). Fuera del documento y de la impresión
+ * (`no-print`): el PDF, el enlace y WhatsApp siguen saliendo solo de la lista blanca (D-I7).
+ * Una cotización v1 no muestra nada nuevo.
+ */
+function InternalCargo({ job }: { job: JobRecord }) {
+  const r = readSnapshot(job.internal);
+  if (!r.ok || r.sourceVersion !== 2 || !r.view.cargo) return null;
+  const c = r.view.cargo;
+  const t = c.totals;
+  return (
+    <div className="card internal no-print" data-testid="detalle-carga-interno">
+      <div className="row-between">
+        <h2 className="sec">Detalle de la carga</h2>
+        <span className="tag tag-internal">Solo para ti</span>
+      </div>
+      <p>
+        {c.mode === 'rapido' ? c.summary || 'Modo rápido' : `${t.lines} ${t.lines === 1 ? 'objeto' : 'objetos'}`}
+        {t.weightKg !== null ? ` · ${t.linesWithWeight < t.lines ? '≥ ' : ''}${nf(t.weightKg)} kg` : ''}
+        {t.volumeM3 !== null ? ` · ${t.linesWithVolume < t.lines ? '≥ ' : ''}${nf(t.volumeM3, 3)} m³` : ''}
+      </p>
+      {c.items && c.items.length ? (
+        <ul className="sub">
+          {c.items.slice(0, 10).map((it, i) => (
+            <li key={i}>
+              {it.qty} × {it.description}
+            </li>
+          ))}
+          {c.items.length > 10 ? <li>y {c.items.length - 10} más</li> : null}
+        </ul>
+      ) : null}
+      <p className="sub">El cliente no ve este detalle: el documento muestra solo «Servicio» e «Incluye».</p>
+    </div>
+  );
+}
+

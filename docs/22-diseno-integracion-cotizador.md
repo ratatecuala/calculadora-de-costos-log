@@ -1,6 +1,6 @@
 # 22 · Diseño de integración: inventario y recursos en el cotizador (puerta P2)
 
-**Versión 2 · 20-11-2026 · Estado: DISEÑO PROPUESTO, no autorizado.** Nada de este documento está implementado. Cada etapa requiere tu autorización por separado.
+**Versión 2 · 20-11-2026 · Estado:** D-I1 a D-I7 **APROBADAS** (A-67). **I-1 + I-1b IMPLEMENTADAS** (A-68), con C1 y C2, detrás de la flag **apagada** (§10). I-2 e I-3 **no autorizadas**.
 
 **Cambios respecto de la versión 1:** resuelve la [auditoría del diseño](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7050466337) (2 P1 de diseño y 2 P2 de experiencia de usuario). La tabla del §8 resume cada uno.
 
@@ -269,3 +269,50 @@ Con v2 con líneas en la mezcla, eso subiría cotizaciones sin su detalle o deja
 ## 9. Lo que este diseño NO hace
 
 No implementa la integración, no modifica el motor ni las fórmulas, no toca el guardado actual, Supabase ni las migraciones, no cambia el IVA, no activa Google Routes, no habilita formularios públicos (docs/21 §18), no despliega y no fusiona el PR #34.
+
+## 10. Implementación de I-1 + I-1b (A-68, 20-11-2026)
+
+**Autorización:** [registro en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7050929523). Incluye las condiciones **C1** y **C2** de la [auditoría de la v2](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7050906514).
+
+**Límites que se mantienen:**
+- la flag `VITE_FF_INTEGRACION_CARGA` queda **apagada**;
+- sin cambios en el motor, Supabase ni las migraciones;
+- sin despliegue ni merge.
+
+### 10.1 Qué se implementó
+
+| Parte | Archivos | Comportamiento |
+|---|---|---|
+| Flag | `featureFlags.ts` | `integracionCarga`, apagada por defecto; ningún `.env` ni `wrangler.jsonc` la enciende (prueba) |
+| Sesión | `session.ts` | `cargo` y `resources` en el borrador; `draftData`, `restoreDraft` y `hasDraftContent`. `computation` y la huella del precio **no** los leen (prueba estática y de igualdad) |
+| Versión del snapshot (§2.1) | `saveQuote.ts`, `jobs.ts`, `clientQuote.ts` | `snapshotVersionFor(flag, forWrite().kind)`. v2 solo con la flag y el navegador. `JobRecord.internal` es la unión `JobInternalV1 \| SnapshotV2`, sin conversiones forzadas |
+| Emisión v2 (§2.3) | `jobs.ts` | `snapshotV2From`: totales recalculados y verificados, validación con el esquema, `CargoInvalidError` con datos inválidos o con «Rápido» y una lista sin decidir. `formulaVersion` acotado a 40 caracteres |
+| Copia mixta (§2.5) | `cloud/migration.ts`, `App.tsx` | `clasificarParaCopia` antes de llamar a la base. Solo se envían las elegibles; para v2 va el `internal` **preparado** (C2). El registro es acumulativo con `deferred`. `mensajeCopia` nunca muestra un éxito global con diferidas. Las diferidas se informan con una nota sin botón |
+| C2 en `toCloudPayload` | `shared/snapshot.ts` | El tope de 11.000 bytes UTF-8 se mide en **todo** v2, también con `cargo: null` |
+| Borrador (§2.2) | `draftStore.ts`, `App.tsx`, `DraftBanner.tsx` | Clave `cotizador.borrador.v1`; solo el dueño `local`; autoguardado al segundo sin cambios; oferta «Recuperar o Descartar» (descartar pide confirmación); se borra al emitir en el navegador; error de cuota visible sin tocar el historial |
+| **C1** | `App.tsx`, `draftStore.ts` | Al pasar de «sin cuenta» a una cuenta: el borrador local se **guarda** aislado y el inventario y los recursos salen de la sesión de la cuenta. Con cuenta no se guarda ni se lee el borrador `local`. Al volver sin cuenta, se ofrece recuperarlo |
+| Cotizador (§1) | `CargoSection.tsx`, `Calculator.tsx`, `modules/integracion.ts` | Sección plegable debajo de los costos, solo sin cuenta. Avisos anti-duplicado de ayudantes, tiempos y equipamiento. «Crear cotización» bloqueado con datos inválidos (D-I3) |
+| Formulario (§3) | `QuoteForm.tsx`, `modules/integracion.ts` | Botón voluntario «Usar texto sugerido» y casilla «Indicar al cliente la cantidad de ayudantes», con el número del campo de costo. Sin la integración, idéntico a hoy |
+| Historial y vista | `History.tsx`, `QuoteView.tsx` | Marca «Con detalle de carga» y tarjeta interna `no-print` solo para v2. Las v1 se ven igual |
+
+### 10.2 Pruebas (ejecutadas por Claude, 20-11-2026)
+
+| Prueba | Resultado |
+|---|---|
+| `npm test` | **504/504** (39 nuevas en `tests/integracion.test.ts`: V1–V5, emisión, D-I1, avisos, X1–X5, M1–M9 con M7 al byte exacto, lector de la nube, I-1b y C1; más la flag y el renderizado sin flag) |
+| `scripts/verificar-casos-dorados.mjs` | **64/64** |
+| Typecheck y `vite build` (sin flags, con la vista previa y con la integración) | Sin errores |
+| `scripts/e2e-integracion.mjs` con la flag (Pixel 7, iPhone 13 emulado, 1366, 1440) | **106/106**. Cubre: costo y precio idénticos con el detalle lleno; aviso anti-duplicado; bloqueo con datos inválidos; recarga y recuperación del borrador (2 objetos, direcciones; precio a confirmar); «Incluye» y casilla; sugerencia voluntaria sin ayudantes; v2 completo en el navegador; borrador borrado al emitir; PDF y WhatsApp sin el detalle interno; marca en el historial; sin desplazamiento horizontal; controles ≥ 44 px; 0 errores |
+| `scripts/e2e-integracion.mjs --sin-flag` | **24/24**: sin detalle, «Incluye» como hoy, v1 guardado y sin borrador |
+| `scripts/e2e-staging-anonimo.mjs` contra el servidor **local**, sin y con flag | **54/59** en ambos. Las 5 fallas son propias de staging: el servidor local no exige contraseña (401) y `localhost` cuenta como dominio externo |
+| `scripts/e2e-modulos.mjs` (vista previa de la fase 1) | **210/210** |
+| Mutaciones | **9/9** detectadas: v2 en la nube; envío del registro original (C2); subir v2 con líneas; diferidas registradas como copiadas; «Listo» con diferidas; no medir bytes con `cargo: null`; borrador para cuentas (C1); emitir con inválidos; registro no acumulativo |
+
+### 10.3 Limitaciones y lo que no se probó
+
+- **C1 en el navegador con cuentas reales:** no se probó, porque requiere staging, Supabase y un despliegue (no autorizados). Está cubierto con pruebas unitarias de `DraftStore` y de la secuencia de App, y con la lógica de identidad existente.
+- **Copia a una cuenta real:** probada con un cliente de Supabase simulado (M1–M9), no contra staging.
+- **Safari real y lector de pantalla:** sin probar.
+- **Código en el paquete:** con la flag apagada, el código de la integración viaja en el paquete pero **no se activa**. Las rutas de render y los efectos dependen de la constante apagada; las pruebas sin flag lo verifican.
+- **Estimación de viajes en el cotizador:** no se muestra hasta que el vehículo tenga carga útil y volumen (catálogo #46).
+

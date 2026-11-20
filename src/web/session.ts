@@ -31,6 +31,8 @@ import {
   type RouteSource,
 } from '../shared/route';
 import type { AppliedVehicle, VehicleProfile } from '../shared/vehicle';
+import { emptyInventoryDraft, type InventoryDraft } from './modules/inventoryDraft';
+import { emptyResourcesDraft, type ResourcesDraft } from './modules/resourcesDraft';
 import { buildWaypoints, routeKey } from '../shared/waypoints';
 
 export interface RouteClient {
@@ -89,6 +91,27 @@ export interface SessionState {
    * después (otra ruta, otro vehículo, otros parámetros), el precio debe reconfirmarse.
    */
   priceBasis: string | null;
+  /**
+   * Inventario y recursos del borrador (I-1, A-68). **No entran al costo**: `computation` no los
+   * lee (D-I1). Solo se guardan en el snapshot v2 al emitir en el navegador.
+   */
+  cargo: InventoryDraft;
+  resources: ResourcesDraft;
+}
+
+/**
+ * Datos del borrador que se pueden guardar y recuperar (I-1b): solo lo que escribió el usuario.
+ * La ruta del proveedor NO se guarda (retención A-38): se vuelve a calcular. El precio tampoco:
+ * se confirma de nuevo con el costo vigente.
+ */
+export interface DraftData {
+  inputs: AddressInputs;
+  params: TripParams;
+  margin: number;
+  surcharges: number;
+  vehicle: AppliedVehicle | null;
+  cargo: InventoryDraft;
+  resources: ResourcesDraft;
 }
 
 /** Motivos de modo manual que NO se reintentan al volver a presionar «Calcular ruta». */
@@ -144,6 +167,8 @@ export function initialState(): SessionState {
     routeRequests: 0,
     vehicle: null,
     priceBasis: null,
+    cargo: emptyInventoryDraft(),
+    resources: emptyResourcesDraft(),
   };
 }
 
@@ -282,6 +307,62 @@ export class QuoteSession {
     const v = this.state.vehicle;
     if (!v) return;
     this.set({ params: { ...this.state.params, kmPerL: v.kmPerL, wearPerKm: v.wearPerKm } });
+  }
+
+  /** Inventario del borrador. No cambia el costo ni la huella del precio (D-I1). */
+  setCargo(cargo: InventoryDraft): void {
+    this.set({ cargo });
+  }
+  /** Recursos del borrador. No cambian el costo ni la huella del precio (D-I1). */
+  setResources(resources: ResourcesDraft): void {
+    this.set({ resources });
+  }
+
+  /** Copia de lo que escribió el usuario, para el autoguardado del borrador (I-1b). */
+  draftData(): DraftData {
+    const s = this.state;
+    return structuredClone({
+      inputs: s.inputs,
+      params: s.params,
+      margin: s.margin,
+      surcharges: s.surcharges,
+      vehicle: s.vehicle,
+      cargo: s.cargo,
+      resources: s.resources,
+    });
+  }
+
+  /** ¿El borrador tiene algo que valga la pena guardar o recuperar? */
+  hasDraftContent(): boolean {
+    const s = this.state;
+    const r = s.resources;
+    return (
+      s.inputs.origin.trim() !== '' ||
+      s.inputs.destination.trim() !== '' ||
+      s.cargo.items.length > 0 ||
+      s.cargo.summary.trim() !== '' ||
+      r.helpers.length > 0 ||
+      r.equipment.length > 0 ||
+      r.stops.some((x) => x.floor !== null || x.elevator !== null || x.stairs !== null || x.carryMeters !== null || x.access.trim() !== '' || x.loadMinutes !== null)
+    );
+  }
+
+  /**
+   * Recupera un borrador guardado (I-1b), solo por decisión del usuario. Las direcciones quedan
+   * sin ruta calculada y sin precio: se recalcula y se confirma de nuevo.
+   */
+  restoreDraft(d: DraftData): void {
+    for (const k of Object.keys(this.generation) as RouteKind[]) this.generation[k] += 1;
+    this.set({
+      ...initialState(),
+      inputs: { ...d.inputs },
+      params: { ...d.params },
+      margin: d.margin,
+      surcharges: d.surcharges,
+      vehicle: d.vehicle ? { ...d.vehicle } : null,
+      cargo: structuredClone(d.cargo),
+      resources: structuredClone(d.resources),
+    });
   }
 
   setParams(partial: Partial<TripParams>): void {

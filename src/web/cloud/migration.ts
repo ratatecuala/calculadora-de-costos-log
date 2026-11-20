@@ -9,8 +9,15 @@
  *   de `userId` (createBoundClient), así nada puede grabarse a nombre de otra cuenta. Además,
  *   si la sesión de la app cambia a mitad de camino (`isCurrentUser()` = false), la copia se
  *   detiene y no se marca como completa.
+ * - Copia MIXTA v1/v2 (I-1, docs/22 §2.5, P1-2 y C2): ANTES de llamar a la base se clasifica cada
+ *   cotización. Solo las elegibles (v1 y v2 sin líneas) se copian; las v2 con detalle de carga y
+ *   las ilegibles quedan DIFERIDAS en el navegador, con su motivo, y nunca se marcan como copiadas.
+ *   Para una v2 se envía únicamente el `internal` preparado y validado por `toCloudPayload` (sin
+ *   `cargo.items`, medido en bytes), nunca el registro original.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { JobRecord } from '../../shared/clientQuote';
+import { toCloudPayload } from '../../shared/snapshot';
 import type { QuoteRepository } from '../storage';
 import type { KeyValueStore, VehicleRepository } from '../vehicleRepository';
 import { jobWithQuotePayload, vehicleToRow } from './mappers';
@@ -19,9 +26,49 @@ import { CloudError } from './vehicles';
 export const MIGRATION_KEY = 'cotizador.migracion.v1';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-interface MigrationLog {
-  [userId: string]: { at: string; jobs: string[]; vehicles: string[] };
+export interface DeferredJob {
+  id: string;
+  number: number;
+  clase: 'v2-con-lineas' | 'ilegible';
+  motivo: string;
 }
+
+interface MigrationLog {
+  /** `jobs` y `vehicles`: verificados en la nube (acumulativo). `deferred`: no copiadas, con motivo. */
+  [userId: string]: { at: string; jobs: string[]; vehicles: string[]; deferred?: DeferredJob[] };
+}
+
+export type ClaseCopia = 'v1' | 'v2-resumen' | 'v2-con-lineas' | 'ilegible';
+
+export interface Clasificada {
+  job: JobRecord;
+  clase: ClaseCopia;
+  /** Registro que se envía a la base (solo elegibles). Para v2, con el `internal` preparado. */
+  envio?: JobRecord;
+  motivo?: string;
+}
+
+export const MOTIVO_DETALLE_CARGA = 'Tiene detalle de carga: la cuenta aún no puede guardarlo (llegará con I-2)';
+
+/**
+ * Clasificación previa de una cotización local (docs/22 §2.5). No modifica el registro.
+ * - v1 (sin `schemaVersion`): elegible, se envía tal cual, igual que hasta hoy.
+ * - v2 sin líneas: elegible con el `internal` validado y medido en bytes (C2).
+ * - v2 con líneas: diferida hasta I-2. - Ilegible (malformada, incompleta o sobre el tope): diferida.
+ */
+export function clasificarParaCopia(job: JobRecord): Clasificada {
+  const internal = job.internal as unknown;
+  if (typeof internal !== 'object' || internal === null || !('schemaVersion' in internal)) {
+    return { job, clase: 'v1', envio: job };
+  }
+  const p = toCloudPayload(internal);
+  if (!p.ok) return { job, clase: 'ilegible', motivo: p.reason };
+  if (p.cargoItems.length > 0) return { job, clase: 'v2-con-lineas', motivo: MOTIVO_DETALLE_CARGA };
+  return { job, clase: 'v2-resumen', envio: { ...job, internal: p.internal as JobRecord['internal'] } };
+}
+
+const esElegible = (c: Clasificada) => c.clase === 'v1' || c.clase === 'v2-resumen';
+const union = (a: readonly string[], b: readonly string[]) => [...new Set([...a, ...b])];
 
 function readLog(store: KeyValueStore): MigrationLog {
   try {
@@ -32,8 +79,11 @@ function readLog(store: KeyValueStore): MigrationLog {
 }
 
 export interface PendingLocalData {
+  /** Cotizaciones ELEGIBLES aún no copiadas (las que el botón puede copiar). */
   jobs: number;
   vehicles: number;
+  /** Cotizaciones que quedan en el navegador (detalle de carga o ilegibles): no son pendientes de copia. */
+  deferred: DeferredJob[];
 }
 
 /** Cuánto del historial local todavía no se copió a la cuenta de este usuario. */
@@ -44,16 +94,40 @@ export async function pendingLocalData(
   userId: string,
 ): Promise<PendingLocalData> {
   const done = readLog(store)[userId];
-  const jobs = (await localQuotes.list()).filter((j) => UUID.test(j.id) && !done?.jobs.includes(j.id));
+  const clasif = (await localQuotes.list()).filter((j) => UUID.test(j.id) && !done?.jobs.includes(j.id)).map(clasificarParaCopia);
   const vehicles = (await localVehicles.list()).filter((v) => UUID.test(v.id) && !done?.vehicles.includes(v.id));
-  return { jobs: jobs.length, vehicles: vehicles.length };
+  return { jobs: clasif.filter(esElegible).length, vehicles: vehicles.length, deferred: clasif.filter((c) => !esElegible(c)).map(diferida) };
+}
+
+function diferida(c: Clasificada): DeferredJob {
+  return { id: c.job.id, number: c.job.issuedNumber ?? c.job.number, clase: c.clase as DeferredJob['clase'], motivo: c.motivo ?? '' };
 }
 
 export interface MigrationResult {
   jobsCopied: number;
   jobsAlreadyThere: number;
   vehiclesCopied: number;
+  /** Todas las ELEGIBLES y los vehículos están verificados en la nube. */
   verified: boolean;
+  /** Quedan en el navegador: nunca se marcan como copiadas. */
+  deferred: DeferredJob[];
+}
+
+const numero = (n: number) => `N° ${String(n).padStart(4, '0')}`;
+
+/**
+ * Mensaje final (docs/22 §2.5, paso 7): nunca un éxito global si quedan cotizaciones en el
+ * navegador; se nombran por su número.
+ */
+export function mensajeCopia(r: MigrationResult): string {
+  const diferidas = r.deferred.length
+    ? ` ${r.deferred.length} ${r.deferred.length === 1 ? 'cotización queda' : 'cotizaciones quedan'} en este navegador (${r.deferred.map((d) => numero(d.number)).join(', ')}) porque ${r.deferred.every((d) => d.clase === 'v2-con-lineas') ? 'tienen detalle de carga que la cuenta aún no puede guardar' : 'no se pudieron preparar para la cuenta'}.`
+    : '';
+  if (!r.verified) return `La copia quedó incompleta. Puedes reintentar: no se duplicará nada. Tus datos locales siguen intactos.${diferidas}`;
+  const base = `se copiaron ${r.jobsCopied} cotizaciones y ${r.vehiclesCopied} vehículos a tu cuenta${r.jobsAlreadyThere ? ` (${r.jobsAlreadyThere} ya estaban)` : ''}.`;
+  return r.deferred.length
+    ? `Se ${base.slice(3)}${diferidas} La copia de este navegador se mantiene.`
+    : `Listo: ${base} La copia de este navegador se mantiene.`;
 }
 
 export async function migrateLocalToCloud(args: {
@@ -72,7 +146,10 @@ export async function migrateLocalToCloud(args: {
     }
   };
   ensureSameUser();
-  const jobs = (await localQuotes.list()).filter((j) => UUID.test(j.id));
+  // Clasificación ANTES de cualquier llamada a la base (docs/22 §2.5, paso 1).
+  const clasif = (await localQuotes.list()).filter((j) => UUID.test(j.id)).map(clasificarParaCopia);
+  const elegibles = clasif.filter(esElegible);
+  const deferred = clasif.filter((c) => !esElegible(c)).map(diferida);
   const vehicles = (await localVehicles.list()).filter((v) => UUID.test(v.id));
   const localDefault = await localVehicles.getDefaultId();
 
@@ -119,9 +196,11 @@ export async function migrateLocalToCloud(args: {
   // 4. Cotizaciones: trabajo + cotización al cliente, juntos (una transacción cada una).
   let jobsCopied = 0;
   let jobsAlreadyThere = 0;
-  for (const job of jobs) {
+  for (const c of elegibles) {
     ensureSameUser();
-    const { data, error } = await supabase.rpc('create_job_with_quote', jobWithQuotePayload(job, job.id));
+    // C2: para una v2 se envía el registro con el `internal` preparado, nunca el original.
+    const envio = c.envio!;
+    const { data, error } = await supabase.rpc('create_job_with_quote', jobWithQuotePayload(envio, envio.id));
     if (error) throw new CloudError(`Se copiaron ${jobsCopied} cotizaciones y luego falló la conexión. Puedes reintentar: no se duplicarán. No se borró nada.`, error);
     if (data) jobsCopied += 1;
     else jobsAlreadyThere += 1;
@@ -133,17 +212,25 @@ export async function migrateLocalToCloud(args: {
   if (e1 || e2) throw new CloudError('No se pudo comprobar la copia. Tus datos locales siguen intactos.');
   const jobIds = new Set((cloudJobs as Array<{ local_id: string }>).map((r) => r.local_id));
   const vehicleIds = new Set((cloudVehicles as Array<{ local_id: string }>).map((r) => r.local_id));
-  const verified = jobs.every((j) => jobIds.has(j.id)) && vehicles.every((v) => vehicleIds.has(v.id));
+  // Solo se verifican las elegibles; las diferidas nunca cuentan como copiadas.
+  const jobsOk = elegibles.map((c) => c.job.id).filter((id) => jobIds.has(id));
+  const vehiclesOk = vehicles.map((v) => v.id).filter((id) => vehicleIds.has(id));
+  const verified = jobsOk.length === elegibles.length && vehiclesOk.length === vehicles.length;
 
-  ensureSameUser(); // no marcar como completa una copia si la sesión ya es otra
-  if (verified) {
-    const log = readLog(store);
-    log[userId] = { at: new Date().toISOString(), jobs: jobs.map((j) => j.id), vehicles: vehicles.map((v) => v.id) };
-    try {
-      store.setItem(MIGRATION_KEY, JSON.stringify(log));
-    } catch {
-      // Sin almacenamiento: se volverá a ofrecer, pero no habrá duplicados (local_id).
-    }
+  ensureSameUser(); // no registrar avance si la sesión ya es otra
+  const log = readLog(store);
+  const previo = log[userId];
+  // Registro acumulativo por identificador (paso 5): lo verificado ahora se SUMA a lo anterior.
+  log[userId] = {
+    at: new Date().toISOString(),
+    jobs: union(previo?.jobs ?? [], jobsOk),
+    vehicles: union(previo?.vehicles ?? [], vehiclesOk),
+    deferred,
+  };
+  try {
+    store.setItem(MIGRATION_KEY, JSON.stringify(log));
+  } catch {
+    // Sin almacenamiento: se volverá a ofrecer, pero no habrá duplicados (local_id).
   }
-  return { jobsCopied, jobsAlreadyThere, vehiclesCopied, verified };
+  return { jobsCopied, jobsAlreadyThere, vehiclesCopied, verified, deferred };
 }

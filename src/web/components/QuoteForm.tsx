@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react';
 import { formatClp } from '../../engine/rounding';
 import type { BusinessProfile, JobRecord } from '../../shared/clientQuote';
 import { VEHICLE_TYPE_LABEL } from '../../shared/vehicle';
+import { suggestServiceText } from '../../shared/cargo';
+import { FEATURE_FLAGS } from '../featureFlags';
 import { buildJobRecord } from '../jobs';
+import { alternarIncluye, includesPorDefecto } from '../modules/integracion';
+import { validateInventory } from '../modules/inventoryDraft';
 import { Fold } from './Fold';
 import { saveQuote } from '../saveQuote';
 import type { QuoteSession } from '../session';
@@ -14,6 +18,12 @@ interface Props {
   /** `repository` permite a la app ignorar el resultado si la cuenta cambió mientras se guardaba. */
   onSaved: (job: JobRecord, repository: QuoteRepository) => void;
   onCancel: () => void;
+  /**
+   * I-1 (A-68, D-I5): con la flag y SIN cuenta, «Servicio» ofrece el texto sugerido (botón
+   * voluntario) e «Incluye» tiene una casilla explícita para indicar la cantidad de ayudantes.
+   * Apagado, el formulario es idéntico al de hoy.
+   */
+  cargoEnabled?: boolean;
 }
 
 function comuna(address: string): string {
@@ -28,7 +38,7 @@ function plusDays(days: number): string {
 }
 
 /** Crea la cotización. Solo copia al registro datos propios; km de proveedor solo si su retención lo permite. */
-export function QuoteForm({ session, repository, onSaved, onCancel }: Props) {
+export function QuoteForm({ session, repository, onSaved, onCancel, cargoEnabled = false }: Props) {
   const s = session.getSnapshot();
   const computation = session.computation('habitual');
   const [business, setBusiness] = useState<BusinessProfile>({ name: '', phone: '', email: '' });
@@ -55,13 +65,20 @@ export function QuoteForm({ session, repository, onSaved, onCancel }: Props) {
   const [form, setForm] = useState({
     clientName: '',
     serviceDescription: s.vehicle ? `Flete en ${VEHICLE_TYPE_LABEL[s.vehicle.type].toLowerCase()}` : 'Flete',
-    includes: s.params.helpers > 0 ? `Carga y descarga, ${s.params.helpers} ayudante(s)` : 'Carga y descarga',
+    includes: includesPorDefecto(s.params.helpers),
     conditions: '',
     serviceDate: '',
     validUntil: plusDays(7),
     originLabel: comuna(s.inputs.origin),
     destinationLabel: comuna(s.inputs.destination),
   });
+  // X2/X3: la casilla parte con el valor de hoy y el número sale del campo de costo «Ayudantes».
+  const [indicarAyudantes, setIndicarAyudantes] = useState(s.params.helpers > 0);
+  const [includesManual, setIncludesManual] = useState(false);
+  // Sugerencia para «Servicio»: solo con un inventario válido y con contenido; se aplica con un botón.
+  const inventario = cargoEnabled ? validateInventory(s.cargo).inventory : null;
+  const sugerencia =
+    inventario && (inventario.items.length > 0 || inventario.summary !== '') ? suggestServiceText(inventario, s.resources.stops) : null;
   if (!computation || s.chosenPrice === null) return null;
   const price = s.chosenPrice;
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
@@ -73,8 +90,11 @@ export function QuoteForm({ session, repository, onSaved, onCancel }: Props) {
     try {
       const result = await saveQuote(
         repository,
-        (number) => buildJobRecord(session, form, business, { id: crypto.randomUUID(), number, createdAt: new Date().toISOString().slice(0, 10) }),
+        (number, version) =>
+          buildJobRecord(session, form, business, { id: crypto.randomUUID(), number, createdAt: new Date().toISOString().slice(0, 10) }, { version }),
         business,
+        // La versión del snapshot la decide saveQuote con el repositorio fijado (docs/22 §2.1).
+        { cargoFlag: FEATURE_FLAGS.integracionCarga },
       );
       if (result.status === 'no_vigente') {
         // La ruta dejó de estar vigente o el costo cambió y el precio no se confirmó.
@@ -110,7 +130,41 @@ export function QuoteForm({ session, repository, onSaved, onCancel }: Props) {
           <Text label="Válida hasta" type="date" value={form.validUntil} onChange={set('validUntil')} />
         </div>
         <Text label="Servicio" value={form.serviceDescription} onChange={set('serviceDescription')} />
-        <Text label="Incluye" value={form.includes} onChange={set('includes')} />
+        {cargoEnabled && sugerencia && sugerencia !== form.serviceDescription ? (
+          <div className="sugerencia-servicio" data-testid="sugerencia-servicio">
+            <p className="sub">Sugerencia según la carga (sin pesos, montos ni tiempos): «{sugerencia}»</p>
+            <button type="button" className="btn2 small" onClick={() => setForm({ ...form, serviceDescription: sugerencia })}>
+              Usar texto sugerido
+            </button>
+          </div>
+        ) : null}
+        <Text
+          label="Incluye"
+          value={form.includes}
+          onChange={(e) => {
+            setIncludesManual(false);
+            setForm({ ...form, includes: e.target.value });
+          }}
+        />
+        {cargoEnabled ? (
+          <>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={indicarAyudantes}
+                disabled={s.params.helpers === 0}
+                onChange={(e) => {
+                  const r = alternarIncluye(form.includes, s.params.helpers, e.target.checked);
+                  setIndicarAyudantes(e.target.checked);
+                  setIncludesManual(r.editadoAMano);
+                  setForm({ ...form, includes: r.texto });
+                }}
+              />
+              Indicar al cliente la cantidad de ayudantes{s.params.helpers > 0 ? ` (${s.params.helpers}, según «Ayudantes» del costo)` : ' (no hay ayudantes en el costo)'}
+            </label>
+            {includesManual ? <p className="sub">Editaste «Incluye» a mano: ajusta la mención de ayudantes directamente en el texto.</p> : null}
+          </>
+        ) : null}
         <Text label="Condiciones" value={form.conditions} onChange={set('conditions')} placeholder="Carga máxima, esperas, pisos…" />
         <Fold key={businessLoaded ? 'cargado' : 'cargando'} summary="Tus datos (aparecen en la cotización)" defaultOpen={!businessLoaded?.hadName}>
           <div className="grid2">

@@ -4,7 +4,7 @@ import type { VehicleProfile } from '../shared/vehicle';
 import { httpRouteClient } from './api';
 import { AuthStore } from './cloud/auth';
 import { cloudConfig, createBoundClient, getSupabase } from './cloud/client';
-import { migrateLocalToCloud, pendingLocalData, type PendingLocalData } from './cloud/migration';
+import { mensajeCopia, migrateLocalToCloud, pendingLocalData, type PendingLocalData } from './cloud/migration';
 import { CloudQuoteRepository } from './cloud/quotes';
 import { CloudVehicleRepository } from './cloud/vehicles';
 import { AccountView } from './components/AccountView';
@@ -15,7 +15,11 @@ import { PublicQuote } from './components/PublicQuote';
 import { QuoteForm } from './components/QuoteForm';
 import { QuoteView } from './components/QuoteView';
 import { VehiclesView } from './components/VehiclesView';
+import { DraftBanner } from './components/DraftBanner';
+import { DraftStore, type StoredDraft } from './draftStore';
 import { FEATURE_FLAGS } from './featureFlags';
+import { emptyInventoryDraft } from './modules/inventoryDraft';
+import { emptyResourcesDraft } from './modules/resourcesDraft';
 import { QuoteSession } from './session';
 import { browserQuoteRepository, type QuoteRepository } from './storage';
 import { draftVisibleTo, ownerOf, shouldResetDraft, VehicleListLoader, visibleVehicleState } from './vehicleList';
@@ -70,6 +74,13 @@ function MainApp() {
   const localVehicles = useMemo(() => browserVehicleRepository(), []);
   const localQuotes = useMemo(() => browserQuoteRepository(), []);
   const store = useMemo(() => browserStore(), []);
+  // I-1b (A-68): borrador persistente del modo sin cuenta, separado del historial emitido.
+  const cargoOn = FEATURE_FLAGS.integracionCarga;
+  const draftStore = useMemo(() => new DraftStore(store), [store]);
+  const [draftOffer, setDraftOffer] = useState<StoredDraft | null>(null);
+  const [draftNotice, setDraftNotice] = useState<string | null>(null);
+  /** Mientras se ofrece recuperar, el autoguardado NO pisa el borrador guardado. */
+  const offerPending = useRef(false);
   const auth = useMemo(
     () => new AuthStore(getSupabase(), cloudConfig ? `${cloudConfig.url}/auth/v1/settings` : null, cloudConfig?.publishableKey ?? null),
     [],
@@ -122,6 +133,18 @@ function MainApp() {
   sessionRef.current = session;
   useEffect(() => {
     const owner = ownerOf(userId);
+    // C1 (auditoría de docs/22 v2): al pasar de «sin cuenta» a una cuenta, el borrador local se
+    // GUARDA aislado (nunca se borra) y el inventario y los recursos salen de la sesión de la cuenta:
+    // con cuenta no se muestran ni se guardan hasta I-2. Al volver sin cuenta se ofrece recuperarlo.
+    if (cargoOn && previousUser.current === null && userId !== null) {
+      const current = sessionRef.current;
+      if (current.hasDraftContent() && !offerPending.current) {
+        const w = draftStore.write('local', current.draftData());
+        if (!w.ok) setDraftNotice(w.reason);
+      }
+      current.setCargo(emptyInventoryDraft());
+      current.setResources(emptyResourcesDraft());
+    }
     if (shouldResetDraft(previousUser.current, userId)) {
       const fresh = new QuoteSession(httpRouteClient);
       sessionRef.current = fresh;
@@ -132,6 +155,46 @@ function MainApp() {
     previousUser.current = userId;
     setView((v) => (v.name === 'ver' || v.name === 'nueva' ? { name: 'trabajos' } : v));
   }, [userId]);
+
+  // I-1b: al estar SIN cuenta (al abrir o al cerrar sesión), ofrecer el borrador local guardado.
+  // Nunca se ofrece a una cuenta (C1): solo se lee el dueño «local».
+  useEffect(() => {
+    if (!cargoOn || userId !== null) {
+      setDraftOffer(null);
+      offerPending.current = false;
+      return;
+    }
+    const r = draftStore.read('local');
+    if (r.status === 'ilegible') {
+      draftStore.clear('local');
+      setDraftNotice('No se pudo recuperar el borrador guardado: estaba dañado y se descartó.');
+    } else if (r.status === 'ok' && !draft.session.hasDraftContent()) {
+      offerPending.current = true;
+      setDraftOffer(r.draft);
+    }
+  }, [cargoOn, userId, draftStore, draft.session]);
+
+  // I-1b: autoguardado 1 s después del último cambio, solo sin cuenta y sin una oferta pendiente.
+  const currentOwnerRef = useRef(currentOwner);
+  currentOwnerRef.current = currentOwner;
+  useEffect(() => {
+    if (!cargoOn) return;
+    const target = draft.session;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = target.subscribe(() => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (currentOwnerRef.current !== 'local' || offerPending.current) return;
+        if (!target.hasDraftContent()) return;
+        const w = draftStore.write('local', target.draftData());
+        setDraftNotice(w.ok ? null : w.reason);
+      }, 1000);
+    });
+    return () => {
+      if (timer) clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [cargoOn, draft.session, draftStore]);
 
   // Al abrir o al cambiar de identidad: lista vacía al instante, carga de la identidad nueva y,
   // si la cotización no tiene vehículo, aplicar el predeterminado (solo con datos vigentes).
@@ -177,12 +240,8 @@ function MainApp() {
         store,
         isCurrentUser: () => auth.getSnapshot().user?.id === userId,
       });
-      setMigration({
-        busy: false,
-        message: r.verified
-          ? `Listo: se copiaron ${r.jobsCopied} cotizaciones y ${r.vehiclesCopied} vehículos a tu cuenta${r.jobsAlreadyThere ? ` (${r.jobsAlreadyThere} ya estaban)` : ''}. La copia de este navegador se mantiene.`
-          : 'La copia quedó incompleta. Puedes reintentar: no se duplicará nada. Tus datos locales siguen intactos.',
-      });
+      // Nunca un éxito global si quedan cotizaciones en el navegador (docs/22 §2.5).
+      setMigration({ busy: false, message: mensajeCopia(r) });
       await refreshVehicles();
       await refreshPending();
     } catch (e) {
@@ -238,8 +297,36 @@ function MainApp() {
           </button>
         </div>
       ) : null}
+      {userId && pending && pending.deferred.length > 0 && !migration.message ? (
+        // Las diferidas se informan, pero NO son pendientes de copia: no hay botón ni se repite como tarea.
+        <p className="sub migration no-print" data-testid="copia-diferidas">
+          {pending.deferred.length} {pending.deferred.length === 1 ? 'cotización con detalle de carga queda' : 'cotizaciones con detalle de carga quedan'} en
+          este navegador; se podrán copiar a tu cuenta cuando la cuenta lo permita.
+        </p>
+      ) : null}
       {migration.message ? <p className="notice migration no-print">{migration.message}</p> : null}
       {loadFailure ? <p className="warn migration no-print">{loadFailure}</p> : null}
+      {draftOffer && currentOwner === 'local' ? (
+        <DraftBanner
+          draft={draftOffer}
+          reemplaza={session.hasDraftContent()}
+          onRecover={() => {
+            session.restoreDraft(draftOffer.data);
+            offerPending.current = false;
+            setDraftOffer(null);
+          }}
+          onDiscard={() => {
+            draftStore.clear('local');
+            offerPending.current = false;
+            setDraftOffer(null);
+          }}
+        />
+      ) : null}
+      {draftNotice ? (
+        <p className="warn migration no-print" role="alert">
+          {draftNotice}
+        </p>
+      ) : null}
       <main>
         {(view.name === 'cotizar' || view.name === 'nueva') && !showDraft ? <p className="sub layout">Cargando…</p> : null}
         {view.name === 'cotizar' && showDraft ? (
@@ -248,13 +335,17 @@ function MainApp() {
             vehicles={vehicles}
             onManageVehicles={() => setView({ name: 'vehiculos' })}
             onCreateQuote={() => setView({ name: 'nueva', owner: currentOwner })}
+            cargoEnabled={cargoOn && currentOwner === 'local'}
           />
         ) : null}
         {view.name === 'nueva' && showDraft && view.owner === currentOwner ? (
           <QuoteForm
             session={session}
             repository={quoteRepository}
+            cargoEnabled={cargoOn && currentOwner === 'local'}
             onSaved={(job, savedWith) => {
+              // I-1b: emitir en el navegador borra el borrador sin emitir.
+              if (cargoOn && savedWith.kind === 'local') draftStore.clear('local');
               // Un guardado iniciado con otra cuenta no abre su cotización en la cuenta actual.
               if (savedWith !== quoteRepoRef.current) return;
               setView({ name: 'ver', job, owner: ownerOf(userId) });

@@ -7,6 +7,8 @@ import { VEHICLE_TYPE_LABEL, type VehicleProfile } from '../../shared/vehicle';
 import { buildWaypoints } from '../../shared/waypoints';
 import { boundedText, formatInputNumber, formatKm, formatMinutes, missingText, ROLE_LABEL, signedBoundedText, SOURCE_LABEL } from '../format';
 import type { QuoteSession, RouteComputation, RouteState } from '../session';
+import { bloqueoEmision } from '../modules/integracion';
+import { CargoSection } from './CargoSection';
 import { Fold } from './Fold';
 import { NumberField } from './NumberField';
 
@@ -15,6 +17,11 @@ interface Props {
   onCreateQuote: () => void;
   vehicles: VehicleProfile[];
   onManageVehicles: () => void;
+  /**
+   * I-1 (A-68): muestra el detalle de la carga y recursos. Solo con la flag de integración y SIN
+   * cuenta (D-I2). Apagado, el cotizador es idéntico al de hoy.
+   */
+  cargoEnabled?: boolean;
 }
 
 const EXAMPLE = {
@@ -30,13 +37,15 @@ const EXAMPLE = {
   otherCosts: 0,
 };
 
-export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles }: Props) {
-  const s = useSyncExternalStore(session.subscribe, session.getSnapshot);
+export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles, cargoEnabled = false }: Props) {
+  const s = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
   const habitual = session.computation('habitual');
   const comparison = session.computation('evitarPeajes');
   const cmp = session.comparisonResult();
   const loading = s.habitual.status === 'cargando';
   const adjusted = session.vehicleAdjustments();
+  // D-I3: con el detalle activo, no se emite si tiene datos por corregir.
+  const bloqueoCarga = cargoEnabled ? bloqueoEmision(s.cargo, s.resources) : null;
   const mapsUrl = (() => {
     const { origin, destination, base, startAtBase, returnToBase } = s.inputs;
     if (origin.trim().length < 3 || destination.trim().length < 3) return null;
@@ -44,6 +53,7 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles 
   })();
 
   return (
+    <>
     <div className="layout">
       {/* Columna 1: recorrido */}
       <section className="col">
@@ -143,19 +153,26 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles 
       <section className="col">
         <PriceCard session={session} computation={habitual} />
         <ComparisonCard session={session} habitualReady={s.habitual.status === 'listo'} comparison={comparison} cmp={cmp} />
-        <button type="button" className="btn" disabled={!session.canQuote()} onClick={onCreateQuote}>
+        <button type="button" className="btn" disabled={!session.canQuote() || bloqueoCarga !== null} onClick={onCreateQuote}>
           Crear cotización
         </button>
+        {bloqueoCarga ? (
+          <p className="warn" data-testid="bloqueo-carga">
+            Revisa el detalle de la carga antes de crear la cotización: {bloqueoCarga}
+          </p>
+        ) : null}
         {!habitual ? <p className="sub">Calcula la ruta (o ingresa los km) para cotizar.</p> : null}
         {habitual && s.chosenPrice === null ? <p className="sub">Escribe el precio que vas a cobrar para crear la cotización.</p> : null}
         {session.priceNeedsConfirmation() ? <p className="sub">Confirma tu precio (en «Tu precio») para crear la cotización.</p> : null}
       </section>
     </div>
+    {cargoEnabled ? <CargoSection session={session} /> : null}
+    </>
   );
 }
 
 function VehiclePicker({ session, vehicles, onManageVehicles }: { session: QuoteSession; vehicles: VehicleProfile[]; onManageVehicles: () => void }) {
-  const s = useSyncExternalStore(session.subscribe, session.getSnapshot);
+  const s = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
   const applied = s.vehicle;
   const stored = applied ? vehicles.find((v) => v.id === applied.id) : undefined;
   const deleted = applied !== null && stored === undefined;
@@ -369,7 +386,7 @@ function Breakdown({ computation }: { computation: RouteComputation | null }) {
 }
 
 function PriceCard({ session, computation }: { session: QuoteSession; computation: RouteComputation | null }) {
-  const s = useSyncExternalStore(session.subscribe, session.getSnapshot);
+  const s = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
   const [custom, setCustom] = useState(false);
   const m = computation?.measures ?? null;
   const pct = Math.round(s.margin * 100);
@@ -447,7 +464,7 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
 
 function ComparisonCard(props: { session: QuoteSession; habitualReady: boolean; comparison: RouteComputation | null; cmp: Comparison | null }) {
   const { session, habitualReady, comparison, cmp } = props;
-  const s = useSyncExternalStore(session.subscribe, session.getSnapshot);
+  const s = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
   const loading = s.comparison.status === 'cargando';
   const left = s.quota ? `Te quedan ${s.quota.comparisonsLeftToday} hoy y ${s.quota.comparisonsLeftMonth} este mes.` : 'Hasta 3 al día y 10 al mes.';
   return (
