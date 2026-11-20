@@ -1,0 +1,25 @@
+# Secretos y configuración local: nunca se suben
+.env
+.env.*
+!.env.example
+!.env.staging.example
+.dev.vars
+*.pem
+*.key
+
+# Datos de calibración y direcciones reales: nunca en este repositorio
+calibracion/
+*.calibracion.*
+
+# Dependencias y artefactos (desde E1)
+node_modules/
+dist/
+build/
+coverage/
+.wrangler/
+playwright-report/
+test-results/
+
+# Sistema
+.DS_Store
+Thumbs.db

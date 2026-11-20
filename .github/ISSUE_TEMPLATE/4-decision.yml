@@ -1,0 +1,36 @@
+name: Decisión del propietario
+description: Decisión de negocio, gasto, cuentas, publicación o alcance que solo el propietario puede tomar.
+title: "[Decisión] "
+labels: ["decisión del propietario", "estado: requiere decisión"]
+body:
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Qué hay que decidir
+    validations:
+      required: true
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto y hechos relevantes
+      description: Con fuentes. Separar hechos verificados de suposiciones.
+  - type: textarea
+    id: opciones
+    attributes:
+      label: Opciones
+      description: Cada opción con su costo, riesgo y efecto.
+    validations:
+      required: true
+  - type: textarea
+    id: recomendacion
+    attributes:
+      label: Recomendación técnica (no vinculante)
+  - type: input
+    id: bloquea
+    attributes:
+      label: Qué bloquea esta decisión
+  - type: textarea
+    id: cierre
+    attributes:
+      label: Criterio de cierre
+      value: "Decisión registrada en docs/07-decisiones.md mediante un PR."

@@ -1,0 +1,26 @@
+// Staging de la calculadora en Cloudflare (plan GRATUITO). Sin secretos en este archivo:
+// ADMIN_TOKEN, ORIGIN_HASH_SALT y STAGING_BASIC_AUTH se cargan con `--secrets-file`
+// desde un archivo fuera del repositorio (docs/13-staging.md).
+// Google Routes NO está conectado: el proveedor es el SIMULADO.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "calculadora-fletes-staging",
+  // Entrada generada por `npm run build:staging` (src/server/worker.ts + archivos de dist/
+  // incrustados). Se incrustan porque el proxy del entorno de desarrollo impide la subida
+  // separada de Static Assets (docs/13-staging.md).
+  "main": "build/worker-entry.mjs",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "durable_objects": {
+    "bindings": [{ "name": "ROUTE_BUDGET", "class_name": "RouteBudgetDurableObject" }]
+  },
+  // Plan gratuito: solo Durable Objects con almacenamiento SQLite.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RouteBudgetDurableObject"] }],
+  "vars": {
+    "ROUTES_PROVIDER": "simulado",
+    "ROUTES_ENABLED": "true",
+    "STAGING_TEST_MARKERS": "true"
+  },
+  "observability": { "enabled": true }
+}
