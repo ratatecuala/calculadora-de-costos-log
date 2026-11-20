@@ -16,6 +16,7 @@ import {
   resumenEquipo,
   resumenObjeto,
   resumenTiempos,
+  totalInformativo,
 } from '../src/web/modules/estado';
 import { addItem, emptyInventoryDraft, newDraftItem, updateItem, validateInventory } from '../src/web/modules/inventoryDraft';
 import { emptyResourcesDraft, updateStop, validateResources } from '../src/web/modules/resourcesDraft';
@@ -118,7 +119,33 @@ describe('Datos de la carga (cliente) y recursos internos (transportista)', () =
   it('el texto para el cliente no incluye datos internos aunque existan', () => {
     const d = conItem({ qty: 2, unitWeightKg: 30, l: 50, w: 40, h: 40 });
     const inv = validateInventory(d).inventory!;
-    const t = suggestServiceText(inv, [{ role: 'A', floor: 4, elevator: 'no' }], 2);
-    expect(t).not.toMatch(/kg|m³|\$|min|hora/i);
+    const t = suggestServiceText(inv, [{ role: 'A', floor: 4, elevator: 'no' }]);
+    expect(t).not.toMatch(/kg|m³|\$|min|hora|ayudante/i);
   });
 });
+
+describe('P1-2 · filas y totales con datos inválidos', () => {
+  const id = '00000000-0000-4000-8000-000000000077';
+  it('ayudante con 30 h: «monto no calculable» y «Revisar», nunca $180.000', () => {
+    const r = resumenAyudante({ id, mode: 'hora', ratePerHour: 6000, hours: 30, paidSegments: ['manipulacion'] }, { [`${id}.hours`]: 'Máximo 24 horas' });
+    expect(r.texto).toBe('Por hora · 30 h × $6.000 · monto no calculable');
+    expect(r.texto).not.toContain('180.000');
+    expect(r.estado).toMatchObject({ nivel: 'error', detalle: 'Máximo 24 horas' });
+    // Aun sin el mapa de errores, el contrato lo detecta.
+    expect(resumenAyudante({ id, mode: 'hora', ratePerHour: 6000, hours: 30, paidSegments: ['manipulacion'] }, {}).estado.nivel).toBe('error');
+  });
+
+  it('equipamiento con monto inválido: «no suma (revisar)»', () => {
+    expect(resumenEquipo({ key: 'e', label: 'Carro', amount: 100.5 }, {})).toMatchObject({ texto: 'Carro · no suma (revisar)', estado: { nivel: 'error' } });
+  });
+
+  it('totalInformativo: solo válidos, con «al menos» y la cuenta de faltantes e inválidos', () => {
+    expect(totalInformativo(0, 0, 0, 0)).toBe('ninguno');
+    expect(totalInformativo(2, 25000, 0, 0)).toBe('$25.000');
+    expect(totalInformativo(2, 25000, 1, 0)).toBe('al menos $25.000 (falta el monto de 1)');
+    expect(totalInformativo(3, 25000, 1, 1)).toBe('al menos $25.000 (falta el monto de 1; 1 con datos inválidos, no suma)');
+    expect(totalInformativo(1, 0, 0, 1)).toBe('sin monto calculable (1 con datos inválidos, no suma)');
+    expect(totalInformativo(2, 0, 2, 0)).toBe('sin monto calculable (falta el monto de 2)');
+  });
+});
+

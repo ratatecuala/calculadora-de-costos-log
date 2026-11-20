@@ -619,6 +619,27 @@ Mejora visual dentro de la fase 1 (A-66). **No** elimina información ni funcion
 
 Casos dorados 64/64. Con la flag apagada, el paquete sigue sin los editores.
 
+### 17.6 Respuesta a la auditoría de la fase 1 (`fe0e143` y `2812b0f`: 0 P0, 3 P1, 2 P2)
+
+[Auditoría](https://github.com/ratatecuala/calculadora-de-costos-log/issues/45#issuecomment-7049343146). Todo dentro de la fase 1 (A-66): sin conexión al cotizador, sin cambios en el motor ni en Supabase.
+
+| Hallazgo | Corrección | Prueba que impide que reaparezca |
+|---|---|---|
+| **P1-1** `helpersFromV1` recortaba a 20 (21 × $15.000 = $315.000 pasaba a $300.000) | Nunca recorta. Devuelve `{ ok: false, reason }` si la cantidad supera 20 (T-7), si no es un entero ≥ 0 o si el monto no cabe en el contrato nuevo; el dato v1 se conserva tal cual. Con 20 o menos, la suma es idéntica al motor | 20 → 20 líneas y $300.000 = motor; 21, 25, 50 y 1.000 → rechazo con motivo; −1, 1,5, NaN e ∞ → rechazo; montos con decimales, negativos o fuera de rango → rechazo. Reintroducir el recorte hace fallar **4** pruebas |
+| **P1-2** Datos inválidos sumaban en los totales informativos (30 h × $6.000 = $180.000) | `helperCostLines` valida cada ayudante con el contrato: estado `ok`, `faltante` o `invalido`; un inválido **no suma**. `equipmentAmount` hace lo mismo con el equipamiento, y `handlingTime` trata los minutos inválidos como faltantes. Los totales distinguen «falta el monto de N» de «N con datos inválidos, no suma», y las filas dicen «monto no calculable» | 30 h, tarifa negativa o con decimales, monto negativo o con decimales, 0 h; equipamiento con decimales, fuera de rango o sin nombre; minutos 1.441, −5 y 2,5; mezcla de válidos e inválidos. E2E: con 30 h el resumen no muestra $180.000. Quitar cada validación hace fallar **6**, **2** y **1** pruebas |
+| **P1-3** El texto para el cliente incluía «N ayudantes» | `suggestServiceText` ya **no recibe** ayudantes: solo inventario y, de las paradas, piso y ascensor (aunque llegue la parada completa con minutos). Anunciar ayudantes al cliente sería una decisión explícita aparte | `@ts-expect-error` (el typecheck falla si se vuelve a aceptar un tercer parámetro); igualdad del texto con y sin datos internos en las paradas; revisión estática de la llamada en la vista previa; E2E «sin ayudantes». Volver a agregarlo hace fallar las pruebas y el typecheck |
+| **P2-1** Foco perdido al cerrar con «Listo» | `Disclosure` devuelve el foco al encabezado si se cierra con el foco dentro; Escape cierra y vuelve al encabezado; Enter abre (botón nativo) | E2E en 4 tamaños: «Listo» y Escape dejan el foco en el encabezado, y Enter abre. Sin la corrección, el E2E falla en los 4 |
+| **P2-2** Pasar a «Rápido» excluía la lista sin decirlo | Cambiar de modo **nunca** borra líneas. «Rápido» con una lista deja el inventario **inválido** y muestra un aviso con «Volver a Detallado» o «Descartar la lista», este último con confirmación. El resumen no calcula 0 por omisión | Ida y vuelta entre modos conserva líneas y datos; solo el descarte explícito vacía la lista; E2E del aviso, de cancelar y de volver. Quitar la regla hace fallar la prueba |
+
+**Decisión del propietario mantenida:** al agregar un objeto, los anteriores sin errores se cierran (conservando sus datos) y los que tienen errores siguen abiertos.
+
+**Resultados (20-11-2026, Claude):**
+- `npm test`: **450/450**.
+- Casos dorados: **64/64**.
+- Typecheck y build, con y sin flag: sin errores.
+- E2E: **210/210** en Pixel 7, iPhone 13 (emulado), 1366 y 1440.
+- **Sigue sin probarse:** Safari real y lector de pantalla.
+
 ## 18. Propuesta para una etapa posterior: datos de la carga aportados por el cliente (NO autorizada)
 
 **Estado: PROPUESTO.** No se implementa ningún formulario público ni recepción de datos. Requiere tu aprobación expresa y, por tratarse de datos de terceros y de una URL pública, una revisión de seguridad y privacidad (docs/06).

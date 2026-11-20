@@ -18,7 +18,10 @@ import {
 } from '../src/shared/cargo';
 import {
   addItem,
+  discardItems,
   duplicateItem,
+  MODE_CONFLICT_MESSAGE,
+  setMode,
   emptyInventoryDraft,
   moveItem,
   newDraftItem,
@@ -140,9 +143,9 @@ describe('S1 · suggestServiceText', () => {
     { role: 'B' as const, floor: 3, elevator: 'si' as const },
   ];
 
-  it('tipos, cantidades, pisos, ascensor y ayudantes', () => {
-    const t = suggestServiceText({ mode: 'detallado', summary: '', items: [refrigerador, mudanza[4]!] }, stops, 2);
-    expect(t).toBe('Traslado de 1 × Refrigerador, 12 × Caja con loza; origen 4.º piso sin ascensor; destino 3.er piso con ascensor; 2 ayudantes');
+  it('tipos, cantidades, pisos y ascensor (solo datos de la carga)', () => {
+    const t = suggestServiceText({ mode: 'detallado', summary: '', items: [refrigerador, mudanza[4]!] }, stops);
+    expect(t).toBe('Traslado de 1 × Refrigerador, 12 × Caja con loza; origen 4.º piso sin ascensor; destino 3.er piso con ascensor');
   });
 
   it('nunca incluye pesos, volúmenes, montos ni tiempos, aunque el usuario los escriba', () => {
@@ -152,7 +155,7 @@ describe('S1 · suggestServiceText', () => {
       item({ kind: 'mesa', description: 'Mesa $50.000' }),
       item({ kind: 'otro', description: 'Armar en 30 minutos' }),
     ];
-    const t = suggestServiceText({ mode: 'detallado', summary: '', items: sucios }, stops, 1);
+    const t = suggestServiceText({ mode: 'detallado', summary: '', items: sucios }, stops);
     expect(t).not.toMatch(/kg|m³|m3|\$|minuto|hora/i);
     expect(t).toContain('3 × cajas'); // se usa el tipo en vez de la descripción con datos
     expect(t).toContain('1 × mesa');
@@ -172,10 +175,10 @@ describe('S1 · suggestServiceText', () => {
 
   it(`con ${MAX_CARGO_ITEMS} líneas no supera ${MAX_SERVICE_TEXT} caracteres y resume el resto`, () => {
     const muchas = Array.from({ length: MAX_CARGO_ITEMS }, (_, i) => item({ description: `Objeto largo de prueba número ${i + 1} con texto extenso` }));
-    const t = suggestServiceText({ mode: 'detallado', summary: '', items: muchas }, stops, 20);
+    const t = suggestServiceText({ mode: 'detallado', summary: '', items: muchas }, stops);
     expect(t.length).toBeLessThanOrEqual(MAX_SERVICE_TEXT);
     expect(t).toMatch(/y \d+ objetos más/);
-    expect(t).toContain('20 ayudantes');
+    expect(t).not.toMatch(/ayudante/i);
   });
 
   it('containsInternalData reconoce las unidades típicas', () => {
@@ -265,11 +268,28 @@ describe('Editor de inventario (estado puro)', () => {
     expect(validateInventory(d).inventory).not.toBeNull();
   });
 
-  it('modo rápido: las líneas se conservan en el borrador pero no entran al inventario', () => {
-    const d = { ...updateItem(conUna(), 'a', { qty: 2 }), mode: 'rapido' as const, summary: 'Mudanza pequeña' };
+  it('P2-2 · pasar a modo rápido con una lista NO la descarta en silencio: el inventario queda inválido hasta decidir', () => {
+    const d = setMode({ ...updateItem(conUna(), 'a', { qty: 2 }), summary: 'Mudanza pequeña' }, 'rapido');
     const v = validateInventory(d);
-    expect(v.inventory).toEqual({ mode: 'rapido', summary: 'Mudanza pequeña', items: [] });
+    expect(v.inventory).toBeNull();
+    expect(v.errors.mode).toBe(MODE_CONFLICT_MESSAGE(1));
     expect(d.items).toHaveLength(1);
+  });
+
+  it('P2-2 · ida y vuelta entre modos conserva todas las líneas y sus datos', () => {
+    let d = updateItem(conUna(), 'a', { qty: 2, unitWeightKg: 30 });
+    d = addItem(d, newDraftItem('b', { kind: 'cama', label: 'Cama' }));
+    const antes = structuredClone(d.items);
+    d = setMode(setMode(setMode(d, 'rapido'), 'detallado'), 'rapido');
+    d = setMode(d, 'detallado');
+    expect(d.items).toEqual(antes);
+    expect(validateInventory(d).inventory?.items).toHaveLength(2);
+  });
+
+  it('P2-2 · solo el descarte explícito vacía la lista; entonces el modo rápido es válido', () => {
+    const d = discardItems(setMode({ ...conUna(), summary: 'Mudanza pequeña' }, 'rapido'));
+    expect(d.items).toEqual([]);
+    expect(validateInventory(d).inventory).toEqual({ mode: 'rapido', summary: 'Mudanza pequeña', items: [] });
   });
 
   it('el inventario validado es el mismo que acepta el contrato y su resumen es coherente', () => {
@@ -281,3 +301,29 @@ describe('Editor de inventario (estado puro)', () => {
     expect(cargoSummary({ items })).toMatchObject({ weightKg: 36, volumeM3: 0.24 });
   });
 });
+
+describe('P1-3 · el texto para el cliente no divulga recursos internos', () => {
+  it('no acepta ayudantes: la función solo recibe inventario y accesos', () => {
+    const inv = { mode: 'detallado' as const, summary: '', items: [refrigerador] };
+    // Si alguien vuelve a agregar un tercer parámetro, `npm run typecheck` falla aquí.
+    // @ts-expect-error — suggestServiceText no recibe la cantidad de ayudantes (P1-3).
+    const t = suggestServiceText(inv, [], 2);
+    expect(t).not.toMatch(/ayudante/i);
+  });
+
+  it('la vista previa no pasa recursos internos al texto para el cliente', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync(new URL('../src/web/components/ModulesPreview.tsx', import.meta.url), 'utf8');
+    const llamada = /suggestServiceText\(([^;]*)\)/.exec(src)?.[1] ?? '';
+    expect(llamada).not.toMatch(/helpers|equipment|loadMinutes|resourcesSummary/);
+  });
+
+  it('aunque las paradas traigan datos internos (minutos), el texto solo usa piso y ascensor', () => {
+    const inv = { mode: 'detallado' as const, summary: '', items: [refrigerador] };
+    const limpias = [{ role: 'A' as const, floor: 4, elevator: 'no' as const }];
+    const completas = [{ role: 'A' as const, floor: 4, elevator: 'no' as const, loadMinutes: 45, stairs: true, carryMeters: 30, access: 'Portón 2' }];
+    expect(suggestServiceText(inv, completas)).toBe(suggestServiceText(inv, limpias));
+    expect(suggestServiceText(inv, completas)).not.toMatch(/45|min|ayudante|portón/i);
+  });
+});
+

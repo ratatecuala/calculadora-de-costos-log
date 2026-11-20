@@ -4,6 +4,8 @@ import { abrirAlAgregar, alternar, erroresDe, estadoObjeto, resumenObjeto } from
 import {
   addItem,
   canAddItem,
+  discardItems,
+  setMode,
   duplicateItem,
   moveItem,
   newDraftItem,
@@ -42,6 +44,7 @@ interface Props {
 export function InventoryEditor({ draft, onChange, newKey }: Props) {
   const { errors } = validateInventory(draft);
   const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
+  const [confirmarDescarte, setConfirmarDescarte] = useState(false);
   const lleno = !canAddItem(draft);
   const summaryId = useId();
   const tieneErrores = (k: string) => erroresDe(errors, k).length > 0;
@@ -74,7 +77,10 @@ export function InventoryEditor({ draft, onChange, newKey }: Props) {
             type="button"
             className={draft.mode === m ? 'seg seg-on' : 'seg'}
             aria-pressed={draft.mode === m}
-            onClick={() => onChange({ ...draft, mode: m })}
+            onClick={() => {
+              setConfirmarDescarte(false);
+              onChange(setMode(draft, m));
+            }}
           >
             {m === 'rapido' ? 'Rápido' : 'Detallado'}
           </button>
@@ -105,10 +111,35 @@ export function InventoryEditor({ draft, onChange, newKey }: Props) {
 
       {draft.mode === 'rapido' ? (
         draft.items.length > 0 ? (
-          <p className="sub">
-            Tienes {draft.items.length} {draft.items.length === 1 ? 'objeto' : 'objetos'} en el modo detallado. En modo rápido no se usan; vuelve a
-            «Detallado» para verlos.
-          </p>
+          <div className="warn" role="alert" data-testid="conflicto-modo">
+            <p>{errors.mode}</p>
+            <div className="item-actions">
+              <button type="button" className="btn small" onClick={() => onChange(setMode(draft, 'detallado'))}>
+                Volver a «Detallado»
+              </button>
+              {confirmarDescarte ? (
+                <>
+                  <button
+                    type="button"
+                    className="btn2 small danger-text"
+                    onClick={() => {
+                      setConfirmarDescarte(false);
+                      onChange(discardItems(draft));
+                    }}
+                  >
+                    Sí, descartar {draft.items.length} {draft.items.length === 1 ? 'objeto' : 'objetos'}
+                  </button>
+                  <button type="button" className="btn2 small" onClick={() => setConfirmarDescarte(false)}>
+                    Cancelar
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="btn2 small danger-text" onClick={() => setConfirmarDescarte(true)}>
+                  Descartar la lista
+                </button>
+              )}
+            </div>
+          </div>
         ) : null
       ) : (
         <>

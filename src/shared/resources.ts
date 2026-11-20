@@ -25,11 +25,21 @@ export const MAX_HELPER_HOURS = 24;
 export const MAX_HELPERS = 20;
 export const MAX_EQUIPMENT = 20;
 
-const clp = z
+export const clpSchema = z
   .number({ invalid_type_error: 'El monto debe ser un número' })
   .int('Usa pesos enteros')
   .min(0, 'El monto no puede ser negativo')
   .max(MAX_CLP, 'Revisa el monto');
+
+/** Minutos de carga o descarga de una parada. */
+export const loadMinutesSchema = z
+  .number()
+  .int('Usa minutos enteros')
+  .min(0, 'No puede ser negativo')
+  .max(MAX_LOAD_MINUTES, `Máximo ${MAX_LOAD_MINUTES} minutos`);
+
+/** Horas pagadas a un ayudante por hora (tope provisional T-7). */
+export const helperHoursSchema = z.number().gt(0, 'Las horas deben ser mayores que 0').max(MAX_HELPER_HOURS, `Máximo ${MAX_HELPER_HOURS} horas`);
 
 export const STOP_ROLES = ['A', 'B'] as const;
 export type StopRole = (typeof STOP_ROLES)[number];
@@ -42,13 +52,7 @@ export const stopSchema = z
     stairs: z.boolean().nullable().default(null),
     carryMeters: z.number().min(0, 'No puede ser negativo').max(MAX_CARRY_METERS, `Máximo ${MAX_CARRY_METERS} m`).nullable().default(null),
     access: z.string().trim().max(120, 'Acceso: máximo 120 caracteres').default(''),
-    loadMinutes: z
-      .number()
-      .int('Usa minutos enteros')
-      .min(0, 'No puede ser negativo')
-      .max(MAX_LOAD_MINUTES, `Máximo ${MAX_LOAD_MINUTES} minutos`)
-      .nullable()
-      .default(null),
+    loadMinutes: loadMinutesSchema.nullable().default(null),
   })
   .strict();
 
@@ -62,7 +66,7 @@ const helperServicio = z
     id: z.string().uuid(),
     mode: z.literal('servicio'),
     /** Pago por el servicio completo. `null` = no se sabe (costo faltante, nunca 0). */
-    feeService: clp.nullable(),
+    feeService: clpSchema.nullable(),
   })
   .strict();
 
@@ -71,7 +75,7 @@ const helperHora = z
     id: z.string().uuid(),
     mode: z.literal('hora'),
     /** Tarifa por hora. `null` = no se sabe. */
-    ratePerHour: clp.nullable(),
+    ratePerHour: clpSchema.nullable(),
     /** Tramos pagados, declarados explícitamente (A-58). */
     paidSegments: z
       .array(z.enum(HELPER_SEGMENTS))
@@ -79,7 +83,7 @@ const helperHora = z
       .max(HELPER_SEGMENTS.length)
       .refine((s) => new Set(s).size === s.length, 'Un tramo aparece dos veces'),
     /** Horas pagadas, declaradas por el transportista. `null` = no se sabe. No se suman a su tiempo. */
-    hours: z.number().gt(0, 'Las horas deben ser mayores que 0').max(MAX_HELPER_HOURS, `Máximo ${MAX_HELPER_HOURS} horas`).nullable(),
+    hours: helperHoursSchema.nullable(),
   })
   .strict();
 
@@ -90,7 +94,7 @@ export type Helper = z.output<typeof helperSchema>;
 export const equipmentSchema = z
   .object({
     label: z.string().trim().min(1, 'Escribe qué equipamiento es').max(60, 'Máximo 60 caracteres'),
-    amount: clp.nullable(),
+    amount: clpSchema.nullable(),
   })
   .strict();
 export type Equipment = z.output<typeof equipmentSchema>;
@@ -136,7 +140,10 @@ export const handlingTimeSchema = z
 export interface HelperCostLine {
   helperId: string;
   mode: Helper['mode'];
+  /** Monto calculable, o `null` si falta un dato o hay un dato inválido. Nunca 0 por defecto. */
   amount: number | null;
+  /** `ok`: monto calculado; `faltante`: falta un dato; `invalido`: hay un dato fuera de rango (no suma). */
+  status: 'ok' | 'faltante' | 'invalido';
 }
 
 // ---------------------------------------------------------------------------
@@ -160,7 +167,9 @@ export function handlingTime(resources: Pick<ResourcesLike, 'stops'>): HandlingT
   let known = 0;
   const missingStops: StopRole[] = [];
   for (const role of STOP_ROLES) {
-    const v = resources.stops.find((s) => s.role === role)?.loadMinutes ?? null;
+    const raw = resources.stops.find((s) => s.role === role)?.loadMinutes ?? null;
+    // Un valor inválido (negativo, decimal, > 1.440) NO suma: cuenta como faltante (auditoría fase 1, P1-2).
+    const v = raw !== null && loadMinutesSchema.safeParse(raw).success ? raw : null;
     if (v === null) missingStops.push(role);
     else {
       minutes += v;
@@ -175,46 +184,82 @@ export function handlingTime(resources: Pick<ResourcesLike, 'stops'>): HandlingT
  * redondeado al peso; `null` si falta la tarifa, las horas o los tramos pagados. Nunca 0 por defecto.
  */
 export function helperCostLines(resources: Pick<ResourcesLike, 'helpers'>): HelperCostLine[] {
-  return resources.helpers.map((h) => {
-    if (h.mode === 'servicio') return { helperId: h.id, mode: h.mode, amount: h.feeService };
-    const amount = h.ratePerHour !== null && h.hours !== null && h.paidSegments.length > 0 ? Math.round(h.ratePerHour * h.hours) : null;
-    return { helperId: h.id, mode: h.mode, amount };
+  return resources.helpers.map((h): HelperCostLine => {
+    // Auditoría fase 1, P1-2: un ayudante con datos fuera de rango (30 h, tarifa negativa, decimales)
+    // NO aporta monto, aunque la tarifa y las horas existan. Faltar tramos es «faltante», no inválido.
+    const base = { helperId: h.id, mode: h.mode };
+    if (h.mode === 'servicio') {
+      if (h.feeService === null) return { ...base, amount: null, status: 'faltante' };
+      return clpSchema.safeParse(h.feeService).success ? { ...base, amount: h.feeService, status: 'ok' } : { ...base, amount: null, status: 'invalido' };
+    }
+    const rateOk = h.ratePerHour === null || clpSchema.safeParse(h.ratePerHour).success;
+    const hoursOk = h.hours === null || helperHoursSchema.safeParse(h.hours).success;
+    if (!rateOk || !hoursOk) return { ...base, amount: null, status: 'invalido' };
+    if (h.ratePerHour === null || h.hours === null || h.paidSegments.length === 0) return { ...base, amount: null, status: 'faltante' };
+    return { ...base, amount: Math.round(h.ratePerHour * h.hours), status: 'ok' };
   });
+}
+
+/** Monto de un elemento de equipamiento que puede sumarse, o `null` (faltante o inválido). */
+export function equipmentAmount(e: Equipment): { amount: number | null; status: HelperCostLine['status'] } {
+  if (e.amount === null) return { amount: null, status: 'faltante' };
+  return equipmentSchema.safeParse(e).success ? { amount: e.amount, status: 'ok' } : { amount: null, status: 'invalido' };
 }
 
 export interface ResourcesSummary {
   helperCount: number;
-  /** Suma de los montos conocidos de ayudantes. */
+  /** Suma de los montos VÁLIDOS de ayudantes. */
   helpersKnownTotal: number;
-  /** Ayudantes sin monto calculable (faltante). Si > 0, el total es una cota inferior. */
+  /** Ayudantes sin monto porque falta un dato. Si > 0, el total es una cota inferior. */
   helpersMissing: number;
+  /** Ayudantes con datos inválidos: no suman y deben revisarse. */
+  helpersInvalid: number;
   equipmentKnownTotal: number;
   equipmentMissing: number;
+  equipmentInvalid: number;
   handling: HandlingTime;
 }
 
 /** Resumen interno para mostrar. INFORMATIVO: no entra al costo sin la aprobación de §4.3–§4.4. */
 export function resourcesSummary(resources: ResourcesLike): ResourcesSummary {
   const lines = helperCostLines(resources);
+  const equipo = resources.equipment.map(equipmentAmount);
   const known = (xs: Array<number | null>) => xs.reduce<number>((a, b) => a + (b ?? 0), 0);
   return {
     helperCount: lines.length,
     helpersKnownTotal: known(lines.map((l) => l.amount)),
-    helpersMissing: lines.filter((l) => l.amount === null).length,
-    equipmentKnownTotal: known(resources.equipment.map((e) => e.amount)),
-    equipmentMissing: resources.equipment.filter((e) => e.amount === null).length,
+    helpersMissing: lines.filter((l) => l.status === 'faltante').length,
+    helpersInvalid: lines.filter((l) => l.status === 'invalido').length,
+    equipmentKnownTotal: known(equipo.map((e) => e.amount)),
+    equipmentMissing: equipo.filter((e) => e.status === 'faltante').length,
+    equipmentInvalid: equipo.filter((e) => e.status === 'invalido').length,
     handling: handlingTime(resources),
   };
 }
 
+export type HelpersFromV1Result = { ok: true; helpers: Helper[] } | { ok: false; reason: string };
+
 /**
  * Conversión de los ayudantes de la v1 («cantidad × monto por ayudante») a N ayudantes «servicio»
  * con el mismo monto (docs/21 §4.3): la suma es idéntica a la partida actual del motor.
- * `newId` se inyecta para que la función sea pura y probable.
+ * **Nunca recorta** (auditoría fase 1, P1-1): si la cantidad supera el límite provisional de
+ * ayudantes (T-7) o el monto no cabe en el contrato nuevo, la conversión se RECHAZA con el motivo y
+ * el dato v1 debe conservarse tal cual. `newId` se inyecta para que la función sea pura y probable.
  */
-export function helpersFromV1(count: number, feePerHelper: number | null, newId: () => string): Helper[] {
-  const n = Number.isInteger(count) && count > 0 ? Math.min(count, MAX_HELPERS) : 0;
-  return Array.from({ length: n }, () => ({ id: newId(), mode: 'servicio' as const, feeService: feePerHelper }));
+export function helpersFromV1(count: number, feePerHelper: number | null, newId: () => string): HelpersFromV1Result {
+  if (!Number.isInteger(count) || count < 0) {
+    return { ok: false, reason: `Cantidad de ayudantes no válida (${String(count)}): se conserva el dato original sin convertir` };
+  }
+  if (count > MAX_HELPERS) {
+    return {
+      ok: false,
+      reason: `${count} ayudantes superan el límite provisional de ${MAX_HELPERS} (T-7): no se convierten, para no reducir la cantidad ni el costo`,
+    };
+  }
+  if (count > 0 && feePerHelper !== null && !clpSchema.safeParse(feePerHelper).success) {
+    return { ok: false, reason: `El monto por ayudante (${String(feePerHelper)}) no es un monto en pesos enteros válido: se conserva el dato original` };
+  }
+  return { ok: true, helpers: Array.from({ length: count }, () => ({ id: newId(), mode: 'servicio' as const, feeService: feePerHelper })) };
 }
 
 /**

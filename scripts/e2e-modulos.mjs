@@ -117,6 +117,26 @@ try {
     await page.getByRole('button', { name: 'Subir Cajas' }).click();
     check('subir cambia el orden', (await page.locator('.item-row .disclosure-title').first().textContent()).includes('Cajas'));
     await page.getByRole('button', { name: 'Listo, cerrar Cajas' }).click();
+    check('P2-1 «Listo» devuelve el foco al encabezado', await page.evaluate(() => document.activeElement?.classList.contains('disclosure-head') && document.activeElement.textContent.includes('Cajas')));
+
+    // P2-1: teclado. Enter abre, Escape cierra y devuelve el foco al encabezado.
+    await fila('Refrigerador').focus();
+    await page.keyboard.press('Enter');
+    check('Enter abre la fila', (await fila('Refrigerador').getAttribute('aria-expanded')) === 'true');
+    await grupo('Datos de Refrigerador').getByRole('textbox', { name: /^Descripción/ }).focus();
+    await page.keyboard.press('Escape');
+    check('Escape cierra la fila', (await fila('Refrigerador').getAttribute('aria-expanded')) === 'false');
+    check('Escape devuelve el foco al encabezado', await page.evaluate(() => document.activeElement?.classList.contains('disclosure-head') && document.activeElement.textContent.includes('Refrigerador')));
+
+    // P2-2: pasar a «Rápido» con una lista no la descarta en silencio.
+    await page.getByRole('button', { name: 'Rápido', exact: true }).click();
+    check('modo rápido con lista: aviso explícito', await page.getByTestId('conflicto-modo').isVisible());
+    check('modo rápido con lista: el resumen no se calcula como vacío', (await page.locator('section[aria-label="Resumen del inventario"]').textContent()).includes('Corrige los campos marcados'));
+    await page.getByRole('button', { name: 'Descartar la lista' }).click();
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+    await page.getByRole('button', { name: 'Volver a «Detallado»' }).click();
+    check('de vuelta a detallado: las 2 líneas siguen', await page.getByText('2 de 200 líneas').isVisible());
+    check('de vuelta a detallado: datos intactos', (await fila('Cajas').textContent()).includes('12 kg c/u · 0,08 m³ c/u'));
 
     // Resumen siempre a mano: barra al pie en teléfono, columna fija en PC.
     const resumen = page.locator('section[aria-label="Resumen del inventario"]');
@@ -175,6 +195,9 @@ try {
     check('con tramo: $18.000', (await page.getByTestId('ayudantes').textContent()).includes('$18.000'));
     await ay.getByRole('textbox', { name: /^Horas pagadas/ }).fill('30');
     check('30 h rechazadas con mensaje (T-7)', await ay.getByText('Máximo 24 horas').first().isVisible());
+    const conTreinta = await page.getByTestId('ayudantes').textContent();
+    check('P1-2 con 30 h no se suma $180.000', !conTreinta.includes('180.000') && conTreinta.includes('datos inválidos, no suma'), conTreinta);
+    check('P1-2 la fila del ayudante dice «monto no calculable»', (await fila('Ayudante 1').textContent()).includes('monto no calculable'));
     await ay.getByRole('textbox', { name: /^Horas pagadas/ }).fill('3');
     await ay.getByRole('button', { name: 'Listo, cerrar ayudante 1' }).click();
     check('fila del ayudante con monto', (await fila('Ayudante 1').textContent()).includes('3 h × $6.000 = $18.000'));
@@ -191,6 +214,7 @@ try {
     const texto = await page.getByTestId('texto-sugerido').textContent();
     check('texto sugerido con objetos y pisos', texto.includes('12 × Cajas') && texto.includes('1 × Refrigerador') && texto.includes('4.º piso sin ascensor'), texto);
     check('texto sugerido sin kg, m³, $ ni minutos', !/kg|m³|m3|\$|min/i.test(texto), texto);
+    check('P1-3 texto para el cliente sin ayudantes', !/ayudante/i.test(texto), texto);
 
     // Maquetación.
     const desborde = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);

@@ -296,24 +296,22 @@ function stopText(stop: ServiceTextStop): string | null {
 
 /**
  * Sugerencia EDITABLE para `service_description` (T-2, docs/21 §6.4), ≤ 300 caracteres.
- * Usa tipos y cantidades del inventario, pisos y ascensor, y la cantidad de ayudantes. Nunca incluye
- * pesos, volúmenes, montos, tiempos ni costos; una descripción escrita con esos datos se reemplaza
- * por el tipo del objeto. No marca «frágil» ni «manejo especial» (T-8: no son datos verificados).
+ * Usa SOLO datos de la carga (`cliente` en `audiencia.ts`): tipos y cantidades del inventario y
+ * pisos y ascensor. Nunca incluye pesos, volúmenes, montos, tiempos ni costos; una descripción
+ * escrita con esos datos se reemplaza por el tipo del objeto. No marca «frágil» ni «manejo
+ * especial» (T-8). **No recibe ayudantes ni otros recursos internos** (auditoría fase 1, P1-3):
+ * anunciar ayudantes al cliente sería una decisión explícita del transportista, aparte.
  */
-export function suggestServiceText(
-  inventory: Pick<CargoInventory, 'mode' | 'summary' | 'items'>,
-  stops: readonly ServiceTextStop[] = [],
-  helperCount = 0,
-): string {
+export function suggestServiceText(inventory: Pick<CargoInventory, 'mode' | 'summary' | 'items'>, stops: readonly ServiceTextStop[] = []): string {
   const seguro = (t: string) => t.trim() !== '' && !containsInternalData(t);
   const nombre = (item: CargoItem) => (seguro(item.description) ? item.description : seguro(item.kind) ? item.kind : 'objeto');
   const tail: string[] = [];
   for (const role of ['A', 'B'] as const) {
-    const stop = stops.find((s) => s.role === role);
-    const t = stop ? stopText(stop) : null;
+    const s = stops.find((x) => x.role === role);
+    // Solo campos de acceso: aunque llegue una parada completa (con minutos), no se leen otros datos.
+    const t = s ? stopText({ role: s.role, floor: s.floor, elevator: s.elevator }) : null;
     if (t) tail.push(t);
   }
-  if (helperCount > 0) tail.push(`${helperCount} ${helperCount === 1 ? 'ayudante' : 'ayudantes'}`);
   const suffix = tail.length ? `; ${tail.join('; ')}` : '';
 
   let head: string;

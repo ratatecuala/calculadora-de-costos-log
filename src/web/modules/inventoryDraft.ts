@@ -141,8 +141,25 @@ export function toItemInput(item: DraftItem): Record<string, unknown> {
   };
 }
 
+/**
+ * Cambiar de modo NUNCA borra líneas: quedan en el borrador y vuelven al regresar a «Detallado».
+ * Para usar el modo rápido con una lista existente, el usuario debe descartarla explícitamente
+ * (`discardItems`); mientras tanto el inventario no es válido (auditoría fase 1, P2-2).
+ */
+export function setMode(draft: InventoryDraft, mode: InventoryDraft['mode']): InventoryDraft {
+  return draft.mode === mode ? draft : { ...draft, mode };
+}
+
+/** Descarte EXPLÍCITO de la lista (acción confirmada por el usuario). */
+export function discardItems(draft: InventoryDraft): InventoryDraft {
+  return { ...draft, items: [] };
+}
+
+export const MODE_CONFLICT_MESSAGE = (n: number) =>
+  `Hay ${n} ${n === 1 ? 'objeto' : 'objetos'} en la lista detallada. Vuelve a «Detallado» o descarta la lista para usar el modo rápido: no se descarta en silencio.`;
+
 export interface InventoryValidation {
-  /** Inventario válido, o `null` si hay errores. En modo rápido las líneas no se incluyen. */
+  /** Inventario válido, o `null` si hay errores (incluido el modo rápido con una lista sin descartar). */
   inventory: CargoInventory | null;
   /** Errores por `clave.campo` (p. ej. `k3.l`, `k3.volumeM3`) o `summary` / `items`. */
   errors: Record<string, string>;
@@ -152,6 +169,9 @@ const FIELD_OF: Record<string, string> = { dimsCm: 'l' };
 
 /** Valida el borrador con el esquema del contrato y ubica cada error en su línea y campo. */
 export function validateInventory(draft: InventoryDraft): InventoryValidation {
+  if (draft.mode === 'rapido' && draft.items.length > 0) {
+    return { inventory: null, errors: { mode: MODE_CONFLICT_MESSAGE(draft.items.length) } };
+  }
   const items = draft.mode === 'detallado' ? draft.items : [];
   const parsed = cargoInventorySchema.safeParse({ mode: draft.mode, summary: draft.summary, items: items.map(toItemInput) });
   if (parsed.success) return { inventory: parsed.data, errors: {} };

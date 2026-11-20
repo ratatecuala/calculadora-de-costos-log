@@ -99,15 +99,19 @@ describe('Compatibilidad con el motor actual (§4.3): el costo no cambia', () =>
     [2, null],
   ])('%i ayudantes v1 de %s: la suma de las líneas convertidas es la partida actual del motor', (count, fee) => {
     const motor = buildCostItems(25, 40, { ...EMPTY_PARAMS, helpers: count, helperFee: fee }).find((i) => i.id === 'ayudantes')!.amount;
-    const lines = helperCostLines({ helpers: helpersFromV1(count, fee, uuid) });
+    const conv = helpersFromV1(count, fee, uuid);
+    if (!conv.ok) throw new Error(conv.reason);
+    const lines = helperCostLines({ helpers: conv.helpers });
     const suma = lines.length === 0 ? 0 : lines.some((l) => l.amount === null) ? null : lines.reduce((a, l) => a + (l.amount ?? 0), 0);
     expect(suma).toBe(motor);
   });
 
   it('la conversión crea ayudantes válidos por servicio', () => {
-    const hs = helpersFromV1(2, 15000, uuid);
-    expect(resourcesSchema.safeParse({ helpers: hs }).success).toBe(true);
-    expect(hs.every((h) => h.mode === 'servicio')).toBe(true);
+    const conv = helpersFromV1(2, 15000, uuid);
+    expect(conv.ok).toBe(true);
+    if (!conv.ok) return;
+    expect(resourcesSchema.safeParse({ helpers: conv.helpers }).success).toBe(true);
+    expect(conv.helpers.every((h) => h.mode === 'servicio')).toBe(true);
   });
 });
 
@@ -163,3 +167,93 @@ describe('Editor de recursos (estado puro)', () => {
     expect(d.helpers).toHaveLength(1);
   });
 });
+
+describe('P1-1 · la conversión de ayudantes históricos nunca reduce cantidad ni costo', () => {
+  const motor = (count: number, fee: number | null) =>
+    buildCostItems(25, 40, { ...EMPTY_PARAMS, helpers: count, helperFee: fee }).find((i) => i.id === 'ayudantes')!.amount;
+
+  it('20 ayudantes (el límite): se convierten los 20 y la suma es la del motor', () => {
+    const conv = helpersFromV1(20, 15000, uuid);
+    expect(conv.ok && conv.helpers).toHaveLength(20);
+    if (!conv.ok) return;
+    const suma = helperCostLines({ helpers: conv.helpers }).reduce((a, l) => a + (l.amount ?? 0), 0);
+    expect(suma).toBe(300000);
+    expect(suma).toBe(motor(20, 15000));
+  });
+
+  it.each([21, 25, 50, 1000])('%i ayudantes: la conversión se RECHAZA con motivo (no se recorta a 20)', (n) => {
+    const conv = helpersFromV1(n, 15000, uuid);
+    expect(conv.ok).toBe(false);
+    if (conv.ok) return;
+    expect(conv.reason).toContain(String(n));
+    expect(conv.reason).toContain('20');
+    // El motor v1 sigue calculando el monto completo con el dato original (p. ej. 21 × 15.000 = 315.000).
+    expect(motor(n, 15000)).toBe(n * 15000);
+  });
+
+  it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])('cantidad no válida (%s): se rechaza, no se convierte en 0', (n) => {
+    expect(helpersFromV1(n, 15000, uuid)).toMatchObject({ ok: false });
+  });
+
+  it.each([15000.5, -100, 1e11])('monto por ayudante que no cabe en el contrato nuevo (%s): se rechaza', (fee) => {
+    expect(helpersFromV1(2, fee, uuid)).toMatchObject({ ok: false });
+  });
+
+  it('0 ayudantes: lista vacía, aunque el monto sea cualquier cosa', () => {
+    expect(helpersFromV1(0, null, uuid)).toEqual({ ok: true, helpers: [] });
+    expect(helpersFromV1(0, 15000.5, uuid)).toEqual({ ok: true, helpers: [] });
+  });
+});
+
+describe('P1-2 · valores inválidos no suman en los totales informativos', () => {
+  const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  const valido: Helper = { id: id(901), mode: 'servicio', feeService: 25000 };
+
+  it.each<[string, Helper]>([
+    ['30 h', { id: id(902), mode: 'hora', ratePerHour: 6000, hours: 30, paidSegments: ['manipulacion'] }],
+    ['tarifa negativa', { id: id(903), mode: 'hora', ratePerHour: -6000, hours: 3, paidSegments: ['manipulacion'] }],
+    ['tarifa con decimales', { id: id(904), mode: 'hora', ratePerHour: 6000.5, hours: 3, paidSegments: ['manipulacion'] }],
+    ['monto por servicio negativo', { id: id(905), mode: 'servicio', feeService: -1 }],
+    ['monto por servicio con decimales', { id: id(906), mode: 'servicio', feeService: 100.5 }],
+    ['horas 0', { id: id(907), mode: 'hora', ratePerHour: 6000, hours: 0, paidSegments: ['traslado'] }],
+  ])('%s: la línea queda «inválida», sin monto, y no altera el total de las válidas', (_n, malo) => {
+    const [linea] = helperCostLines({ helpers: [malo] });
+    expect(linea).toMatchObject({ amount: null, status: 'invalido' });
+    const s = resourcesSummary({ stops: [], helpers: [valido, malo], equipment: [] });
+    expect(s).toMatchObject({ helperCount: 2, helpersKnownTotal: 25000, helpersMissing: 0, helpersInvalid: 1 });
+  });
+
+  it('30 h a $6.000 NO muestra $180.000 en ningún total', () => {
+    const s = resourcesSummary({ stops: [], helpers: [{ id: id(908), mode: 'hora', ratePerHour: 6000, hours: 30, paidSegments: ['manipulacion'] }], equipment: [] });
+    expect(s.helpersKnownTotal).toBe(0);
+    expect(s.helpersInvalid).toBe(1);
+  });
+
+  it('equipamiento inválido (monto con decimales, fuera de rango o sin nombre) no suma; el válido sí', () => {
+    const s = resourcesSummary({
+      stops: [],
+      helpers: [],
+      equipment: [
+        { label: 'Mantas', amount: 5000 },
+        { label: 'Carro', amount: 100.5 },
+        { label: 'Rampa', amount: 1e11 },
+        { label: '', amount: 3000 },
+        { label: 'Correas', amount: null },
+      ],
+    });
+    expect(s).toMatchObject({ equipmentKnownTotal: 5000, equipmentMissing: 1, equipmentInvalid: 3 });
+  });
+
+  it('minutos de carga inválidos no suman: cuentan como faltantes', () => {
+    expect(handlingTime({ stops: [{ role: 'A', loadMinutes: 1441 }, { role: 'B', loadMinutes: 30 }] })).toEqual({ minutes: 30, complete: false, missingStops: ['A'] });
+    expect(handlingTime({ stops: [{ role: 'A', loadMinutes: -5 }, { role: 'B', loadMinutes: 2.5 }] })).toEqual({ minutes: null, complete: false, missingStops: ['A', 'B'] });
+  });
+
+  it('faltante y válido se distinguen de inválido', () => {
+    const lines = helperCostLines({
+      helpers: [valido, { id: id(909), mode: 'servicio', feeService: null }, { id: id(910), mode: 'hora', ratePerHour: 6000, hours: 3, paidSegments: [] }],
+    });
+    expect(lines.map((l) => l.status)).toEqual(['ok', 'faltante', 'faltante']);
+  });
+});
+

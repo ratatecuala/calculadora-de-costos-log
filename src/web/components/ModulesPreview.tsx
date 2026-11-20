@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
-import { formatClp } from '../../engine/rounding';
 import { capacityEstimate, cargoSummary, suggestServiceText, type CapacityVehicle } from '../../shared/cargo';
 import { resourcesSummary } from '../../shared/resources';
 import { formatMinutes } from '../format';
+import { totalInformativo } from '../modules/estado';
 import { emptyInventoryDraft, validateInventory, type InventoryDraft } from '../modules/inventoryDraft';
 import { asResourcesLike, emptyResourcesDraft, type ResourcesDraft } from '../modules/resourcesDraft';
 import { InventoryEditor } from './InventoryEditor';
@@ -34,11 +34,12 @@ export function ModulesPreview() {
   const newKey = () => `k${++counter.current}`;
 
   const validated = validateInventory(inventory);
-  const items = inventory.mode === 'detallado' ? validated.inventory?.items ?? null : [];
+  // Sin inventario válido (incluido «Rápido» con una lista sin descartar) no hay resumen: nunca 0 por omisión.
+  const items = validated.inventory?.items ?? null;
   const totals = items ? cargoSummary({ items }) : null;
   const capacity = totals ? capacityEstimate(totals, vehicle) : null;
   const res = resourcesSummary(asResourcesLike(resources));
-  const suggestion = validated.inventory ? suggestServiceText(validated.inventory, resources.stops, resources.helpers.length) : null;
+  const suggestion = validated.inventory ? suggestServiceText(validated.inventory, resources.stops) : null;
 
   const peso = totals?.weightKg == null ? '— kg' : `${totals.linesWithWeight < totals.lines ? '≥ ' : ''}${nf(totals.weightKg)} kg`;
   const volumen = totals?.volumeM3 == null ? '— m³' : `${totals.linesWithVolume < totals.lines ? '≥ ' : ''}${nf(totals.volumeM3, 3)} m³`;
@@ -127,16 +128,11 @@ export function ModulesPreview() {
               {res.handling.complete ? '' : ` (falta ${res.handling.missingStops.map((s) => (s === 'A' ? 'el origen' : 'el destino')).join(' y ')})`}
             </p>
             <p data-testid="ayudantes">
-              Ayudantes ({res.helperCount}):{' '}
-              {res.helperCount === 0
-                ? 'ninguno'
-                : `${res.helpersMissing > 0 ? 'al menos ' : ''}${formatClp(res.helpersKnownTotal)}${res.helpersMissing > 0 ? ` (falta el monto de ${res.helpersMissing})` : ''}`}
+              Ayudantes ({res.helperCount}): {totalInformativo(res.helperCount, res.helpersKnownTotal, res.helpersMissing, res.helpersInvalid)}
             </p>
-            <p>
-              Equipamiento:{' '}
-              {resources.equipment.length === 0
-                ? 'ninguno'
-                : `${res.equipmentMissing > 0 ? 'al menos ' : ''}${formatClp(res.equipmentKnownTotal)}${res.equipmentMissing > 0 ? ` (falta el monto de ${res.equipmentMissing})` : ''}`}
+            <p data-testid="equipamiento">
+              Equipamiento ({resources.equipment.length}):{' '}
+              {totalInformativo(resources.equipment.length, res.equipmentKnownTotal, res.equipmentMissing, res.equipmentInvalid)}
             </p>
           </section>
 

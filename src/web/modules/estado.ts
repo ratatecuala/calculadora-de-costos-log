@@ -5,7 +5,7 @@
  */
 import { formatClp } from '../../engine/rounding';
 import { floorLabel } from '../../shared/cargo';
-import type { Helper } from '../../shared/resources';
+import { equipmentAmount, helperCostLines, type Helper } from '../../shared/resources';
 import type { DraftItem } from './inventoryDraft';
 import type { DraftEquipment, DraftStop } from './resourcesDraft';
 
@@ -96,32 +96,46 @@ export function resumenTiempos(stops: readonly DraftStop[]): { texto: string; es
   };
 }
 
-/** Fila de un ayudante: modalidad y monto, o lo que falta para calcularlo. */
+/**
+ * Fila de un ayudante: modalidad y monto, o lo que falta para calcularlo. El monto solo se muestra
+ * si es VÁLIDO (`helperCostLines`); con un dato fuera de rango se lee «monto no calculable»
+ * (auditoría fase 1, P1-2).
+ */
 export function resumenAyudante(h: Helper, errors: Record<string, string>): { texto: string; estado: Estado } {
   const errs = erroresDe(errors, h.id);
+  const linea = helperCostLines({ helpers: [h] })[0]!;
+  const invalido = linea.status === 'invalido' || errs.length > 0;
+  const revisar = (): Estado => ({ nivel: 'error', etiqueta: 'Revisar', detalle: errs[0] ?? 'Hay un dato fuera de rango: el monto no se calcula' });
   if (h.mode === 'servicio') {
-    const texto = `Por servicio · ${h.feeService === null ? 'monto sin dato' : formatClp(h.feeService)}`;
-    if (errs.length) return { texto, estado: { nivel: 'error', etiqueta: 'Revisar', detalle: errs[0]! } };
+    const monto = linea.status === 'ok' ? formatClp(linea.amount!) : invalido ? 'monto no calculable' : 'monto sin dato';
+    const texto = `Por servicio · ${monto}`;
+    if (invalido) return { texto, estado: revisar() };
     return {
       texto,
-      estado: h.feeService === null ? { nivel: 'faltan', etiqueta: 'Falta monto', detalle: 'Sin monto: queda como faltante, no como $0' } : { nivel: 'completo', etiqueta: 'Completo', detalle: '' },
+      estado: linea.status === 'faltante' ? { nivel: 'faltan', etiqueta: 'Falta monto', detalle: 'Sin monto: queda como faltante, no como $0' } : { nivel: 'completo', etiqueta: 'Completo', detalle: '' },
     };
   }
   const faltan = [h.ratePerHour === null ? 'tarifa' : null, h.hours === null ? 'horas' : null, h.paidSegments.length === 0 ? 'tramos' : null].filter(
     (x): x is string => x !== null,
   );
-  const monto = faltan.length === 0 && h.ratePerHour !== null && h.hours !== null ? formatClp(Math.round(h.ratePerHour * h.hours)) : null;
-  const texto = `Por hora · ${h.hours === null ? '? h' : `${nf(h.hours, 2)} h`} × ${h.ratePerHour === null ? '$?' : formatClp(h.ratePerHour)}${monto ? ` = ${monto}` : ''}`;
-  if (errs.length) return { texto, estado: { nivel: 'error', etiqueta: 'Revisar', detalle: errs[0]! } };
+  const base = `Por hora · ${h.hours === null ? '? h' : `${nf(h.hours, 2)} h`} × ${h.ratePerHour === null ? '$?' : formatClp(h.ratePerHour)}`;
+  if (invalido) return { texto: `${base} · monto no calculable`, estado: revisar() };
+  const texto = linea.status === 'ok' ? `${base} = ${formatClp(linea.amount!)}` : base;
   return {
     texto,
     estado: faltan.length ? { nivel: 'faltan', etiqueta: 'Falta monto', detalle: `Falta ${lista(faltan)}: el monto queda faltante` } : { nivel: 'completo', etiqueta: 'Completo', detalle: '' },
   };
 }
 
+/** Fila de un elemento de equipamiento: el monto solo se muestra si es válido. */
 export function resumenEquipo(e: DraftEquipment, errors: Record<string, string>): { texto: string; estado: Estado } {
   const errs = erroresDe(errors, e.key);
-  const texto = `${e.label.trim() || 'Sin nombre'} · ${e.amount === null ? 'monto sin dato' : formatClp(e.amount)}`;
+  // Un elemento con cualquier dato inválido (nombre vacío, monto con decimales o fuera de rango) no suma.
+  const m = equipmentAmount({ label: e.label, amount: e.amount });
+  const nombre = e.label.trim() || 'Sin nombre';
+  const monto = e.amount === null ? 'monto sin dato' : m.status === 'ok' && !errs.length ? formatClp(m.amount!) : 'no suma (revisar)';
+  const texto = `${nombre} · ${monto}`;
+  if (m.status === 'invalido' && !errs.length) return { texto, estado: { nivel: 'error', etiqueta: 'Revisar', detalle: 'Hay un dato inválido: el monto no se suma' } };
   if (errs.length) return { texto, estado: { nivel: 'error', etiqueta: 'Revisar', detalle: errs[0]! } };
   return { texto, estado: e.amount === null ? { nivel: 'faltan', etiqueta: 'Falta monto', detalle: 'Sin monto: queda como faltante, no como $0' } : { nivel: 'completo', etiqueta: 'Completo', detalle: '' } };
 }
@@ -141,4 +155,16 @@ export function alternar(abiertas: ReadonlySet<string>, key: string): Set<string
   if (next.has(key)) next.delete(key);
   else next.add(key);
   return next;
+}
+
+/**
+ * Total informativo: solo suma montos válidos. Con faltantes o inválidos se rotula «al menos» y se
+ * dice cuántos no suman (auditoría fase 1, P1-2).
+ */
+export function totalInformativo(count: number, known: number, missing: number, invalid: number): string {
+  if (count === 0) return 'ninguno';
+  const sinMonto = missing + invalid;
+  const notas = [missing ? `falta el monto de ${missing}` : null, invalid ? `${invalid} con datos inválidos, no suma${invalid === 1 ? '' : 'n'}` : null].filter(Boolean);
+  if (sinMonto === count) return `sin monto calculable (${notas.join('; ')})`;
+  return `${sinMonto ? 'al menos ' : ''}${formatClp(known)}${notas.length ? ` (${notas.join('; ')})` : ''}`;
 }
