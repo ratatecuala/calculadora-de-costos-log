@@ -1,106 +1,138 @@
 # 20 · Encargos para GPT Deep Research: cotizador ampliado
 
-**Fecha:** 20-11-2026 · **Plan:** [19](19-plan-cotizador-ampliado.md) · **Regla:** [AGENTS.md](../AGENTS.md) §1.6. Las investigaciones profundas las ejecuta el propietario en GPT Deep Research; Claude solo prepara el encargo y después contrasta el informe.
-**Qué no autoriza:** cargar datos al catálogo, cambiar fórmulas ni implementar funciones. Cada resultado se revisa y se aprueba aparte.
+**Versión 2 · 20-11-2026** · **Plan:** [19](19-plan-cotizador-ampliado.md) · **Regla:** [AGENTS.md](../AGENTS.md) §1.6. Las investigaciones profundas las ejecuta el propietario en GPT Deep Research; Claude solo prepara los encargos y contrasta los informes.
+**Qué no autoriza:** cargar datos, cambiar fórmulas ni implementar funciones. Cada resultado se revisa y se aprueba aparte.
 
-Ejecutar **C-1** primero: el catálogo depende de él. **C-2** puede ir en paralelo. **§3** es una pregunta adicional para el informe de IVA en curso (docs/18).
+| Encargo | Issue | Bloquea | Puede ejecutarse |
+|---|---|---|---|
+| **C-1** Catálogo de vehículos comerciales en Chile | [#22](https://github.com/ratatecuala/calculadora-de-costos-log/issues/22) | Catálogo piloto (#46) | Ya, en paralelo con C-2 y con el informe de IVA |
+| **C-2** Costo según la carga y recursos | [#44](https://github.com/ratatecuala/calculadora-de-costos-log/issues/44) | Fórmulas según carga (#48) | Ya |
+| IVA | [#16](https://github.com/ratatecuala/calculadora-de-costos-log/issues/16), [18](18-encargo-deep-research-iva.md) | IVA (#37) | **En curso; no se duplica** (§3) |
 
-## C-1 · Catálogo de vehículos de carga liviana y mediana en Chile
+**Cómo usarlos:**
+1. Copia el bloque completo de cada encargo en una conversación nueva de GPT Deep Research.
+2. Pega el informe en su issue (#22 o #44). No incluyas datos personales.
+3. Pide a Claude que lo contraste con el plan.
+
+## C-1 · Catálogo de vehículos comerciales livianos y medianos en Chile
 
 ```text
-Contexto: herramienta web gratuita (Chile) para transportistas de fletes, mudanzas y traslados
-punto A → B en Santiago. Necesito construir un catálogo de vehículos de PRIMERA ETAPA:
-camionetas de trabajo (pick-up y utilitarias), furgones de carga y camiones livianos y medianos.
-No incluir camiones pesados, tractocamiones, automóviles, motos ni vehículos especializados.
+CONTEXTO
+Herramienta web gratuita en Chile para transportistas independientes que hacen fletes, mudanzas
+y traslados punto A → B (sobre todo en Santiago). Necesito construir un CATÁLOGO PILOTO de
+vehículos de primera etapa: camionetas (pick-up y utilitarias), furgones de carga y camiones
+livianos y medianos usados en Chile. Excluir camiones pesados, tractocamiones, automóviles,
+motocicletas y vehículos especializados. No investigues impuestos ni IVA (hay otra
+investigación en curso sobre eso).
 
-Reglas:
-- Usa fuentes oficiales o primarias: sitios de marcas e importadores en Chile, fichas técnicas
-  oficiales, consumovehicular.cl (Ministerio de Energía), homologación del MTT (3CV), INE,
-  Registro Civil (vehículos motorizados), informes del gremio automotriz (ANAC u otro).
-- Cita URL y fecha de consulta para cada dato. Indica licencia o condiciones de reutilización
-  de cada fuente (¿se puede copiar el dato a una base de datos de un servicio gratuito?).
-- NO inventes rankings de popularidad. Si no hay estadísticas por modelo, dilo explícitamente.
-- Marca cada valor: verificado en fuente oficial / fuente secundaria / no encontrado.
+REGLAS
+1. Usa fuentes oficiales o primarias: sitios de marcas e importadores en Chile, fichas técnicas
+   oficiales, consumovehicular.cl (Ministerio de Energía), homologación del MTT (3CV), INE,
+   Registro Civil (vehículos motorizados), informes de ventas del gremio automotriz.
+2. Cita URL y fecha de consulta para CADA dato. Para cada fuente indica su licencia o
+   condiciones de reutilización (¿se puede copiar el dato a la base de datos de un servicio
+   gratuito?).
+3. NO inventes rankings de popularidad ni clasificaciones. Si no hay estadísticas por modelo,
+   dilo explícitamente.
+4. NO completes datos faltantes con estimaciones o valores "típicos". Si una fuente oficial no
+   publica un dato, escribe "no disponible" y sigue. No se necesita ficha completa.
+5. Marca cada valor como: VERIFICADO (fuente oficial), SECUNDARIO (otra fuente) o NO DISPONIBLE.
 
-Preguntas:
-1. ¿Qué estadísticas públicas existen sobre ventas o parque de camionetas, furgones y camiones
-   livianos y medianos en Chile y en la Región Metropolitana, por marca y modelo? Periodo,
-   granularidad, formato y licencia. ¿Cómo pedir datos del Registro de Vehículos Motorizados por
+PREGUNTAS
+1. Estadísticas públicas de ventas o parque de camionetas, furgones y camiones livianos y
+   medianos en Chile y en la Región Metropolitana, por marca y modelo: periodo, granularidad,
+   formato y licencia. ¿Cómo se piden datos del Registro de Vehículos Motorizados por
    transparencia (Ley 20.285)?
-2. Con esas fuentes, ¿qué marcas y modelos tienen presencia relevante en Chile en cada segmento?
-   Candidatos a confirmar o descartar: Hyundai Porter, Kia Frontier, Chevrolet N300 Max y N400,
-   Peugeot Partner y Boxer, Citroën Berlingo y Jumper, Renault Kangoo y Master, Fiat Fiorino y
-   Ducato, Mercedes-Benz Sprinter, Ford Transit y Ranger, Toyota Hilux y Hiace, Mitsubishi L200 y
-   Fuso Canter, Nissan Navara, Chevrolet D-Max, Maxus (T60, Deliver 9, V80), JAC, Foton, JMC,
-   Great Wall, Hyundai H-1/Staria Cargo, HD65/HD78, Isuzu/Chevrolet NLR, NMR, NPR, NQR, Hino 300.
-3. ¿Cuál es la clasificación oficial chilena que separa vehículo liviano, mediano y pesado
-   (peso bruto vehicular), y dónde está establecida?
-4. Para 10 a 15 modelos y versiones de presencia confirmada (prioriza los de mayor presencia si
-   hay datos), entrega una tabla: marca, modelo, versión, años, motor, combustible, rendimiento
-   homologado (valor, unidad, ciclo WLTP/NEDC, urbano/carretera/mixto), peso vacío, peso bruto
-   vehicular, carga útil, volumen de carga, largo/ancho/alto del espacio de carga, apertura de
-   puertas; fuente y fecha para cada campo.
-5. Rendimiento de camiones livianos y medianos: ¿existe alguna fuente pública o de fabricante?
-   Si no, dilo.
-6. ¿consumovehicular.cl permite descargar o reutilizar sus datos? ¿Qué cambió con WLTC/WLTP?
+2. Clasificación oficial chilena que separa vehículo liviano, mediano y pesado (peso bruto
+   vehicular u otro criterio): norma, valores y dónde está establecida.
+3. Con las fuentes de (1), ¿qué marcas y modelos tienen presencia comprobable en Chile en cada
+   segmento? Para cada candidato confirma o descarta su presencia y su SEGMENTO REAL (pick-up,
+   furgón, cabina con caja, camión liviano o mediano), según el peso bruto y la ficha oficial.
+   Candidatos (segmento tentativo, a verificar): Toyota Hilux, Mitsubishi L200, Nissan Navara,
+   Ford Ranger, Chevrolet D-Max, Maxus T60 y T90, JAC T6/T8, Great Wall; Peugeot Partner,
+   Citroën Berlingo, Renault Kangoo, Fiat Fiorino, Chevrolet N300 Max y N400; Peugeot Boxer,
+   Citroën Jumper, Fiat Ducato, Mercedes-Benz Sprinter, Ford Transit, Maxus Deliver 9 y V80,
+   Hyundai H-1 / Staria Cargo, Toyota Hiace, Renault Master; Hyundai Porter, Kia Frontier, JAC,
+   Foton, JMC; Hyundai HD65/HD78, Isuzu/Chevrolet NLR, NMR, NPR, NQR, Mitsubishi Fuso Canter,
+   Hino 300. Agrega otros modelos con presencia comprobable que falten.
+4. Para HASTA 10–15 versiones de presencia comprobada (si hay datos de presencia, prioriza esas),
+   entrega una tabla con: marca, modelo, versión, años, motor, combustible, rendimiento
+   homologado (valor, unidad, ciclo WLTP/WLTC o NEDC; urbano, carretera o mixto), peso vacío, peso
+   bruto vehicular, carga útil, volumen de carga, largo/ancho/alto del espacio de carga y
+   apertura de puertas. Fuente y fecha POR CAMPO; "no disponible" cuando corresponda.
+5. ¿Existe alguna fuente pública o de fabricante sobre el rendimiento de camiones livianos y
+   medianos en Chile? Si no, dilo.
+6. ¿Los datos de consumovehicular.cl se pueden descargar o reutilizar? ¿Qué cambió con el paso a
+   WLTC/WLTP y cómo afecta comparar versiones de distintos años?
 
-Entrega: lista de fuentes con licencia; tabla de presencia (sin ranking inventado); tabla piloto
-de 10–15 versiones con fuente por campo; vacíos de información y cómo cubrirlos.
+ENTREGA
+a) Lista de fuentes con licencia o condiciones de reutilización.
+b) Clasificación oficial liviano, mediano o pesado, con la norma.
+c) Tabla de presencia por segmento (sin ranking inventado) y segmento real de cada candidato.
+d) Tabla piloto de hasta 10–15 versiones con fuente y fecha por campo.
+e) Vacíos de información y cómo cubrirlos.
 ```
 
-## C-2 · Costo de un flete según la carga: consumo, manipulación y mano de obra
+## C-2 · Costo de un flete según la carga y los recursos
 
 ```text
-Contexto: el mismo cotizador. Hoy el costo de combustible usa un rendimiento único (km/L) para
-todo el recorrido y el tiempo de carga y descarga lo declara el usuario. Quiero saber cómo
-deberían influir el peso, el volumen, la manipulación y la capacidad del vehículo, SIN usar
-recargos porcentuales arbitrarios.
+CONTEXTO
+La misma herramienta. Hoy el costo de combustible usa un rendimiento único (km/L) para todo el
+recorrido, el desgaste es un $/km fijo, el tiempo de carga y descarga lo declara el usuario y los
+ayudantes se pagan por servicio. Quiero saber, con evidencia, cómo deberían influir el peso, el
+volumen, la manipulación, los pisos y la capacidad del vehículo en el costo, SIN coeficientes
+inventados ni recargos porcentuales arbitrarios. No investigues impuestos ni IVA (hay otra
+investigación en curso sobre eso).
 
-Reglas: fuentes técnicas o académicas verificables (estudios de consumo de vehículos comerciales,
-normas, guías de seguridad laboral, datos de fabricantes). Cita URL y fecha. Separa evidencia
-de suposición. Si un coeficiente no tiene respaldo, dilo.
+REGLAS
+1. Fuentes técnicas o académicas verificables: estudios de consumo de vehículos comerciales,
+   normas, guías oficiales de seguridad laboral, datos de fabricantes y estadísticas oficiales.
+   Cita URL y fecha.
+2. Separa EVIDENCIA (dato medido o norma) de SUPOSICIÓN. Si un coeficiente o rango no tiene
+   respaldo, dilo y no lo propongas como valor por defecto.
+3. Para cada relación, indica su rango de validez (tipo de vehículo, condiciones urbano o
+   carretera) y su incertidumbre.
 
-Preguntas:
-1. ¿Cómo varía el consumo de combustible de camionetas, furgones y camiones livianos y medianos
-   entre vacío y con carga? ¿Hay evidencia de una relación aproximadamente lineal con la masa
-   transportada (consumo por km)? Rangos por segmento, con condiciones (urbano, carretera).
-2. ¿Cómo afecta la carga al desgaste (neumáticos, frenos, suspensión) y a la mantención? ¿Hay
-   modelos de costo por km según la carga?
-3. Tiempos de carga y descarga en mudanzas y fletes: ¿existen estándares o estudios de tiempo por
+PREGUNTAS
+1. Consumo de combustible de camionetas, furgones y camiones livianos y medianos vacíos frente a
+   cargados: ¿qué evidencia existe? ¿Es razonable modelar el consumo por km como aproximadamente
+   lineal en la masa transportada? Rangos medidos por segmento, con condiciones.
+2. Desgaste y mantención (neumáticos, frenos, suspensión) según la carga: ¿hay modelos de costo
+   por km con respaldo? Si no, dilo.
+3. Tiempos de carga y descarga en mudanzas y fletes: ¿hay estudios o estándares de tiempo por
    tipo de objeto (refrigerador, lavadora, sofá, cajas), por piso sin ascensor y por distancia de
-   acarreo? ¿Cómo estiman las empresas de mudanza el tiempo y el número de personas?
-4. Pesos y volúmenes típicos de objetos de mudanza (electrodomésticos, muebles, cajas estándar),
-   con fuente (fichas de fabricantes, guías de mudanza con metodología).
-5. Factor de llenado del espacio de carga: ¿qué porcentaje del volumen se aprovecha en la
-   práctica en mudanzas? ¿Hay fuentes?
-6. En Chile: límites legales de carga (carga útil, peso por eje) aplicables a estos vehículos y
-   normas de manipulación manual de carga (Ley 20.001, límite de kg por trabajador) que afecten
-   cuántos ayudantes se necesitan.
-7. Modalidades habituales de pago de ayudantes en Chile (por servicio o por hora): ¿hay fuentes?
+   acarreo? ¿Cómo estiman las empresas de mudanza el tiempo y el número de personas? Indica si
+   son prácticas comerciales o datos medidos.
+4. Pesos y volúmenes típicos de objetos de mudanza (electrodomésticos, muebles, cajas estándar)
+   con fuente (fichas de fabricantes o guías con metodología).
+5. Capacidad: ¿qué tan útil es estimar el número de viajes con peso total / carga útil y
+   volumen total / volumen de carga? ¿Hay evidencia sobre el aprovechamiento real del volumen
+   (factor de llenado) en mudanzas? Explica por qué esa estimación no garantiza que la carga
+   quepa (forma, acomodo, apertura de puertas).
+6. Chile: límites legales de carga (carga útil, peso por eje) para estos vehículos, y normas de
+   manipulación manual de carga (Ley 20.001 y su reglamento: kg máximos por trabajador) que
+   determinen cuántos ayudantes se necesitan.
+7. Pago de ayudantes en Chile: ¿se paga por servicio o por hora? ¿Qué horas se suelen pagar
+   (solo carga y descarga, o también el traslado si el ayudante viaja)? Fuentes oficiales o
+   estudios; si solo hay práctica informal, dilo.
 
-Entrega: para cada partida (combustible, desgaste, manipulación, mano de obra, capacidad), la
-evidencia disponible, una fórmula candidata respaldada, los datos de entrada necesarios y sus
-límites; tabla de pesos y volúmenes de objetos con fuente; lista de lo que no tiene respaldo.
+ENTREGA
+a) Por partida (combustible, desgaste, manipulación, mano de obra y capacidad): evidencia
+   disponible, fórmula candidata respaldada (o "sin respaldo suficiente"), datos de entrada
+   necesarios y límites de validez.
+b) Tabla de pesos y volúmenes de objetos de mudanza con fuente por fila.
+c) Normas chilenas aplicables (carga y manipulación manual) con el artículo.
+d) Lista explícita de lo que NO tiene respaldo y debería declararlo el transportista.
 ```
 
-## 3 · Pregunta adicional para el informe de IVA (#16, docs/18)
+## 3 · IVA: sin investigación duplicada
 
-Si el encargo de docs/18 ya está en curso, agregar o hacer en un segundo paso:
-
-```text
-Pregunta adicional: el transportista elegirá en cada cotización entre (a) «Sin IVA»: no se agrega
-monto de IVA al precio, y (b) «Agregar IVA (19 %)»: se muestra precio base, IVA y total. La app
-NO emite documentos tributarios. ¿Qué textos mínimos debe llevar el presupuesto en cada caso para
-no confundirse con una factura o boleta ni sugerir una exención? ¿La opción (a) dirigida a un
-consumidor final es compatible con el art. 30 de la Ley 19.496 (precio total con impuestos) si el
-transportista es contribuyente de IVA? ¿Cómo se redondea el IVA de un presupuesto para que
-coincida con el documento tributario posterior?
-```
+La investigación tributaria **ya está en curso** con el encargo de [18](18-encargo-deep-research-iva.md) (#16). C-1 y C-2 **excluyen** expresamente impuestos e IVA. La pregunta sobre las opciones exactas «Sin IVA» / «Agregar IVA (19 %)» quedó como **complemento del mismo encargo** ([comentario en #16](https://github.com/ratatecuala/calculadora-de-costos-log/issues/16#issuecomment-7039629780)). No es una investigación nueva: si el informe de #16 ya responde, no hace falta repetirla.
 
 ## Qué se hará con los informes
 
 | Informe | Claude hace (sin autorización adicional) | Requiere tu aprobación |
 |---|---|---|
-| C-1 | Contrastar fuentes y licencias; proponer el piloto del catálogo con fuente por campo | Cargar datos (migración del catálogo, D-8 y D-9) |
-| C-2 | Proponer fórmulas concretas con casos dorados recalculados | Cada fórmula (D-5) |
-| IVA §3 | Ajustar el diseño de docs/19 §5 | Textos y diseño (D-7) e implementación |
+| C-1 | Contrastar fuentes, licencias y segmentos; proponer el piloto del catálogo con fuente por campo y `null` donde no haya dato | Cargar el catálogo (migración, D-8 y D-9) |
+| C-2 | Proponer fórmulas concretas con casos dorados recalculados; marcar lo que debe declarar el transportista | Cada fórmula (D-5) y la modalidad de ayudantes (D-6) |
+| IVA (#16) | Ajustar docs/19 §6 | Textos, redondeo y diseño (D-7), e implementación |

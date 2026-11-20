@@ -207,7 +207,17 @@ También se aprobó integrar **solo** el PR #41 (README de portada). No autoriza
 
 ## Propuesta del 20-11-2026: cotizador ampliado (PROPUESTA, no aprobada)
 
-El propietario encargó planificar la ampliación: catálogo de vehículos, inventario de carga, costo según carga, IVA en dos opciones y rutas reales. Plan en [19](19-plan-cotizador-ampliado.md), encargos en [20](20-encargos-deep-research-cotizador.md) y backlog en la épica #42 (sub-issues #43 a #50, más #22 y #37). Las decisiones **D-1 a D-10** están en #43. **No autoriza** programar, cambiar fórmulas, crear migraciones, importar datos ni activar servicios.
+El propietario encargó planificar la ampliación: catálogo de vehículos, inventario de carga, costo según carga, IVA en dos opciones y rutas reales. Plan en [19](19-plan-cotizador-ampliado.md), encargos en [20](20-encargos-deep-research-cotizador.md) y backlog en la épica #42 (sub-issues #43 a #51, más #22 y #37).
+
+**Versión 2 (20-11-2026):** corregida según la revisión de ChatGPT y la prioridad del propietario:
+1. inventario;
+2. recursos;
+3. catálogo;
+4. fórmulas;
+5. IVA;
+6. rutas.
+
+Las decisiones **D-1 a D-10** están en #43, cada una con su estado: pendiente de aprobación, dependiente de una investigación o no autorizada. **Ninguna está aprobada.** La recomendación de ChatGPT no equivale a aprobación. **No autoriza** programar, cambiar fórmulas, crear o ejecutar migraciones, importar datos ni activar servicios.
 
 **Implementación de A-47 (decisiones menores, revisables):**
 - Un número local **libre** se conserva tal cual, así que la secuencia puede saltar hasta ese número.
