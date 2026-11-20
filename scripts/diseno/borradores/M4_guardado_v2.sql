@@ -37,6 +37,8 @@ begin
   end if;
 
   if jsonb_array_length(p_cargo_items) > 0 then
+    -- Marca local a ESTA transacción (is_local = true): habilita la inserción solo para este trabajo.
+    perform set_config('cotizador.guardado_v2_job', v_result ->> 'id', true);
     perform private.insert_cargo_items((v_result ->> 'id')::uuid, p_cargo_items);
   end if;
 

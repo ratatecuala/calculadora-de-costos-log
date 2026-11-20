@@ -60,7 +60,8 @@ function items(n, { largo = false } = {}) {
       qty: kind === 'cajas' ? 6 : 1,
       unitWeightKg: kg,
       dimsCm: { l, w, h },
-      volumeM3: Math.round(((l * w * h) / 1e6) * 1000) / 1000,
+      // Misma regla que el CHECK de M3 (cm enteros → m³ con 3 decimales): l*w*h/1000 es entero.
+      volumeM3: Math.round((l * w * h) / 1000) / 1000,
       volumeSource: 'calculado',
       fragile: desc.includes('loza') || desc.includes('Televisor'),
       handling,
@@ -139,17 +140,19 @@ function snapshotV2(lineas, { conLineas = true, largo = false } = {}) {
   };
 }
 
+// Resultado ESPERADO de cada caso: 'ACEPTADO' o el SQLSTATE del rechazo (23514 = check_violation).
+// La medición termina con error (código ≠ 0) si algún caso no coincide (P2-3 de la reauditoría).
 const casos = [
-  ['v1 actual (sin inventario)', baseV1()],
-  ['(a) S1 un refrigerador', snapshotV2(1)],
-  ['(a) S2 depto 1 dormitorio, 15 líneas', snapshotV2(15)],
-  ['(a) S3 depto 3 dormitorios, 40 líneas', snapshotV2(40)],
-  ['(a) S3b 45 líneas', snapshotV2(45)],
-  ['(a) S4 casa grande, 80 líneas', snapshotV2(80)],
-  ['(a) S5 extremo, 150 líneas y textos al máximo', snapshotV2(150, { largo: true })],
-  ['(a) S6 200 líneas (tope T-1)', snapshotV2(200)],
-  ['(b) resumen de 80 líneas', snapshotV2(80, { conLineas: false })],
-  ['(b) resumen de 200 líneas, textos al máximo', snapshotV2(200, { conLineas: false, largo: true })],
+  ['v1 actual (sin inventario)', baseV1(), 'ACEPTADO'],
+  ['(a) S1 un refrigerador', snapshotV2(1), 'ACEPTADO'],
+  ['(a) S2 depto 1 dormitorio, 15 líneas', snapshotV2(15), 'ACEPTADO'],
+  ['(a) S3 depto 3 dormitorios, 40 líneas', snapshotV2(40), 'ACEPTADO'],
+  ['(a) S3b 45 líneas', snapshotV2(45), 'ACEPTADO'],
+  ['(a) S4 casa grande, 80 líneas', snapshotV2(80), '23514'],
+  ['(a) S5 extremo, 150 líneas y textos al máximo', snapshotV2(150, { largo: true }), '23514'],
+  ['(a) S6 200 líneas (tope T-1)', snapshotV2(200), '23514'],
+  ['(b) resumen de 80 líneas', snapshotV2(80, { conLineas: false }), 'ACEPTADO'],
+  ['(b) resumen de 200 líneas, textos al máximo', snapshotV2(200, { conLineas: false, largo: true }), 'ACEPTADO'],
 ];
 
 const q = (s) => `'${s.replace(/'/g, "''")}'`;
@@ -157,17 +160,17 @@ const out = [];
 out.push('\\set ON_ERROR_STOP 1');
 out.push("select 'PostgreSQL ' || current_setting('server_version') as version;");
 out.push(`create table medicion_jobs (id bigserial primary key, ${columnaInternal});`);
-out.push('create table resultados (orden int, caso text, bytes_json int, bytes_jsonb_antes int, resultado text, sqlstate text);');
-casos.forEach(([nombre, obj], i) => {
+out.push('create table resultados (orden int, caso text, bytes_json int, bytes_jsonb_antes int, resultado text, sqlstate text, esperado text);');
+casos.forEach(([nombre, obj, esperado], i) => {
   const json = JSON.stringify(obj);
   out.push(`do $$
 declare v_pre int := pg_column_size(${q(json)}::jsonb);
 begin
   begin
     insert into medicion_jobs (internal) values (${q(json)}::jsonb);
-    insert into resultados values (${i}, ${q(nombre)}, ${Buffer.byteLength(json)}, v_pre, 'ACEPTADO', null);
+    insert into resultados values (${i}, ${q(nombre)}, ${Buffer.byteLength(json)}, v_pre, 'ACEPTADO', null, ${q(esperado)});
   exception when others then
-    insert into resultados values (${i}, ${q(nombre)}, ${Buffer.byteLength(json)}, v_pre, 'RECHAZADO', sqlstate);
+    insert into resultados values (${i}, ${q(nombre)}, ${Buffer.byteLength(json)}, v_pre, 'RECHAZADO', sqlstate, ${q(esperado)});
   end;
 end $$;`);
 });
@@ -175,7 +178,20 @@ end $$;`);
 out.push(`select 'p_cargo_items de 200 líneas: ' || pg_column_size(${q(JSON.stringify(items(200, { largo: true })))}::jsonb) || ' bytes' as referencia;`);
 out.push(
   "select caso, bytes_json, bytes_jsonb_antes, round(100.0 * bytes_jsonb_antes / 16384, 1) as pct_limite, resultado, " +
-    "coalesce(sqlstate, '') as sqlstate from resultados order by orden;",
+    "coalesce(sqlstate, '') as sqlstate, esperado, " +
+    "case when coalesce(sqlstate, 'ACEPTADO') = esperado then 'OK' else 'FALLA' end as verificacion " +
+    'from resultados order by orden;',
 );
 out.push("select 'Restricción usada: ' || pg_get_constraintdef(oid) as restriccion from pg_constraint where conrelid = 'medicion_jobs'::regclass and contype = 'c';");
+// Aserción final: cualquier diferencia con lo esperado aborta psql (ON_ERROR_STOP) y el script falla.
+out.push(`do $$
+declare v_fallas text;
+begin
+  select string_agg(caso || ' (esperado ' || esperado || ', obtenido ' || coalesce(sqlstate, 'ACEPTADO') || ')', '; ')
+    into v_fallas from resultados where coalesce(sqlstate, 'ACEPTADO') <> esperado;
+  if v_fallas is not null then
+    raise exception 'FALLA medición 16 KB: %', v_fallas;
+  end if;
+  raise notice 'OK medición 16 KB: % casos con el resultado esperado', (select count(*) from resultados);
+end $$;`);
 console.log(out.join('\n'));

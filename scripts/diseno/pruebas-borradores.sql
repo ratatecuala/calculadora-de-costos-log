@@ -126,6 +126,46 @@ exception when insufficient_privilege then raise notice 'OK T6b no se agregan l�
 end $$;
 commit;
 
+-- T6c · Capa «marca de transacción»: un trabajo creado en ESTA misma transacción por INSERT
+--       directo (sin pasar por create_job_with_quote_v2) tampoco puede recibir líneas.
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', true);
+do $$
+declare j uuid;
+begin
+  insert into public.jobs (owner_id, number, issued_number, quote_date, client_name, net_price, internal)
+    values ('00000000-0000-0000-0000-00000000000a', 999999, 999999, '2026-11-20', 'Directo', 1000, '{}'::jsonb)
+    returning id into j;
+  begin
+    perform private.insert_cargo_items(j, prueba.items(1));
+    raise exception 'FALLA T6c: líneas insertadas sin pasar por el guardado v2';
+  exception when insufficient_privilege then raise notice 'OK T6c sin la marca del guardado v2 no se insertan líneas';
+  end;
+end $$;
+rollback;
+
+-- T15 · Volumen «calculado» incoherente con las dimensiones: rechazado y nada se guarda.
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', true);
+do $$
+declare jobs_antes integer; jobs_despues integer;
+begin
+  select count(*) into jobs_antes from public.jobs;
+  begin
+    perform public.create_job_with_quote_v2(prueba.job(), prueba.quote(),
+      jsonb_build_array(jsonb_build_object('kind', 'cajas', 'description', 'Caja', 'qty', 1,
+        'dimsCm', jsonb_build_object('l', 50, 'w', 40, 'h', 40), 'volumeM3', 1.0, 'volumeSource', 'calculado')));
+    raise exception 'FALLA T15: volumen calculado incoherente aceptado';
+  exception when check_violation then null;
+  end;
+  select count(*) into jobs_despues from public.jobs;
+  if jobs_despues <> jobs_antes then raise exception 'FALLA T15: quedó un trabajo'; end if;
+  raise notice 'OK T15 volumen calculado incoherente rechazado (50×40×40 cm ≠ 1,0 m³)';
+end $$;
+commit;
+
 -- T7 · Una línea inválida revierte TODO: sin trabajo nuevo y sin avance del contador.
 insert into prueba.memo select 't7_contador', last_number::text from public.quote_counters
   where owner_id = '00000000-0000-0000-0000-00000000000a';

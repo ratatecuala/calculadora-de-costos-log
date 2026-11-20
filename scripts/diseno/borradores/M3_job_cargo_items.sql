@@ -6,9 +6,19 @@
 -- Líneas de inventario de una cotización. INALTERABLES (A-47):
 --  - el dueño solo puede LEERLAS (sin INSERT, UPDATE ni DELETE por la API);
 --  - se escriben una sola vez, dentro de la misma transacción que crea el trabajo
---    (private.insert_cargo_items, llamada solo desde create_job_with_quote_v2);
---  - desaparecen únicamente en cascada si el dueño elimina el trabajo completo (función existente
---    de la app: borrar un trabajo borra también su cotización y sus enlaces).
+--    (private.insert_cargo_items, invocada por create_job_with_quote_v2);
+--  - desaparecen únicamente en cascada si el dueño elimina el trabajo completo, que hoy está
+--    permitido por el GRANT DELETE sobre jobs y la POLÍTICA RLS jobs_delete del esquema inicial
+--    (borrar un trabajo borra también su cotización y sus enlaces).
+--
+-- SUPUESTO DE SEGURIDAD (P2-1 de la reauditoría): authenticated conserva EXECUTE sobre la función
+-- privada porque create_job_with_quote_v2 es SECURITY INVOKER. Por eso NO se afirma que «solo M4
+-- puede llamarla» a nivel SQL. La protección real son cuatro capas, todas probadas:
+--   1. el esquema private NO está expuesto por la Data API (verificar antes de migrar: panel
+--      Data API → Exposed schemas, y `select rolconfig from pg_roles where rolname = 'authenticator'`);
+--   2. marca de transacción `cotizador.guardado_v2_job` = id del trabajo, que solo pone M4 (T6c);
+--   3. trabajo del usuario creado en ESTA transacción (created_at = now()) (T6b);
+--   4. trabajo sin líneas previas (T6).
 
 create table public.job_cargo_items (
   id uuid primary key default gen_random_uuid(),
@@ -19,9 +29,9 @@ create table public.job_cargo_items (
   description text not null check (char_length(btrim(description)) between 1 and 80),
   qty integer not null check (qty between 1 and 999),
   unit_weight_kg numeric check (unit_weight_kg is null or (unit_weight_kg > 0 and unit_weight_kg <= 5000)),
-  dim_l_cm numeric,
-  dim_w_cm numeric,
-  dim_h_cm numeric,
+  dim_l_cm integer,
+  dim_w_cm integer,
+  dim_h_cm integer,
   volume_m3 numeric check (volume_m3 is null or (volume_m3 > 0 and volume_m3 <= 100)),
   volume_source text check (volume_source in ('calculado', 'declarado')),
   fragile boolean not null default false,
@@ -30,9 +40,15 @@ create table public.job_cargo_items (
   -- Las tres dimensiones o ninguna.
   constraint job_cargo_items_dims check (
     (dim_l_cm is null and dim_w_cm is null and dim_h_cm is null)
-    or (dim_l_cm > 0 and dim_l_cm <= 2000 and dim_w_cm > 0 and dim_w_cm <= 2000 and dim_h_cm > 0 and dim_h_cm <= 2000)
+    or (dim_l_cm between 1 and 2000 and dim_w_cm between 1 and 2000 and dim_h_cm between 1 and 2000)
   ),
   constraint job_cargo_items_volume_source check ((volume_m3 is null) = (volume_source is null)),
+  -- P2-4: un volumen «calculado» DEBE coincidir con las dimensiones (cm enteros → m³ con 3
+  -- decimales, mitad hacia arriba). El cliente usa la misma regla: Math.round(l*w*h/1000)/1000.
+  constraint job_cargo_items_volume_calculado check (
+    volume_source is distinct from 'calculado'
+    or (dim_l_cm is not null and volume_m3 = round(dim_l_cm::numeric * dim_w_cm * dim_h_cm / 1000000, 3))
+  ),
   constraint job_cargo_items_job_fk foreign key (owner_id, job_id)
     references public.jobs (owner_id, id) on delete cascade,
   constraint job_cargo_items_position_unique unique (job_id, position)
@@ -44,13 +60,14 @@ grant select on table public.job_cargo_items to authenticated;
 create policy job_cargo_items_select on public.job_cargo_items for select to authenticated
   using ((select auth.uid()) = owner_id);
 
--- Inserta TODAS las líneas de un trabajo, una sola vez. Defensa en profundidad:
+-- Inserta TODAS las líneas de un trabajo, una sola vez. Defensa en profundidad (ver el supuesto
+-- de seguridad arriba):
 --  1. solo trabajos del usuario autenticado;
---  2. solo un trabajo creado en ESTA transacción (created_at = now(), que es la hora de inicio de la
+--  2. marca de transacción puesta por create_job_with_quote_v2 para ESTE trabajo;
+--  3. solo un trabajo creado en ESTA transacción (created_at = now(), hora de inicio de la
 --     transacción): no sirve para agregar líneas a una cotización ya emitida;
---  3. solo si el trabajo aún no tiene líneas;
---  4. máximo 200 líneas (T-1, también validado en la interfaz).
--- Está en el esquema private, que la Data API no expone.
+--  4. solo si el trabajo aún no tiene líneas;
+--  5. máximo 200 líneas (T-1, también validado en la interfaz y en M4).
 create function private.insert_cargo_items(p_job_id uuid, p_items jsonb)
 returns integer
 language plpgsql
@@ -69,6 +86,9 @@ begin
   end if;
   if jsonb_array_length(p_items) > 200 then
     raise exception 'Máximo 200 líneas por cotización' using errcode = '22023';
+  end if;
+  if current_setting('cotizador.guardado_v2_job', true) is distinct from p_job_id::text then
+    raise exception 'Las líneas solo se guardan con create_job_with_quote_v2' using errcode = '42501';
   end if;
   if not exists (
     select 1 from public.jobs j
@@ -92,9 +112,9 @@ begin
     e.item ->> 'description',
     coalesce((e.item ->> 'qty')::integer, 1),
     (e.item ->> 'unitWeightKg')::numeric,
-    (e.item -> 'dimsCm' ->> 'l')::numeric,
-    (e.item -> 'dimsCm' ->> 'w')::numeric,
-    (e.item -> 'dimsCm' ->> 'h')::numeric,
+    (e.item -> 'dimsCm' ->> 'l')::integer,
+    (e.item -> 'dimsCm' ->> 'w')::integer,
+    (e.item -> 'dimsCm' ->> 'h')::integer,
     (e.item ->> 'volumeM3')::numeric,
     e.item ->> 'volumeSource',
     coalesce((e.item ->> 'fragile')::boolean, false),
@@ -107,5 +127,5 @@ end;
 $$;
 revoke all on function private.insert_cargo_items(uuid, jsonb) from public, anon;
 -- create_job_with_quote_v2 es SECURITY INVOKER (como la v1): el rol authenticated necesita EXECUTE.
--- La función no está expuesta por la API (esquema private) y aplica las comprobaciones de arriba.
+-- Ver «SUPUESTO DE SEGURIDAD» al inicio: la protección son las capas 1–4, no la falta de EXECUTE.
 grant execute on function private.insert_cargo_items(uuid, jsonb) to authenticated;
