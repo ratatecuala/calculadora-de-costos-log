@@ -591,3 +591,50 @@ Ninguna puerta autoriza fusionar el PR #34, activar Google Routes, producción n
 - El PDF, el enlace y WhatsApp solo con la descripción del servicio (prueba de lista blanca).
 - En teléfono, una mudanza de muchas líneas hace la página larga: evaluar líneas plegables al integrar.
 
+### 17.5 Interfaz plegable y separación cliente / transportista (20-11-2026, pedido del propietario)
+
+Mejora visual dentro de la fase 1 (A-66). **No** elimina información ni funciones, **no** cambia contratos, validaciones ni cálculos, y sigue sin conexión al cotizador.
+
+| Pedido | Cómo quedó |
+|---|---|
+| Cada objeto como fila compacta | Título «12 × Cajas», resumen «12 kg c/u · 0,08 m³ c/u» y estado: **Completo**, **Faltan datos opcionales** o **Revisar** (con el motivo) |
+| Al seleccionarlo, todos sus campos | La fila se despliega con descripción, cantidad, tipo, peso, medidas, volumen, manejo especial y frágil, más Listo, Subir, Bajar, Duplicar y Eliminar |
+| Objeto nuevo abierto | Al agregar o duplicar, la línea nueva se abre sola. Las demás **sin errores** se cierran (sus datos se conservan); las que tienen errores siguen abiertas |
+| Cerrar sin perder datos | «Listo» o la fila cierran: el borrador no depende de que la fila esté abierta (prueba automática y e2e: al reabrir, los valores siguen) |
+| Origen, destino, ayudantes y equipamiento plegables | Cada uno con resumen («4.º piso · sin ascensor», «Por hora · 3 h × $6.000 = $18.000») y estado |
+| Qué falta, qué es opcional, qué está completo | Rótulos «(obligatorio)» y «(opcional)» en cada campo; etiquetas de estado; un dato opcional que falta **nunca** es un error ni se completa con 0 |
+| Resumen de peso, volumen y viajes | PC: columna derecha **fija** al desplazarse. Teléfono: **barra al pie** siempre visible («219 kg · 1,842 m³ · ≥ 2 viajes · Ver resumen») |
+| Mejor uso del ancho en PC | Dos columnas (editores y resumen); campos en grilla automática; origen y destino lado a lado |
+| Datos del cliente y costos internos | **«Datos de la carga»** (objetos y accesos) frente a **«Tus recursos y costos internos — Solo para ti»** (minutos, ayudantes, equipamiento). El texto para el cliente se marca «Lo verá el cliente» |
+
+**Clasificación en el código:** `src/shared/audiencia.ts` marca cada campo como `cliente` o `transportista`. Una prueba verifica que cubre exactamente los campos de los contratos y que tiempos, ayudantes y equipamiento son internos.
+
+**Pruebas:** `npm test` **419/419** (15 nuevas: estados, resúmenes, apertura al agregar y clasificación). `scripts/e2e-modulos.mjs` reescrito para el flujo plegable: **166/166** en Pixel 7, iPhone 13 (emulado), 1366 × 768 y 1440 × 900, con capturas. Entre otras cosas verifica:
+- todo cerrado al inicio;
+- un objeto nuevo se abre solo;
+- un objeto completo se cierra al agregar otro, conservando sus datos;
+- una fila cerrada marca «Revisar»;
+- la barra al pie se ve en el teléfono, y en PC hay dos columnas con el resumen fijo;
+- no hay desplazamiento horizontal, los controles miden al menos 44 px, no se escribe en el navegador y no hay errores de consola.
+
+Casos dorados 64/64. Con la flag apagada, el paquete sigue sin los editores.
+
+## 18. Propuesta para una etapa posterior: datos de la carga aportados por el cliente (NO autorizada)
+
+**Estado: PROPUESTO.** No se implementa ningún formulario público ni recepción de datos. Requiere tu aprobación expresa y, por tratarse de datos de terceros y de una URL pública, una revisión de seguridad y privacidad (docs/06).
+
+**Idea:** el transportista envía al cliente un enlace para que complete **solo** los «Datos de la carga» (objetos y accesos). El transportista revisa, corrige y decide; el cliente nunca ve costos, tiempos, ayudantes ni el margen.
+
+| Tema | Propuesta |
+|---|---|
+| Qué puede completar el cliente | Solo los campos `cliente` de `src/shared/audiencia.ts`: objetos (descripción, cantidad, peso, medidas, volumen, frágil, manejo) y accesos de origen y destino (piso, ascensor, escaleras, acarreo, nota) |
+| Qué nunca ve ni envía | Campos `transportista` (minutos, ayudantes, equipamiento), costos, margen, precio sugerido y datos de otros clientes |
+| Validación | El mismo contrato Zod en el navegador del cliente **y** en el servidor (tope de 200 líneas, cm enteros, volumen coherente) |
+| Flujo | Enlace de un solo uso y con vencimiento → el cliente envía → queda como **borrador pendiente de revisión** → el transportista lo acepta, corrige o descarta. Nada entra a una cotización sin su revisión |
+| Seguridad | Token largo y aleatorio (como `quote_shares`); límite de envíos por enlace y por IP; sin cuenta del cliente; sin archivos adjuntos en la primera versión |
+| Privacidad | Datos mínimos; aviso de para qué se usan; se borran si el transportista descarta el envío; nada de domicilios exactos en registros técnicos |
+| Datos y migraciones | Tabla nueva de envíos pendientes con RLS y función pública acotada: requiere diseño, migración y autorización propios (A-59) |
+| Dependencias | Integración del inventario (puerta P2), #52 resuelto y la decisión sobre producción |
+
+**Decisiones que harían falta:** autorizar el diseño de esta etapa, el canal del enlace (WhatsApp o correo) y la política de retención de los envíos.
+

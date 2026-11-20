@@ -724,3 +724,223 @@ fieldset.segments {
   }
 }
 
+
+/* Vista previa plegable: carga (cliente) / recursos (internos) y resumen fijo (fase 1, A-66). */
+.modules-preview {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.preview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.preview-main,
+.preview-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+@media (min-width: 1100px) {
+  .modules-preview {
+    padding: 20px 28px;
+  }
+  .preview-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+    gap: 20px;
+  }
+  .preview-aside {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
+  .summary-bar {
+    display: none !important;
+  }
+}
+.group-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+.group-title {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text);
+}
+.card.internal {
+  border-left: 4px solid var(--text-2);
+}
+.tag-ok {
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+}
+.tag-client {
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+  border: 1px solid #d5deeb;
+}
+.tag-internal {
+  background: #f1f3f6;
+  color: #3e4c59;
+  border: 1px solid var(--field);
+}
+.opt {
+  font-weight: 400;
+  color: var(--text-2);
+}
+.req {
+  font-weight: 400;
+  color: var(--blue-dark);
+}
+.btn.small {
+  min-height: 44px;
+  font-size: 14px;
+}
+.disclosure {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  min-width: 0;
+}
+.disclosure.is-open {
+  border-color: var(--field);
+}
+.disclosure-head {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.disclosure-head:hover {
+  background: #f9fafb;
+}
+.disclosure-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.disclosure-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.disclosure-summary {
+  font-size: 13px;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.disclosure-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.disclosure-chevron {
+  color: var(--blue);
+  font-size: 14px;
+}
+.disclosure-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 12px 12px;
+}
+.item-qty {
+  color: var(--blue-dark);
+}
+.item-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fields-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.stops-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+@media (min-width: 760px) {
+  .stops-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 8px 10px;
+  min-width: 0;
+}
+.kpi-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.kpi-value {
+  font-size: 18px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.summary-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  min-height: 52px;
+  padding: 8px 16px;
+  margin: 0 -16px -16px;
+  background: var(--blue-dark);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 -2px 8px rgb(0 0 0 / 0.12);
+}
+.summary-bar-link {
+  margin-left: auto;
+  text-decoration: underline;
+  font-weight: 500;
+}
+.preview-aside p {
+  margin: 0;
+}

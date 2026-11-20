@@ -1,5 +1,6 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { CARGO_HANDLING, CARGO_TEMPLATES, MAX_CARGO_ITEMS, MAX_SUMMARY_CHARS, type CargoHandling } from '../../shared/cargo';
+import { abrirAlAgregar, alternar, erroresDe, estadoObjeto, resumenObjeto } from '../modules/estado';
 import {
   addItem,
   canAddItem,
@@ -14,6 +15,7 @@ import {
   type DraftItem,
   type InventoryDraft,
 } from '../modules/inventoryDraft';
+import { Disclosure } from './Disclosure';
 import { NumberField } from './NumberField';
 
 /** T-8 (A-65): los valores por defecto significan «no marcado» y «sin manejo especial declarado». */
@@ -32,18 +34,39 @@ interface Props {
 }
 
 /**
- * Editor del inventario de carga (#47, A-66). Solo edita el borrador: no guarda, no se conecta al
- * cotizador y no cambia el precio. Teléfono y PC tienen las mismas funciones (A-49).
+ * Editor del inventario de carga (#47, A-66). Cada objeto es una fila compacta (nombre, cantidad y
+ * estado) que se despliega para editarla; al agregar uno, se abre solo. Cerrar una fila no borra
+ * nada. Son datos de la CARGA, que en una etapa posterior podría informar el cliente (docs/21 §18).
+ * Solo edita el borrador: no guarda, no se conecta al cotizador y no cambia el precio.
  */
 export function InventoryEditor({ draft, onChange, newKey }: Props) {
   const { errors } = validateInventory(draft);
+  const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
   const lleno = !canAddItem(draft);
   const summaryId = useId();
+  const tieneErrores = (k: string) => erroresDe(errors, k).length > 0;
+
+  const agregar = (template?: { kind: string; label: string }) => {
+    const key = newKey();
+    onChange(addItem(draft, newDraftItem(key, template)));
+    setAbiertas(abrirAlAgregar(abiertas, key, tieneErrores));
+  };
+  const duplicar = (from: string) => {
+    const key = newKey();
+    onChange(duplicateItem(draft, from, key));
+    setAbiertas(abrirAlAgregar(abiertas, key, tieneErrores));
+  };
+  const completos = draft.items.filter((i) => estadoObjeto(i, errors).nivel === 'completo').length;
+  const conError = draft.items.filter((i) => tieneErrores(i.key)).length;
+
   return (
     <section className="card" aria-labelledby={`${summaryId}-titulo`}>
-      <h2 className="sec" id={`${summaryId}-titulo`}>
-        Inventario de carga
-      </h2>
+      <div className="row-between">
+        <h2 className="sec" id={`${summaryId}-titulo`}>
+          Inventario de carga
+        </h2>
+        <span className="tag tag-client">Datos de la carga</span>
+      </div>
       <div className="segs" role="group" aria-label="Nivel de detalle">
         {(['rapido', 'detallado'] as const).map((m) => (
           <button
@@ -59,7 +82,9 @@ export function InventoryEditor({ draft, onChange, newKey }: Props) {
       </div>
 
       <label className="field" htmlFor={summaryId}>
-        <span className="field-label">{draft.mode === 'rapido' ? 'Qué se transporta' : 'Resumen (opcional)'}</span>
+        <span className="field-label">
+          {draft.mode === 'rapido' ? 'Qué se transporta' : 'Resumen'} <span className="opt">(opcional)</span>
+        </span>
         <span className="field-input">
           <input
             id={summaryId}
@@ -87,38 +112,60 @@ export function InventoryEditor({ draft, onChange, newKey }: Props) {
         ) : null
       ) : (
         <>
-          <div className="row-between">
-            <span className="sub" aria-live="polite">
+          <p className="sub" aria-live="polite">
+            <span className="num">
               {draft.items.length} de {MAX_CARGO_ITEMS} líneas
             </span>
-          </div>
+            {draft.items.length ? (
+              <>
+                {' '}
+                · {completos} {completos === 1 ? 'completa' : 'completas'}
+                {conError ? <span className="danger-text"> · {conError} por revisar</span> : null}
+              </>
+            ) : null}
+          </p>
+          <ol className="item-list">
+            {draft.items.map((item, i) => (
+              <li key={item.key}>
+                <Disclosure
+                  className="disclosure item-row"
+                  title={
+                    <>
+                      <span className="item-qty num">{item.qty ?? '?'} ×</span> {item.description.trim() || `Objeto ${i + 1}`}
+                    </>
+                  }
+                  summary={abiertas.has(item.key) ? undefined : resumenObjeto(item)}
+                  estado={estadoObjeto(item, errors)}
+                  open={abiertas.has(item.key)}
+                  onToggle={() => setAbiertas(alternar(abiertas, item.key))}
+                >
+                  <ItemFields
+                    item={item}
+                    index={i}
+                    total={draft.items.length}
+                    errors={errors}
+                    canDuplicate={!lleno}
+                    onPatch={(patch) => onChange(updateItem(draft, item.key, patch))}
+                    onDeclaredVolume={(v) => onChange(setDeclaredVolume(draft, item.key, v))}
+                    onCalculatedVolume={() => onChange(resetToCalculatedVolume(draft, item.key))}
+                    onDuplicate={() => duplicar(item.key)}
+                    onRemove={() => onChange(removeItem(draft, item.key))}
+                    onMove={(d) => onChange(moveItem(draft, item.key, d))}
+                    onClose={() => setAbiertas(alternar(abiertas, item.key))}
+                  />
+                </Disclosure>
+              </li>
+            ))}
+          </ol>
           <div className="chips" role="group" aria-label="Agregar objeto">
             {CARGO_TEMPLATES.map((t) => (
-              <button key={t.kind} type="button" className="btn2 small" disabled={lleno} onClick={() => onChange(addItem(draft, newDraftItem(newKey(), t)))}>
+              <button key={t.kind} type="button" className="btn2 small" disabled={lleno} onClick={() => agregar(t)}>
                 + {t.label}
               </button>
             ))}
           </div>
           <p className="sub">Las plantillas solo ponen el nombre: no traen pesos ni medidas.</p>
           {lleno ? <p className="warn">Llegaste al máximo de {MAX_CARGO_ITEMS} líneas por cotización.</p> : null}
-          <ol className="item-list">
-            {draft.items.map((item, i) => (
-              <ItemCard
-                key={item.key}
-                item={item}
-                index={i}
-                total={draft.items.length}
-                errors={errors}
-                canDuplicate={!lleno}
-                onPatch={(patch) => onChange(updateItem(draft, item.key, patch))}
-                onDeclaredVolume={(v) => onChange(setDeclaredVolume(draft, item.key, v))}
-                onCalculatedVolume={() => onChange(resetToCalculatedVolume(draft, item.key))}
-                onDuplicate={() => onChange(duplicateItem(draft, item.key, newKey()))}
-                onRemove={() => onChange(removeItem(draft, item.key))}
-                onMove={(d) => onChange(moveItem(draft, item.key, d))}
-              />
-            ))}
-          </ol>
         </>
       )}
     </section>
@@ -137,15 +184,18 @@ interface ItemProps {
   onDuplicate: () => void;
   onRemove: () => void;
   onMove: (delta: -1 | 1) => void;
+  onClose: () => void;
 }
 
-function ItemCard({ item, index, total, errors, canDuplicate, onPatch, onDeclaredVolume, onCalculatedVolume, onDuplicate, onRemove, onMove }: ItemProps) {
+function ItemFields({ item, index, total, errors, canDuplicate, onPatch, onDeclaredVolume, onCalculatedVolume, onDuplicate, onRemove, onMove, onClose }: ItemProps) {
   const id = useId();
   const err = (field: string) => errors[`${item.key}.${field}`];
-  const nombre = item.description.trim() || `Línea ${index + 1}`;
-  const text = (field: 'kind' | 'description', label: string, max: number) => (
+  const nombre = item.description.trim() || `Objeto ${index + 1}`;
+  const text = (field: 'kind' | 'description', label: string, max: number, opcional: boolean) => (
     <label className="field" htmlFor={`${id}-${field}`}>
-      <span className="field-label">{label}</span>
+      <span className="field-label">
+        {label} {opcional ? <span className="opt">(opcional)</span> : <span className="req">(obligatorio)</span>}
+      </span>
       <span className="field-input">
         <input
           id={`${id}-${field}`}
@@ -164,45 +214,45 @@ function ItemCard({ item, index, total, errors, canDuplicate, onPatch, onDeclare
     </label>
   );
   return (
-    <li className="item-card" aria-label={`Línea ${index + 1}: ${nombre}`}>
-      <div className="grid2">
-        {text('description', 'Descripción', 80)}
-        {text('kind', 'Tipo', 30)}
-      </div>
-      <div className="grid2">
-        <NumberField label="Cantidad" value={item.qty} decimals={0} placeholder="1" error={err('qty')} onChange={(v) => onPatch({ qty: v })} />
-        <NumberField label="Peso por unidad" suffix="kg" value={item.unitWeightKg} decimals={1} error={err('unitWeightKg')} onChange={(v) => onPatch({ unitWeightKg: v })} />
+    <div className="item-fields" role="group" aria-label={`Datos de ${nombre}`}>
+      <div className="fields-auto">
+        {text('description', 'Descripción', 80, false)}
+        <NumberField label="Cantidad (obligatorio)" value={item.qty} decimals={0} placeholder="1" error={err('qty')} onChange={(v) => onPatch({ qty: v })} />
+        {text('kind', 'Tipo', 30, true)}
+        <NumberField label="Peso por unidad (opcional)" suffix="kg" value={item.unitWeightKg} decimals={1} error={err('unitWeightKg')} onChange={(v) => onPatch({ unitWeightKg: v })} />
       </div>
       <fieldset className="dims">
-        <legend className="field-label">Medidas por unidad (cm enteros, opcional)</legend>
+        <legend className="field-label">
+          Medidas por unidad, en cm enteros <span className="opt">(opcional)</span>
+        </legend>
         <div className="grid3">
           <NumberField label="Largo" suffix="cm" decimals={0} value={item.l} error={err('l')} onChange={(v) => onPatch({ l: v })} />
           <NumberField label="Ancho" suffix="cm" decimals={0} value={item.w} error={err('w')} onChange={(v) => onPatch({ w: v })} />
           <NumberField label="Alto" suffix="cm" decimals={0} value={item.h} error={err('h')} onChange={(v) => onPatch({ h: v })} />
         </div>
       </fieldset>
-      <NumberField
-        label="Volumen por unidad"
-        suffix="m³"
-        decimals={3}
-        value={item.volumeM3}
-        tag={item.volumeSource === 'calculado' ? 'calculado con las medidas' : item.volumeSource === 'declarado' ? 'declarado por ti' : undefined}
-        hint={item.volumeSource === 'declarado' ? undefined : 'Se calcula solo con las tres medidas. Si escribes otro valor, queda como declarado.'}
-        error={err('volumeM3') ?? err('volumeSource')}
-        onChange={onDeclaredVolume}
-      />
-      {item.volumeSource === 'declarado' ? (
-        <button type="button" className="link-btn" onClick={onCalculatedVolume}>
-          Usar el volumen calculado con las medidas
-        </button>
-      ) : null}
-      <div className="grid2">
-        <label className="check">
-          <input type="checkbox" checked={item.fragile} onChange={(e) => onPatch({ fragile: e.target.checked })} />
-          Marcar como frágil
-        </label>
+      <div className="fields-auto">
+        <div className="field-stack">
+          <NumberField
+            label="Volumen por unidad (opcional)"
+            suffix="m³"
+            decimals={3}
+            value={item.volumeM3}
+            tag={item.volumeSource === 'calculado' ? 'calculado con las medidas' : item.volumeSource === 'declarado' ? 'declarado por ti' : undefined}
+            hint={item.volumeSource === 'declarado' ? undefined : 'Se calcula solo con las tres medidas. Si escribes otro valor, queda como declarado.'}
+            error={err('volumeM3') ?? err('volumeSource')}
+            onChange={onDeclaredVolume}
+          />
+          {item.volumeSource === 'declarado' ? (
+            <button type="button" className="link-btn" onClick={onCalculatedVolume}>
+              Usar el volumen calculado con las medidas
+            </button>
+          ) : null}
+        </div>
         <label className="field" htmlFor={`${id}-handling`}>
-          <span className="field-label">Manejo especial</span>
+          <span className="field-label">
+            Manejo especial <span className="opt">(opcional)</span>
+          </span>
           <span className="field-input">
             <select id={`${id}-handling`} value={item.handling} onChange={(e) => onPatch({ handling: e.target.value as CargoHandling })}>
               {CARGO_HANDLING.map((h) => (
@@ -213,9 +263,16 @@ function ItemCard({ item, index, total, errors, canDuplicate, onPatch, onDeclare
             </select>
           </span>
         </label>
+        <label className="check">
+          <input type="checkbox" checked={item.fragile} onChange={(e) => onPatch({ fragile: e.target.checked })} />
+          Marcar como frágil <span className="opt">(opcional)</span>
+        </label>
       </div>
       <p className="sub">«Frágil» y «manejo especial» son notas para ti: no cambian el costo ni certifican la seguridad de la carga.</p>
       <div className="item-actions">
+        <button type="button" className="btn small" onClick={onClose} aria-label={`Listo, cerrar ${nombre}`}>
+          Listo
+        </button>
         <button type="button" className="btn2 small" disabled={index === 0} onClick={() => onMove(-1)} aria-label={`Subir ${nombre}`}>
           Subir
         </button>
@@ -229,6 +286,6 @@ function ItemCard({ item, index, total, errors, canDuplicate, onPatch, onDeclare
           Eliminar
         </button>
       </div>
-    </li>
+    </div>
   );
 }
