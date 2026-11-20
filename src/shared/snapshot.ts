@@ -192,10 +192,40 @@ export type CloudPayloadResult =
   | { ok: false; reason: string };
 
 /**
- * Prepara la copia de una cotización local a la cuenta con D-4 = (b) (A-61, docs/21 §6.3).
- * - v1: `internal` idéntico al de hoy y sin líneas (L1).
+ * Integridad del inventario de un registro LOCAL v2 antes de copiarlo a la nube (P1 de la
+ * auditoría de la fase 0). En el navegador la lista completa SIEMPRE acompaña al resumen
+ * (docs/21 §6.3), así que:
+ * - `items` ausente → la lista se perdió o el registro no es local: no se copia;
+ * - los conteos del resumen deben coincidir con las líneas.
+ * Devuelve el motivo del problema, o `null` si el inventario está íntegro.
+ * Peso, volumen y completitud se validan o reconstruyen con `cargoSummary` en la fase 1.
+ */
+export function localCargoIntegrityIssue(cargo: CargoSnapshot): string | null {
+  const items = cargo.items;
+  if (items === undefined) {
+    return `El registro local no trae la lista de objetos, pero su resumen indica ${cargo.totals.lines} líneas: no se copia para no perder el inventario`;
+  }
+  const t = cargo.totals;
+  if (items.length !== t.lines) {
+    return `El resumen indica ${t.lines} líneas, pero la lista tiene ${items.length}: no se copia`;
+  }
+  const conPeso = items.filter((i) => i.unitWeightKg !== null).length;
+  if (conPeso !== t.linesWithWeight) {
+    return `El resumen indica ${t.linesWithWeight} líneas con peso, pero la lista tiene ${conPeso}: no se copia`;
+  }
+  const conVolumen = items.filter((i) => i.volumeM3 !== null).length;
+  if (conVolumen !== t.linesWithVolume) {
+    return `El resumen indica ${t.linesWithVolume} líneas con volumen, pero la lista tiene ${conVolumen}: no se copia`;
+  }
+  return null;
+}
+
+/**
+ * Prepara la copia de una cotización LOCAL a la cuenta con D-4 = (b) (A-61, docs/21 §6.3).
+ * - v1: `internal` idéntico al de hoy y sin líneas (L1). No se recalcula ni se valida su carga.
  * - v2: `internal` con el resumen y SIN `cargo.items`; las líneas van completas en `cargoItems`
- *   (→ `p_cargo_items` de `create_job_with_quote_v2`).
+ *   (→ `p_cargo_items` de `create_job_with_quote_v2`). Si el inventario no está íntegro
+ *   (`localCargoIntegrityIssue`), NO se copia: nunca se pierden objetos en silencio.
  * No modifica `raw`. Un snapshot inválido no se copia (`ok: false`), y lo local queda intacto.
  */
 export function toCloudPayload(raw: unknown): CloudPayloadResult {
@@ -208,7 +238,10 @@ export function toCloudPayload(raw: unknown): CloudPayloadResult {
   const parsed = snapshotV2Schema.safeParse(raw);
   if (!parsed.success) return { ok: false, reason: `Snapshot inválido: ${issues(parsed.error)}` };
   const internal = structuredClone(parsed.data);
-  const cargoItems = internal.cargo?.items ?? [];
-  if (internal.cargo) delete internal.cargo.items;
+  if (internal.cargo === null) return { ok: true, internal, cargoItems: [] };
+  const problema = localCargoIntegrityIssue(internal.cargo);
+  if (problema !== null) return { ok: false, reason: problema };
+  const cargoItems = internal.cargo.items ?? [];
+  delete internal.cargo.items;
   return { ok: true, internal, cargoItems };
 }

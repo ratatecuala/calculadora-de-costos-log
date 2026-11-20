@@ -6,7 +6,7 @@
  * Además: el registro que produce HOY `buildJobRecord` sigue siendo un v1 legible.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { readSnapshot, snapshotV2Schema, toCloudPayload } from '../src/shared/snapshot';
+import { localCargoIntegrityIssue, readSnapshot, snapshotV2Schema, toCloudPayload } from '../src/shared/snapshot';
 import { MAX_CARGO_ITEMS } from '../src/shared/cargo';
 import { QuoteSession, type RouteClient } from '../src/web/session';
 import { buildJobRecord } from '../src/web/jobs';
@@ -227,3 +227,73 @@ describe('toCloudPayload · D-4 = (b) (A-61)', () => {
     expect(toCloudPayload(s)).toMatchObject({ ok: false });
   });
 });
+
+describe('P1 auditoría fase 0 · ningún objeto se pierde en silencio al copiar a la cuenta', () => {
+  /** Copia sin `items`: simula un registro local al que le falta la lista. */
+  function sinItems(n: number) {
+    const s = snapshotV2(n);
+    const { items: _quitada, ...cargo } = s.cargo;
+    return { ...s, cargo };
+  }
+
+  it('v2 local con 120 líneas en el resumen y SIN lista de objetos: no se copia', () => {
+    const raw = congelar(sinItems(120));
+    const p = toCloudPayload(raw);
+    expect(p).toMatchObject({ ok: false, reason: expect.stringContaining('120') });
+    expect(raw.cargo.totals.lines).toBe(120); // lo local queda intacto
+  });
+
+  it('v2 local sin lista y con 0 líneas en el resumen: tampoco se copia (la lista es obligatoria en local)', () => {
+    const s = sinItems(0);
+    expect(toCloudPayload(s)).toMatchObject({ ok: false });
+  });
+
+  it.each([
+    ['menos líneas en el resumen', (s: ReturnType<typeof snapshotV2>) => (s.cargo.totals.lines = 119)],
+    ['más líneas en el resumen', (s: ReturnType<typeof snapshotV2>) => (s.cargo.totals.lines = 121)],
+    ['un objeto borrado de la lista', (s: ReturnType<typeof snapshotV2>) => s.cargo.items.pop()],
+    ['líneas con peso distintas', (s: ReturnType<typeof snapshotV2>) => (s.cargo.items[0]!.unitWeightKg = null as unknown as number)],
+    ['líneas con volumen distintas', (s: ReturnType<typeof snapshotV2>) => {
+      const it0 = s.cargo.items[0]! as Record<string, unknown>;
+      it0.volumeM3 = null;
+      it0.volumeSource = null;
+    }],
+  ])('resumen y lista no coinciden (%s): no se copia', (_n, alterar) => {
+    const s = snapshotV2(120);
+    alterar(s);
+    const antes = structuredClone(s);
+    const p = toCloudPayload(congelar(s));
+    expect(p.ok).toBe(false);
+    expect(s).toEqual(antes);
+  });
+
+  it.each([0, 1, 50, 200])('con %i líneas coherentes: se copia y la cantidad de objetos coincide con el resumen', (n) => {
+    const p = toCloudPayload(snapshotV2(n));
+    expect(p.ok).toBe(true);
+    if (!p.ok) return;
+    const totals = (p.internal.cargo as { totals: { lines: number } }).totals;
+    expect(p.cargoItems).toHaveLength(n);
+    expect(totals.lines).toBe(p.cargoItems.length);
+  });
+
+  it('localCargoIntegrityIssue informa el motivo y devuelve null si está íntegro', () => {
+    const ok = snapshotV2Schema.parse(snapshotV2(3));
+    expect(localCargoIntegrityIssue(ok.cargo!)).toBeNull();
+    const malo = snapshotV2Schema.parse({ ...snapshotV2(3), cargo: { ...snapshotV2(3).cargo, items: [] } });
+    expect(localCargoIntegrityIssue(malo.cargo!)).toContain('3 líneas');
+  });
+
+  it('la LECTURA sigue aceptando un resumen sin lista (así lo guarda la nube con D-4 = b)', () => {
+    const r = readSnapshot(sinItems(120));
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.view.cargo?.items).toBeUndefined();
+  });
+
+  it('v1 histórico: se copia igual que hoy, sin validar ni recalcular su carga', () => {
+    for (const c of casosV1) {
+      const p = toCloudPayload(congelar(structuredClone(c.internal)));
+      expect(p).toEqual({ ok: true, internal: c.internal, cargoItems: [] });
+    }
+  });
+});
+

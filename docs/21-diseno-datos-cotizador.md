@@ -3,7 +3,7 @@
 **Versión 3 · 20-11-2026 · Estado: DISEÑO; pendiente de tus decisiones (§12) y de autorizar la fase 0.**
 - La versión 2 corrigió los 5 P1 y los 3 P2 de la [auditoría sobre `cba6ffb`](https://github.com/ratatecuala/calculadora-de-costos-log/issues/45#issuecomment-7042277474) (§13.1).
 - La versión 3 corrige los 5 P2 de la [reauditoría (0 P0, 0 P1)](https://github.com/ratatecuala/calculadora-de-costos-log/issues/45#issuecomment-7044566908) (§13.2) y agrega el plan de implementación de inventario y recursos (§15).
-- **Aprobado (20-11-2026):** D-4 = (b) y T-1 a T-6 (A-61, A-62) y **solo la fase 0** (A-63). La fase 0 está implementada (§16); la fase 1 **no** está autorizada.
+- **Aprobado (20-11-2026):** D-4 = (b) y T-1 a T-6 (A-61, A-62) y **solo la fase 0** (A-63). La fase 0 está implementada (§16) y corregida según la [auditoría de ChatGPT](https://github.com/ratatecuala/calculadora-de-costos-log/issues/45#issuecomment-7045276976) (§13.3); la fase 1 **no** está autorizada.
 **Autorización:** [ratificación en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7041864905) (A-55 a A-60) y [aprobación del 20-11 registrada en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7044997471) (A-61 a A-63). **Siguen sin aprobar** D-2b, D-5, D-7 y D-10.
 **No hay:** interfaz nueva, integración al cotizador, migraciones en Supabase, cambios en el motor ni datos importados. Solo los contratos de la fase 0 (§16), que la aplicación todavía no usa.
 **Ensayos:** los borradores SQL y las mediciones se ejecutaron en un PostgreSQL 16 **local y desechable**, con las 3 migraciones reales del repositorio (§11).
@@ -70,6 +70,8 @@
 **Volumen calculado (P2-4):** si `volumeSource = 'calculado'`, deben existir las tres dimensiones y `volumeM3 = Math.round(l × w × h / 1000) / 1000` (m³ con 3 decimales: `l × w × h` es un entero de cm³, así que `l × w × h / 1000` tiene a lo sumo 3 decimales y `Math.round` redondea la mitad hacia arriba, igual que `round()` de PostgreSQL con positivos; verificado en una muestra amplia contra aritmética entera). La interfaz **recalcula** el volumen cada vez que cambia una dimensión; el esquema Zod **valida** la igualdad; y el servidor tiene la misma regla como `CHECK` (`round(l*w*h/1e6, 3)`), probada en T15. Si el usuario quiere otro valor, lo marca como `declarado`.
 | `fragile` | booleano (por defecto `false`) |
 | `handling` | `'normal' \| 'pesado' \| 'voluminoso' \| 'requiere2'` (por defecto `normal`) |
+
+**Significado de los valores por defecto (P2 de la auditoría de la fase 0):** `fragile: false` significa «**no marcado** como frágil» y `handling: 'normal'` significa «**sin manejo especial declarado**». No significan que se haya verificado. Por eso **no se usan para seguridad ni para costos**, y la interfaz los rotulará así. Usar `null` para «desconocido» exigiría cambiar también M3: queda como **T-8** (§12).
 
 `CargoInventory = { mode: 'rapido' | 'detallado', summary: texto ≤ 200, items: CargoItem[] }`
 
@@ -190,6 +192,7 @@
 **Copia a la cuenta** (`migrateLocalToCloud`, con cliente fijado a la sesión como hoy):
 - **Con D-4 = (b):** `toCloudPayload` separa `items` y los envía **completos** en `p_cargo_items` a `create_job_with_quote_v2`. El `internal` que sube conserva el resumen (`totals`, `capacity`, `handling`) sin las líneas.
 - **Con D-4 = (a):** sube igual que en el navegador, si cabe en 16 KB (unas 47 líneas con las fixtures de §7; depende de los textos). Si no cabe, se avisa y esa cotización **no se copia**: queda intacta en el navegador.
+- **Integridad antes de copiar (P1 de la auditoría de la fase 0):** un registro local v2 con inventario **debe** traer `cargo.items`, y sus conteos deben coincidir con `cargo.totals` (`lines`, `linesWithWeight`, `linesWithVolume`). Si falta la lista o no coincide, `toCloudPayload` devuelve `ok: false` con el motivo, **no se copia nada** y lo local queda intacto. La lectura (`readSnapshot`) sigue aceptando un resumen sin lista, porque así lo guarda la nube. Peso, volumen y completitud se validarán o reconstruirán con `cargoSummary` en la fase 1, antes de emitir.
 - **Idempotencia:** por `local_id`, igual que hoy. Una copia repetida devuelve `NULL`, no duplica líneas y no gasta número (T8).
 - **Atomicidad:** si falla cualquier línea, no se crea la cotización en la nube y el registro local queda intacto (T7).
 - **Lo local nunca se borra** al copiar.
@@ -379,6 +382,8 @@ La marca es local a la transacción (`is_local = true`) y desaparece al terminar
 | T-5 | Fuentes del catálogo en `jsonb` por campo | Sí |
 | T-6 | Nueva función v2 que reutiliza la v1 | Sí (§8.2) |
 | §4.3 y §4.4 | Aprobación para programar la modalidad por hora y la marca de tiempo de carga incompleto | Aprobar junto con la fase de integración |
+| **T-7** (nueva, PROPUESTA) | Límites técnicos de recursos: ≤ 24 h por ayudante, ≤ 20 ayudantes, ≤ 20 elementos de equipamiento, pesos enteros ≤ 9.999.999.999 (§4.1). Hoy un trabajo de varias jornadas se **rechaza** con mensaje; no se recorta ni se vuelve 0 | Revisar con criterio de producto **antes de habilitar la interfaz** (fase 1). Alternativa: horas por jornada |
+| **T-8** (nueva, PROPUESTA) | `fragile` y `handling`: mantener los valores por defecto («no marcado», «sin manejo especial») o usar `null` para «desconocido» (implica cambiar M3) | Mantenerlos, rotulados en la interfaz y sin uso en costos ni seguridad; reconsiderar si se usan para algo más |
 | D-2b, D-5, D-7, D-10 | Sin cambios | — |
 
 ## 13. Respuesta a las auditorías
@@ -395,6 +400,15 @@ La marca es local a la transacción (`is_local = true`) y desaparece al terminar
 | P2-6 Combustibles | Piloto solo gasolina y diésel; `isCatalogFuel`; sin migrar `vehicles.fuel` | §5.1 | K1 |
 | P2-7 `service_summary` duplicado | Se elimina; se reutiliza `service_description` con una sugerencia sin datos internos | §6.4 | S1 |
 | P2-8 Fixtures ≠ contrato | `CargoItem` sin `id`; `capacity.minTrips`; T-1 en la interfaz, en local y en el servidor | §2, §3, §7 | Script v2, T9 y T9b |
+
+### 13.3 Auditoría de la fase 0 (`1c2caa6`): 0 P0, 1 P1, 3 P2
+
+| Hallazgo | Corrección | Evidencia |
+|---|---|---|
+| **P1** `toCloudPayload` podía copiar un v2 local sin `items` (o con conteos distintos) como si tuviera 0 líneas | `localCargoIntegrityIssue`: exige `items` en local y que `lines`, `linesWithWeight` y `linesWithVolume` coincidan; si no, `ok: false` y nada se copia. La lectura de la nube no cambia; v1 tampoco | 14 pruebas nuevas; con el comportamiento anterior fallan 7; sin exigir `items` o sin el conteo de peso, también fallan |
+| P2-1 Límites técnicos sin ratificar | Registrados como **T-7** (PROPUESTA) y marcados en el código como supuestos; pruebas de más de 24 h, 21 ayudantes y 21 elementos: se rechazan con mensaje, nunca se recortan ni se vuelven 0 | `contratos.resources.test.ts` |
+| P2-2 Valores por defecto de `fragile` y `handling` | Significado documentado («no marcado», «sin manejo especial»), sin uso en seguridad ni costos; decisión **T-8** (PROPUESTA) | §3.1, `cargo.ts` |
+| P2-3 Párrafo contradictorio en docs/07 | Marcado como estado **histórico**, con el estado actual (A-55 a A-61; pendientes D-2b, D-5, D-7, D-10) | docs/07 |
 
 ### 13.2 Reauditoría de la versión 2 (versión 3): 0 P0, 0 P1, 5 P2
 
@@ -494,24 +508,24 @@ Ninguna puerta autoriza fusionar el PR #34, activar Google Routes, producción n
 | `src/shared/cargo.ts` | `cargoItemSchema` (§3.1, `strict`, valores por defecto sin inventar datos), `cargoItemsSchema` (≤ 200, T-1), `cargoInventorySchema`, `volumeFromDims`, esquemas de `totals` y `capacity`, firmas de `cargoSummary`, `capacityEstimate` y `suggestServiceText` (carril 1) |
 | `src/shared/resources.ts` | `stopSchema` (solo A y B, T-3), `helperSchema` (unión por modalidad, `strict`: A-58), `equipmentSchema`, `resourcesSchema`, `handlingTimeSchema`, firmas de `handlingTime` y `helperCostLines` (carril 2) |
 | `src/shared/snapshot.ts` | `snapshotV1Schema` (lectura tolerante de lo existente), `snapshotV2Schema` (§6.1), `readSnapshot` (nunca lanza ni modifica; v1 sin inventario ni recursos), `toCloudPayload` (D-4 = b: líneas aparte, `internal` sin `items`; v1 idéntico) |
-| `tests/contratos.*.test.ts` | 79 pruebas: C1, C2, C3, H4 y la parte pura de L1 |
+| `tests/contratos.*.test.ts` | 96 pruebas: C1, C2, C3, H4, la parte pura de L1 e integridad del inventario antes de copiar (P1 de la auditoría) |
 | `tests/fixtures/` | `cargo-items.json` (27 casos compartidos con el servidor) y `snapshots-v1.json` (5 formas históricas, datos ficticios; no provienen de staging) |
 | `scripts/diseno/pruebas-c3.sql` | C3 del lado del servidor, en el PostgreSQL local desechable |
 
 **Decisiones menores tomadas en la fase 0 (revisables en la revisión técnica):**
 - En la vista de una cotización v1, `formulaVersion` es `null` (no se conocía) y los datos del catálogo del vehículo son `null`. Los campos extra del vehículo v1 no se muestran, pero el registro no cambia.
 - `cargo` y `resources` pueden ser `null` en una cotización v2 sin inventario o sin recursos.
-- `toCloudPayload` copia un v1 **tal cual** (como hoy). Un v2 se valida antes de copiarse: si es inválido, no se copia.
+- `toCloudPayload` copia un v1 **tal cual** (como hoy). Un v2 se valida antes de copiarse, incluida la integridad del inventario: si es inválido o le faltan objetos, no se copia.
 - Diferencias permitidas en C3 (Zod más estricto que el servidor): campos extra y números escritos como texto.
 
 **Pruebas (20-11-2026, Claude):**
 
 | Prueba | Resultado |
 |---|---|
-| `npm test` | **328/328** (249 anteriores + 79 nuevas) |
+| `npm test` | **345/345** (249 anteriores + 96 de la fase 0), tras corregir la auditoría |
 | `npm run typecheck` y `vite build` | Sin errores |
 | `scripts/verificar-casos-dorados.mjs` | **64/64** |
 | `probar-borradores.sh` (local desechable) | 18/18 + **C3 27/27** |
-| Mutaciones manuales (quitar la regla de volumen, permitir medidas con decimales, quitar `strict` del ayudante, no copiar en `readSnapshot`, dejar `items` en `toCloudPayload`) | **Las 5 hacen fallar las pruebas** |
+| Mutaciones manuales (quitar la regla de volumen, permitir medidas con decimales, quitar `strict` del ayudante, no copiar en `readSnapshot`, dejar `items` en `toCloudPayload`; tras la auditoría: quitar la verificación de integridad, no exigir `items`, no contar líneas con peso) | **Las 8 hacen fallar las pruebas** |
 | Archivos de `src/web`, `src/engine`, `src/server` y `supabase/` | **Sin cambios** |
 

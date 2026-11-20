@@ -106,3 +106,31 @@ describe('Contrato de handlingTime (§4.4)', () => {
     expect(handlingTimeSchema.safeParse({ minutes: 30, complete: true, missingStops: ['B'] }).success).toBe(false);
   });
 });
+
+describe('P2 auditoría fase 0 · supuestos técnicos de recursos (T-7, pendiente de producto)', () => {
+  const base = { id: id2, mode: 'hora', ratePerHour: 6000, paidSegments: ['manipulacion'] };
+
+  it('un trabajo de varias jornadas (30 h) se RECHAZA con mensaje: no se recorta a 24 ni se vuelve 0', () => {
+    const r = helperSchema.safeParse({ ...base, hours: 30 });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.issues[0]?.message).toBe('Máximo 24 horas');
+  });
+
+  it('horas desconocidas siguen siendo null (no 0) y 24 h exactas se aceptan', () => {
+    expect(helperSchema.parse({ ...base, hours: null })).toMatchObject({ hours: null });
+    expect(helperSchema.parse({ ...base, hours: 24 })).toMatchObject({ hours: 24 });
+  });
+
+  it('21 ayudantes o 21 elementos de equipamiento se rechazan con mensaje', () => {
+    const ayudantes = Array.from({ length: 21 }, (_, i) => ({
+      id: `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
+      mode: 'servicio',
+      feeService: null,
+    }));
+    expect(resourcesSchema.safeParse({ helpers: ayudantes }).success).toBe(false);
+    expect(resourcesSchema.safeParse({ helpers: ayudantes.slice(0, 20) }).success).toBe(true);
+    const equipo = Array.from({ length: 21 }, (_, i) => ({ label: `Equipo ${i}`, amount: null }));
+    expect(resourcesSchema.safeParse({ equipment: equipo }).success).toBe(false);
+  });
+});
+

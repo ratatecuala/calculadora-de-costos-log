@@ -76,7 +76,15 @@ export const cargoItemSchema = z
       .nullable()
       .default(null),
     volumeSource: z.enum(['calculado', 'declarado']).nullable().default(null),
+    /**
+     * `false` significa «no marcado como frágil», NO «se sabe que no es frágil» (P2 de la
+     * auditoría de la fase 0). No se usa para seguridad ni para costos.
+     */
     fragile: z.boolean().default(false),
+    /**
+     * `normal` significa «sin manejo especial declarado», NO «se verificó que es normal».
+     * No se usa para seguridad ni para costos. Ver docs/21 §3.1 (T-8, pendiente).
+     */
     handling: z.enum(CARGO_HANDLING).default('normal'),
   })
   .strict()

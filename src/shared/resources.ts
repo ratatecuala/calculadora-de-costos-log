@@ -15,7 +15,12 @@ export const MAX_CLP = 9_999_999_999;
 export const MAX_LOAD_MINUTES = 1440;
 export const MAX_CARRY_METERS = 1000;
 export const MAX_HELPER_HOURS = 24;
-/** Límites técnicos de la fase 0 (revisables; no son reglas de negocio aprobadas). */
+/**
+ * SUPUESTOS TÉCNICOS de la fase 0, pendientes de revisión de producto (T-7, docs/21 §12) antes
+ * de habilitar la interfaz: tope de horas por ayudante (`MAX_HELPER_HOURS`), de ayudantes, de
+ * equipamiento y el tope monetario `MAX_CLP`. Un valor fuera de rango se RECHAZA con un mensaje;
+ * nunca se recorta al tope ni se convierte en 0. Un dato desconocido es `null`.
+ */
 export const MAX_HELPERS = 20;
 export const MAX_EQUIPMENT = 20;
 

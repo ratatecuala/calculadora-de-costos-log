@@ -22,7 +22,7 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 | Auditorías de ChatGPT | 7 rondas sobre el flujo general, más una revisión focalizada de A-47: **aceptada técnicamente para staging, sin hallazgos P0/P1**. ChatGPT revisa **por inspección**; no ejecuta las pruebas |
 | `main` | Solo publica este README de continuidad. **El código y los documentos técnicos siguen en la rama del PR #34, que no está integrado.** Toda fusión requiere aprobación del propietario |
 | Conflicto con `main` | **Resuelto en la rama**: se integró `main` conservando el README de desarrollo (`main` solo tenía el README de portada) |
-| Siguiente acción | Revisión técnica de la fase 0 por ChatGPT ([21 §16](docs/21-diseno-datos-cotizador.md)) y tu decisión sobre la fase 1; corregir #52 antes de autorizar M3/M4; ejecutar C-1 y C-2 en GPT Deep Research; crear el cliente OAuth de Google y hacer el primer respaldo real |
+| Siguiente acción | Última revisión de la fase 0 por ChatGPT tras corregir su auditoría (1 P1 y 3 P2, [21 §13.3](docs/21-diseno-datos-cotizador.md)); después, tu decisión sobre la fase 1 y sobre T-7 y T-8; corregir #52 antes de autorizar M3/M4; ejecutar C-1 y C-2 en GPT Deep Research; crear el cliente OAuth de Google y hacer el primer respaldo real |
 
 **Cómo retomar:** leer este README → [AGENTS.md](AGENTS.md) (reglas y autorizaciones) → [07 · Decisiones](docs/07-decisiones.md) → [13 · Staging](docs/13-staging.md) → los últimos comentarios del PR #34.
 
@@ -33,7 +33,7 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 | Calculadora y cotizador (motor de costos, precio, PDF, WhatsApp) | **Funciona** (local y staging) |
 | Experiencia en teléfono y en PC/notebook (A-49) | **Paridad verificada en local** del 320 al 1440 px (10 problemas corregidos, [14](docs/14-qa-ux.md)) y **en staging redesplegado** el 18-11: PC 1440/1366 y teléfono Pixel 7/iPhone 13, **59/59** sin cuenta |
 | Validación independiente del motor (#24) | **Casos dorados 64/64** por recálculo independiente; sin errores de fórmula. Los 4 hallazgos de entradas y textos (C-1 a C-4) **corregidos** con tu aprobación (A-50), sin cambiar fórmulas ([15](docs/15-validacion-motor.md)) |
-| Cotizador ampliado: inventario, recursos, catálogo de vehículos, costo según carga, IVA en dos opciones y rutas reales | **Planificación aprobada** (A-55 a A-60). **Diseño #45 versión 3 aprobado** (D-4 = b y T-1 a T-6: A-61, A-62). **Fase 0 implementada** (A-63): contratos Zod de inventario, recursos y snapshot versionado, con pruebas; **la aplicación aún no los usa** ([21 §16](docs/21-diseno-datos-cotizador.md)). Fase 1 (interfaces e integración), migraciones y cambios de costo **no autorizados** |
+| Cotizador ampliado: inventario, recursos, catálogo de vehículos, costo según carga, IVA en dos opciones y rutas reales | **Planificación aprobada** (A-55 a A-60). **Diseño #45 versión 3 aprobado** (D-4 = b y T-1 a T-6: A-61, A-62). **Fase 0 implementada** (A-63) y corregida según su auditoría (P1: ningún objeto se pierde al copiar a la cuenta): contratos Zod de inventario, recursos y snapshot versionado, con pruebas; **la aplicación aún no los usa** ([21 §16](docs/21-diseno-datos-cotizador.md)). Fase 1 (interfaces e integración), migraciones y cambios de costo **no autorizados** |
 | IVA en la cotización (#16) | La cotización muestra **«Precio total»** y la leyenda **«Esta cotización no es factura ni boleta.»** (A-51). Las reglas por tipo de transportista y de cliente (opción B) siguen **sin implementar**, a la espera de validación tributaria ([16](docs/16-iva-cotizaciones.md)) |
 | Distancias y tiempos de ruta | **Simulados**. La app lo indica en cada resultado. Google Routes **no está conectado** |
 | Uso sin cuenta (historial en el navegador) | **Funciona**, con aviso de que no hay respaldo en la nube |
@@ -64,7 +64,7 @@ Detalle: [02 · Arquitectura](docs/02-arquitectura.md) y [13 · Staging](docs/13
 
 | Prueba | Resultado | Quién la ejecutó |
 |---|---|---|
-| `npm test` (sin red) | **328/328** (20-11-2026: 249 anteriores + 79 de los contratos de la fase 0). Sin `it.fails` activos: los defectos C-1 a C-4 se corrigieron con tu aprobación (A-50) | Claude (ejecutadas) |
+| `npm test` (sin red) | **345/345** (20-11-2026: 249 anteriores + 96 de los contratos de la fase 0, incluida la corrección de la auditoría). Sin `it.fails` activos: los defectos C-1 a C-4 se corrigieron con tu aprobación (A-50) | Claude (ejecutadas) |
 | Recálculo independiente de los casos dorados (`scripts/verificar-casos-dorados.mjs`) | **64/64** | Claude (ejecutadas) |
 | Teléfono y PC en navegador local (10 tamaños de pantalla) | 10 hallazgos, 10 corregidos; montos idénticos antes y después (también tras A-50); cotización con «Precio total» y leyenda | Claude (ejecutadas) |
 | Ensayo local de respaldo y restauración (datos ficticios) | **Idéntica** (`diff` = 0). **No** equivale a un respaldo real ni a restaurar staging | Claude (ejecutadas) |

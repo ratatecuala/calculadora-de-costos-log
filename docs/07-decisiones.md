@@ -217,7 +217,7 @@ El propietario encargó planificar la ampliación: catálogo de vehículos, inve
 5. IVA;
 6. rutas.
 
-Las decisiones **D-1 a D-10** están en #43, cada una con su estado: pendiente de aprobación, dependiente de una investigación o no autorizada. **Ninguna está aprobada.** La recomendación de ChatGPT no equivale a aprobación. **No autoriza** programar, cambiar fórmulas, crear o ejecutar migraciones, importar datos ni activar servicios.
+**Estado al publicar la propuesta (histórico):** las decisiones **D-1 a D-10** estaban en #43, cada una con su estado: pendiente de aprobación, dependiente de una investigación o no autorizada; ninguna estaba aprobada. **Estado actual:** D-1, D-2, D-3, D-6, D-8 y D-9 se aprobaron como A-55 a A-60, y D-4 como A-61 (secciones siguientes); siguen pendientes D-2b, D-5, D-7 y D-10. La recomendación de ChatGPT no equivale a aprobación. **No autoriza** programar, cambiar fórmulas, crear o ejecutar migraciones, importar datos ni activar servicios.
 
 ## Decisiones del 20-11-2026 sobre el cotizador ampliado, ratificadas por escrito en #43
 
