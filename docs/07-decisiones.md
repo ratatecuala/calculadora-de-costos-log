@@ -285,9 +285,20 @@ La [auditoría final de ChatGPT](https://github.com/ratatecuala/calculadora-de-c
 | Tema | Estado vigente |
 |---|---|
 | I-1 + I-1b (A-68) | **Implementadas y cerradas técnicamente** (0 P0, 0 P1). Flag `VITE_FF_INTEGRACION_CARGA` **apagada**; el costo no cambia |
-| **D-I8:** recuperar en el borrador los km y minutos escritos a mano ([22 §12](22-diseno-integracion-cotizador.md)) | **PROPUESTA, pendiente de tu decisión.** No implementada. ChatGPT recomienda aprobar solo el modo manual (punto 1) |
+| **D-I8:** recuperar en el borrador los km y minutos escritos a mano ([22 §12](22-diseno-integracion-cotizador.md)) | *Estado actual:* **aprobada parcialmente el 21-11 (A-69, abajo)**: solo el modo manual |
 | Encender la flag para transportistas reales | **NO AUTORIZADO.** Puertas que siguen cerradas y deben cumplirse antes de pedirlo: e2e con cuentas reales y la suite 59/59 en un staging autorizado; Safari en un iPhone real; lector de pantalla; decisión D-I8 |
 | [#52](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52) (`INSERT` directo en `jobs`) | Registrada como tarea independiente; **implementación no autorizada**. Debe resolverse antes de M3/M4 (puerta P3) |
 | I-2 (M3, M4 y copia de v2 con líneas a la cuenta) | **NO AUTORIZADO** |
 | I-3 (recursos en el costo) | **NO AUTORIZADO**; requiere aprobar las fórmulas de docs/21 §4.3–§4.4 y casos dorados nuevos |
 | Migraciones, despliegues (staging incluido), Google Routes, IVA, producción y merge del PR #34 | **NO AUTORIZADOS** |
+
+## Decisión del 21-11-2026: D-I8 parcial (solo recorrido manual) y revisión de #52
+
+Comunicada por el propietario por chat a Claude y **registrada literalmente** en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7071050495) antes de implementar. **APROBADA.** Base: [22 §12](22-diseno-integracion-cotizador.md) y la [auditoría final de I-1 + I-1b](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743).
+
+| ID | Decisión | Alcance de la aprobación |
+|---|---|---|
+| A-69 | **D-I8 parcial (§12, punto 1):** al restaurar un borrador se recuperan **solo** los km y minutos escritos a mano (recorrido manual), asociados a las direcciones y tramos originales, con el aviso «Recorrido recuperado: revisa los kilómetros y minutos». Si cambian las direcciones, el recorrido anterior queda invalidado y debe revisarse de nuevo | **No** recupera el precio elegido ni su confirmación; **no** guarda datos de proveedores externos; **no** recupera correcciones sobre rutas automáticas (§12, punto 2, sin autorizar). Mantiene intactas seguridad, privacidad y conservación de datos |
+| — | **#52:** solo la **revisión técnica documental** (solución, riesgos, pruebas de seguridad y relación con M3/M4) | **Implementación no autorizada**: el propietario revisará y aprobará la solución antes |
+
+**No autoriza:** I-2, I-3, M3/M4, migraciones, fórmulas económicas, IVA, Google Routes, despliegues, activación de flags ni merge del PR #34.
