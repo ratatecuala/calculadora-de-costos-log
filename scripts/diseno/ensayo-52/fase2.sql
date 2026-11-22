@@ -1,113 +1,9 @@
--- HERRAMIENTA DE DISEÑO (#52, docs/23). ENSAYO en PostgreSQL LOCAL desechable (stub de Supabase +
--- las 3 migraciones reales). NO es una migración, no está en supabase/migrations y nunca se aplica
--- a Supabase. La corrección de la fase 2 es la PROPUESTA de docs/23 §4, pendiente de aprobación.
--- Datos ficticios. A = …0a, B = …0b, C = …0c.
--- Fase 1: demuestra los huecos actuales (H1–H3). Fase 2: aplica la propuesta y la verifica (S0–S7).
+-- HERRAMIENTA DE DISEÑO (#52, docs/23 §11). FASE 2: comprobaciones S0–S7 sobre la migración REAL
+-- supabase/migrations/20261122120000_guardado_unico_y_contador.sql, ya aplicada por ensayar.sh.
+-- Solo PostgreSQL local desechable. Requiere los datos de fase1.sql.
 \set ON_ERROR_STOP 1
 \set QUIET 1
-
-insert into auth.users (id, email) values
-  ('00000000-0000-0000-0000-00000000000a', 'a@prueba.invalid'),
-  ('00000000-0000-0000-0000-00000000000b', 'b@prueba.invalid'),
-  ('00000000-0000-0000-0000-00000000000c', 'c@prueba.invalid');
-
-create schema prueba;
-grant usage on schema prueba to anon, authenticated;
-create function prueba.job(p_local uuid default null, p_issued integer default null, p_id uuid default null) returns jsonb
-language sql immutable as $$
-  select jsonb_strip_nulls(jsonb_build_object('id', p_id)) || jsonb_build_object(
-    'local_id', p_local, 'issued_number', p_issued, 'quote_date', '2026-11-21',
-    'client_name', 'Cliente ficticio', 'net_price', 50000, 'internal', jsonb_build_object('engineVersion', 'x'))
-$$;
-create function prueba.quote() returns jsonb language sql immutable as $$
-  select jsonb_build_object('issued_at', '2026-11-21', 'client_name', 'Cliente ficticio', 'net_price', 50000, 'total', 50000, 'tax_amount', null)
-$$;
-grant execute on all functions in schema prueba to anon, authenticated;
-create table prueba.memo (k text primary key, v text);
-grant select, insert, update on prueba.memo to authenticated;
-
--- ============================ FASE 1: estado actual ============================
-\echo '--- FASE 1 (migraciones actuales) ---'
-
--- H1 · INSERT directo en jobs ANTES del primer guardado: el contador se crea después desde el
---      máximo, así que la secuencia salta al número elegido por el cliente.
-begin;
-set local role authenticated;
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', true);
-insert into public.jobs (number, issued_number, quote_date, client_name, net_price, internal)
-  values (5000, 5000, '2026-11-21', 'Directo', 1000, '{}'::jsonb);
-do $$ declare r jsonb; begin
-  r := public.create_job_with_quote(prueba.job(), prueba.quote());
-  if (r ->> 'number')::int = 5001 then raise notice 'HUECO H1 confirmado: INSERT directo aceptado y el primer guardado recibe el N° 5001 (no el 1)';
-  else raise notice 'H1 no reproducido: %', r; end if;
-end $$;
-commit;
-
--- H2 · Trabajo sin cotización y con número emitido repetido (dos documentos con el mismo N°).
-begin;
-set local role authenticated;
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', true);
-do $$ declare r jsonb; j uuid; begin
-  r := public.create_job_with_quote(prueba.job(), prueba.quote());   -- N° 1 legítimo
-  insert into public.jobs (number, issued_number, quote_date, client_name, net_price, internal)
-    values (77, (r ->> 'issued_number')::int, '2026-11-21', 'Directo', 1000, '{}'::jsonb) returning id into j;
-  if not exists (select 1 from public.client_quotes where job_id = j) then
-    raise notice 'HUECO H2 confirmado: trabajo sin cotización y con el mismo número emitido (%) que otro documento', r ->> 'issued_number';
-  end if;
-  insert into prueba.memo values ('a_job1', r ->> 'id');
-end $$;
-commit;
-
--- H3 · (NUEVO, no estaba en #52) Reescribir un documento ya emitido: DELETE + INSERT en client_quotes.
-begin;
-set local role authenticated;
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', true);
-do $$ declare j uuid := (select v::uuid from prueba.memo where k = 'a_job1'); n int; begin
-  delete from public.client_quotes where job_id = j;
-  insert into public.client_quotes (job_id, number, issued_at, client_name, net_price, total)
-    values (j, 999, '2026-11-21', 'Otro cliente', 1, 1);
-  select number into n from public.client_quotes where job_id = j;
-  if n = 999 then raise notice 'HUECO H3 confirmado: el documento emitido se reemplazó (N° 999, otro cliente, $1) aunque UPDATE está revocado'; end if;
-end $$;
-rollback;
-
--- H4 · (revisión de ChatGPT del 22-11) Importación por la función con un número emitido libre igual al
---      máximo de INTEGER: el contador sube a 2.147.483.647 y la siguiente cotización normal desborda.
---      Existe HOY, sin INSERT directo, y #52 (D-52-1) por sí solo no lo corrige.
-begin;
-set local role authenticated;
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', true);
-do $$ declare r jsonb; begin
-  r := public.create_job_with_quote(prueba.job('44444444-4444-4444-8444-444444444444', 2147483647), prueba.quote());
-  begin
-    perform public.create_job_with_quote(prueba.job(), prueba.quote());
-    raise notice 'H4 no reproducido';
-  exception when numeric_value_out_of_range then
-    raise notice 'HUECO H4 confirmado: tras importar el N° 2.147.483.647, la siguiente cotización falla (integer out of range): la cuenta queda bloqueada';
-  end;
-end $$;
-rollback;
-
--- ===================== FASE 2: corrección propuesta (borrador) =====================
-\echo '--- FASE 2 (corrección propuesta aplicada) ---'
-reset role;
--- 1. La función de guardado v1 pasa a SECURITY DEFINER. Mismo cuerpo, misma firma: solo cambia
---    quién ejecuta los INSERT. La identidad sigue saliendo de auth.uid() y cada consulta filtra por dueño.
-alter function public.create_job_with_quote(jsonb, jsonb) security definer;
--- 2. Sin INSERT directo en jobs ni INSERT/DELETE directo en client_quotes.
-revoke insert on table public.jobs from authenticated;
-revoke insert, delete on table public.client_quotes from authenticated;
-drop policy jobs_insert on public.jobs;
-drop policy client_quotes_insert on public.client_quotes;
-drop policy client_quotes_delete on public.client_quotes;
-drop policy client_quotes_update on public.client_quotes; -- ya sin GRANT UPDATE desde la numeración
--- Variante B+ (docs/23 §4.2): solo con  -v bmas=1
-\if :bmas
-revoke execute on function private.allocate_quote_number(integer) from authenticated;
-revoke usage on schema private from authenticated;
-\echo 'variante B+: authenticated sin acceso al esquema private'
-\endif
-
+\echo '--- FASE 2 (migración real 20261122120000 aplicada) ---'
 \if :omitir_s0
 \echo 'control C3: comprobación S0 omitida'
 \else
@@ -120,6 +16,7 @@ do $$ begin
   raise notice 'OK S0b anon no puede ejecutar la función';
 end $$;
 \endif
+
 
 -- S1 · INSERT directo en jobs rechazado (42501), con o sin owner propio.
 begin;
@@ -175,8 +72,10 @@ do $$ declare r jsonb; r2 jsonb; r3 jsonb; begin
   r2 := public.create_job_with_quote(prueba.job('11111111-1111-4111-8111-111111111111', 40), prueba.quote());
   if r2 is not null then raise exception 'FALLA S4 idempotencia: %', r2; end if;
   r3 := public.create_job_with_quote(prueba.job('22222222-2222-4222-8222-222222222222', 40), prueba.quote());
-  if (r3 ->> 'number')::int <> 41 or (r3 ->> 'issued_number')::int <> 40 then raise exception 'FALLA S4 conflicto: %', r3; end if;
-  raise notice 'OK S4 importación: N° 40 conservado; repetida → NULL; conflicto → interno 41 y emitido 40';
+  -- N1 (A-72): la importación del N° 40 no movió el contador (va en 1), así que el conflicto recibe el
+  -- interno 2 (contador + 1) y conserva el emitido 40. Con la función anterior habría sido el 41.
+  if (r3 ->> 'number')::int <> 2 or (r3 ->> 'issued_number')::int <> 40 then raise exception 'FALLA S4 conflicto: %', r3; end if;
+  raise notice 'OK S4 importación: N° 40 conservado; repetida → NULL; conflicto → interno 2 (contador + 1, N1) y emitido 40';
 end $$;
 commit;
 

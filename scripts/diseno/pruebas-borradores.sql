@@ -1,5 +1,6 @@
 -- HERRAMIENTA DE DISEÑO (#45). Pruebas de los borradores M3 y M4 sobre un PostgreSQL LOCAL
--- desechable, con las 3 migraciones reales del repositorio y el stub de Supabase.
+-- desechable, con TODAS las migraciones reales del repositorio (incluida la de #52, 20261122120000)
+-- y el stub de Supabase.
 -- Cada prueba imprime «OK …» o detiene la ejecución con «FALLA …». Nunca se ejecuta en Supabase.
 -- Datos ficticios. Usuarios: A = …0a, B = …0b.
 
@@ -33,9 +34,21 @@ create function prueba.items(n integer, p_bad boolean default false) returns jso
 $$;
 grant execute on all functions in schema prueba to anon, authenticated;
 
+-- Rol de prueba LOCAL (A-74): con D-52-2/D-52-3, authenticated ya no llega a private.insert_cargo_items,
+-- así que las capas internas de M3 (marca, transacción, sin líneas previas) se prueban con este rol, que
+-- sí tiene EXECUTE. Solo existe en el PostgreSQL local desechable.
+do $$ begin
+  if not exists (select 1 from pg_roles where rolname = 'prueba_capas') then create role prueba_capas nologin; end if;
+end $$;
+grant usage on schema prueba to prueba_capas;
+grant execute on all functions in schema prueba to prueba_capas;
+grant usage on schema private to prueba_capas;
+grant execute on function private.insert_cargo_items(uuid, jsonb) to prueba_capas;
+
 -- Tabla de apoyo para recordar ids entre transacciones (solo superusuario).
 create table prueba.memo (k text primary key, v text);
 grant select, insert on prueba.memo to authenticated;
+grant select on prueba.memo to prueba_capas;
 
 -- T1 · Guardado v2 con 3 líneas: trabajo, cotización y líneas en una transacción.
 begin;
@@ -93,14 +106,34 @@ commit;
 -- T6 · No se pueden agregar líneas a una cotización ya emitida (otra transacción), ni siquiera
 --      llamando directamente a la función privada.
 begin;
-set local role authenticated;
+set local role prueba_capas;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', true);
 do $$
-declare j uuid := (select v::uuid from prueba.memo where k = 't1_job');
+declare j uuid := (select v::uuid from prueba.memo where k = 't1_job'); msg text;
 begin
   perform private.insert_cargo_items(j, prueba.items(1));
   raise exception 'FALLA T6: se agregaron líneas a una cotización emitida';
-exception when insufficient_privilege then raise notice 'OK T6 no se agregan líneas a una cotización emitida';
+exception when insufficient_privilege then
+  get stacked diagnostics msg = message_text;
+  if msg ilike 'permission denied%' then raise exception 'FALLA T6: rechazado por permisos, no por la capa de M3 (%)', msg; end if;
+  raise notice 'OK T6 no se agregan líneas a una cotización emitida (capa de M3: «%»)', msg;
+end $$;
+commit;
+
+-- T6d (#52, A-74) · Capa de permisos de D-52-2/D-52-3: authenticated no puede llamar a la función
+--       privada (sin USAGE en private ni EXECUTE).
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', true);
+do $$
+declare j uuid := (select v::uuid from prueba.memo where k = 't1_job'); msg text;
+begin
+  perform private.insert_cargo_items(j, prueba.items(1));
+  raise exception 'FALLA T6d: authenticated llamó a la función privada';
+exception when insufficient_privilege then
+  get stacked diagnostics msg = message_text;
+  if msg not ilike 'permission denied%' then raise exception 'FALLA T6d: se esperaba un rechazo por permisos (%)', msg; end if;
+  raise notice 'OK T6d authenticated no llega a private.insert_cargo_items (D-52-2/D-52-3: «%»)', msg;
 end $$;
 commit;
 
@@ -115,35 +148,49 @@ do $$ declare r jsonb; begin
 end $$;
 commit;
 begin;
-set local role authenticated;
+set local role prueba_capas;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', true);
 do $$
-declare j uuid := (select v::uuid from prueba.memo where k = 't6b_job');
+declare j uuid := (select v::uuid from prueba.memo where k = 't6b_job'); msg text;
 begin
   perform private.insert_cargo_items(j, prueba.items(1));
   raise exception 'FALLA T6b: se agregaron líneas a una cotización emitida sin líneas';
-exception when insufficient_privilege then raise notice 'OK T6b no se agregan líneas a una cotización emitida sin líneas';
+exception when insufficient_privilege then
+  get stacked diagnostics msg = message_text;
+  if msg ilike 'permission denied%' then raise exception 'FALLA T6b: rechazado por permisos, no por la capa de M3 (%)', msg; end if;
+  raise notice 'OK T6b no se agregan líneas a una cotización emitida sin líneas (capa de M3: «%»)', msg;
 end $$;
 commit;
 
--- T6c · Capa «marca de transacción»: un trabajo creado en ESTA misma transacción por INSERT
---       directo (sin pasar por create_job_with_quote_v2) tampoco puede recibir líneas.
+-- T6c (reescrita con #52, A-74) · (1) el INSERT directo en jobs ya no es posible: la migración
+--       20261122120000 lo revoca (42501). (2) La capa «marca de transacción» de M3 sigue: un trabajo
+--       creado SIN el guardado v2 (aquí por el superusuario, en la misma transacción) no recibe líneas.
+--       T6c-2 usa el rol de prueba prueba_capas (con EXECUTE) y exige que el rechazo venga de la marca,
+--       no de los permisos; la capa de permisos de D-52-2/D-52-3 se prueba aparte en T6d.
 begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', true);
-do $$
-declare j uuid;
-begin
+do $$ begin
   insert into public.jobs (owner_id, number, issued_number, quote_date, client_name, net_price, internal)
-    values ('00000000-0000-0000-0000-00000000000a', 999999, 999999, '2026-11-20', 'Directo', 1000, '{}'::jsonb)
-    returning id into j;
-  begin
-    perform private.insert_cargo_items(j, prueba.items(1));
-    raise exception 'FALLA T6c: líneas insertadas sin pasar por el guardado v2';
-  exception when insufficient_privilege then raise notice 'OK T6c sin la marca del guardado v2 no se insertan líneas';
-  end;
+    values ('00000000-0000-0000-0000-00000000000a', 999999, 999999, '2026-11-20', 'Directo', 1000, '{}'::jsonb);
+  raise exception 'FALLA T6c-1: INSERT directo aceptado';
+exception when insufficient_privilege then raise notice 'OK T6c-1 INSERT directo en jobs rechazado (#52)';
+end $$;
+reset role;
+insert into public.jobs (id, owner_id, number, issued_number, quote_date, client_name, net_price, internal)
+  values ('99999999-9999-4999-8999-999999999999', '00000000-0000-0000-0000-00000000000a', 999999, 999999, '2026-11-20', 'Sin v2', 1000, '{}'::jsonb);
+set local role prueba_capas;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', true);
+do $$ declare msg text; begin
+  perform private.insert_cargo_items('99999999-9999-4999-8999-999999999999', prueba.items(1));
+  raise exception 'FALLA T6c-2: líneas insertadas sin pasar por el guardado v2';
+exception when insufficient_privilege then
+  get stacked diagnostics msg = message_text;
+  if msg not ilike '%create_job_with_quote_v2%' then raise exception 'FALLA T6c-2: no lo detuvo la marca de M3 (%)', msg; end if;
+  raise notice 'OK T6c-2 sin la marca del guardado v2 no se insertan líneas (capa de M3: «%»)', msg;
 end $$;
 rollback;
+
 
 -- T15 · Volumen «calculado» incoherente con las dimensiones: rechazado y nada se guarda.
 begin;

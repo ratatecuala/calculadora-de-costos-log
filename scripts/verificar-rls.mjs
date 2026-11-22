@@ -11,7 +11,14 @@
  * test_users.json: {"a":{"email","password"},"b":{"email","password"}} (usuarios de prueba).
  * El script crea datos de prueba del usuario A, intenta leerlos/modificarlos/borrarlos como B
  * y como anónimo, verifica el enlace público, y al final A borra sus datos de prueba.
+ *
+ * #52 (A-74): adaptado a la migración 20261122120000 (escritura solo mediante create_job_with_quote).
+ * El trabajo de prueba se crea por la función, como IMPORTACIÓN con un número alto libre: con N1 el
+ * contador no se mueve y no se consume un número de la secuencia real de A. Se agregan las pruebas de
+ * escritura directa propia rechazada. ADAPTADO, NO EJECUTADO: requiere staging con la migración
+ * aplicada (pendiente de autorización A-59). Antes de la migración, las pruebas nuevas FALLARÍAN.
  */
+import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 
@@ -64,19 +71,25 @@ const { error: defErr } = await A.c.rpc('set_default_vehicle', { p_vehicle_id: v
 check('A marca su vehículo como predeterminado', !defErr, defErr?.message);
 
 const internal = { costEstimate: 41234, costType: 'estimado', margin: 0.15, engineVersion: 'motor-1.0.1', vehicle: { kmPerL: 11, wearPerKm: 40 } };
-const { data: jobRow, error: jobErr } = await A.c
-  .from('jobs')
-  .insert({ number: testNumber, issued_number: testNumber, quote_date: '2026-11-18', client_name: `Cliente ${marker}`, net_price: 60000, internal, waypoints: [] })
-  .select()
-  .single();
+// #52: el trabajo y su cotización nacen JUNTOS por la función (única puerta de escritura).
+const { data: saved, error: saveErr } = await A.c.rpc('create_job_with_quote', {
+  p_job: { local_id: randomUUID(), issued_number: testNumber, quote_date: '2026-11-18', client_name: `Cliente ${marker}`, net_price: 60000, internal, waypoints: [] },
+  p_quote: { issued_at: '2026-11-18', client_name: `Cliente ${marker}`, net_price: 60000, tax_amount: null, total: 60000 },
+});
+const { data: jobRow } = saved ? await A.c.from('jobs').select('*').eq('id', saved.id).single() : { data: null };
 job = jobRow;
-check('A crea un trabajo con costos internos', !jobErr && job?.owner_id === A.id, jobErr?.message);
-const { data: cq, error: cqErr } = await A.c
-  .from('client_quotes')
-  .insert({ job_id: job.id, number: testNumber, issued_at: '2026-11-18', client_name: `Cliente ${marker}`, net_price: 60000, total: 60000 })
-  .select()
-  .single();
-check('A crea la cotización al cliente', !cqErr, cqErr?.message);
+check('A crea un trabajo con costos internos (por la función)', !saveErr && job?.owner_id === A.id && job?.issued_number === testNumber, saveErr?.message);
+const { data: cq, error: cqErr } = await A.c.from('client_quotes').select('*').eq('job_id', job?.id).single();
+check('la cotización al cliente nace con el trabajo y con el número emitido', !cqErr && cq?.number === testNumber, cqErr?.message);
+
+// #52: ni el propio dueño puede escribir directamente trabajos o documentos.
+const { error: insOwn } = await A.c.from('jobs').insert({ number: testNumber + 1, issued_number: testNumber + 1, quote_date: '2026-11-18', client_name: 'x', net_price: 1, internal: {} });
+check('A no INSERTA trabajos directamente (solo por la función)', !!insOwn, insOwn?.message);
+const { error: cqOwn } = await A.c.from('client_quotes').insert({ job_id: job.id, number: 1, issued_at: '2026-11-18', client_name: 'x', net_price: 1, total: 1 });
+check('A no INSERTA documentos directamente', !!cqOwn, cqOwn?.message);
+const { error: cqDelOwn } = await A.c.from('client_quotes').delete().eq('id', cq.id);
+const { data: cqStill } = await A.c.from('client_quotes').select('id, number, client_name').eq('id', cq.id);
+check('A no BORRA su documento emitido para reemplazarlo (H3)', !!cqDelOwn && cqStill?.length === 1 && cqStill[0].number === testNumber, cqDelOwn?.message);
 const { data: token, error: shareErr } = await A.c.rpc('create_quote_share', { p_quote_id: cq.id });
 check('A crea un enlace público (token de 43 caracteres)', !shareErr && /^[A-Za-z0-9_-]{43}$/.test(token ?? ''), shareErr?.message);
 

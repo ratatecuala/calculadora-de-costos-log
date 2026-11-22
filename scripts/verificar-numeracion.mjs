@@ -6,6 +6,11 @@
  *   TEST_USERS_FILE=/fuera/del/repo/test_users.json node scripts/verificar-numeracion.mjs
  *
  * Al final, A borra las cotizaciones que creó esta prueba (los números usados no se reutilizan).
+ *
+ * #52 (A-74): §3 y §5 adaptados al contador N1 (las importaciones conservan su número SIN mover el
+ * contador; las nuevas siguen su secuencia y nunca repiten un número interno ni emitido) y §5b nuevo
+ * (importación del máximo de INTEGER y la siguiente cotización). ADAPTADO, NO EJECUTADO: requiere staging
+ * con la migración 20261122120000 aplicada (pendiente de autorización A-59).
  */
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -83,7 +88,11 @@ check('importación repetida al mismo tiempo: exactamente 1 copia', copies.lengt
 const again = await save(A1.c, { localId, issued: 7 }, 'Importada');
 check('importación repetida después: no duplica', again === null);
 const next = await save(A1.c, {}, 'Tras-importar');
-check('la importación repetida no dejó huecos en la secuencia', next.number === Math.max(before + 20, copies[0]?.number ?? 0) + 1, `siguiente=${next.number}`);
+// N1: la importación del N° 7 conserva ese número si estaba libre (sin mover el contador) o recibe el
+// siguiente del contador si estaba ocupado. En ambos casos la cotización nueva es la siguiente del contador.
+const base = Math.max(nums[nums.length - 1], copies[0]?.number ?? 0);
+const { data: ocupadosEntre } = await A1.c.from('jobs').select('number').gt('number', base).lt('number', next.number);
+check('la importación repetida no dejó huecos en la secuencia', next.number > base && (ocupadosEntre ?? []).length === next.number - base - 1, `siguiente=${next.number}, base=${base}`);
 
 // 4. Importación con número ocupado: número interno nuevo, documento con el número emitido.
 const occupied = nums[0];
@@ -92,12 +101,36 @@ check('número local ocupado → número interno nuevo y único', imp.number !==
 const { data: cq } = await A1.c.from('client_quotes').select('number').eq('job_id', imp.id).single();
 check('el documento del cliente conserva el número emitido', cq.number === occupied);
 
-// 5. Importación con número libre: se conserva tal cual.
+// 5. Importación con número libre: se conserva tal cual, y con N1 (A-72) el contador NO salta hasta él.
+const prevNew = await save(A1.c, {}, 'Antes-de-libre');
 const free = (await maxOf(A1.c)) + 50;
 const impFree = await save(A1.c, { localId: randomUUID(), issued: free }, 'Importada-libre');
 check('número local libre → se conserva como número interno', impFree.number === free && impFree.issued_number === free);
 const afterFree = await save(A1.c, {}, 'Tras-libre');
-check('la secuencia sigue después del número importado (sin repetir)', afterFree.number === free + 1, `siguiente=${afterFree.number}`);
+const { data: usados } = await A1.c.from('jobs').select('number, issued_number').neq('id', afterFree.id);
+const repite = (usados ?? []).some((r) => r.number === afterFree.number || r.issued_number === afterFree.number);
+check(
+  'N1: la siguiente usa el contador (no salta al importado) y no repite ningún número interno ni emitido',
+  afterFree.number > prevNew.number && afterFree.number < free && !repite,
+  `anterior=${prevNew.number}, importado=${free}, siguiente=${afterFree.number}`,
+);
+
+// 5b. Importación del máximo de INTEGER: ya no bloquea la cuenta (H4).
+const MAX_INT4 = 2147483647;
+const { data: maxOcupado } = await A1.c.from('jobs').select('id').eq('number', MAX_INT4);
+if ((maxOcupado ?? []).length === 0) {
+  const impMax = await save(A1.c, { localId: randomUUID(), issued: MAX_INT4 }, 'Importada-maximo');
+  check('importar el N° 2.147.483.647 lo conserva (interno y emitido)', impMax.number === MAX_INT4 && impMax.issued_number === MAX_INT4);
+} else {
+  check('importar el N° 2.147.483.647 lo conserva (interno y emitido)', true, 'ya existía un trabajo con ese número en la cuenta: se omite');
+}
+let afterMax = null;
+try {
+  afterMax = await save(A1.c, {}, 'Tras-maximo');
+} catch (e) {
+  check('tras importar el máximo, la siguiente cotización funciona (sin desbordar)', false, String(e));
+}
+if (afterMax) check('tras importar el máximo, la siguiente cotización funciona (sin desbordar)', afterMax.number > afterFree.number && afterMax.number < free, `siguiente=${afterMax.number}`);
 
 // 6. Documento histórico inalterable.
 const { error: updNum } = await A1.c.from('jobs').update({ number: 99999 }).eq('id', imp.id);

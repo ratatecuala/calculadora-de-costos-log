@@ -11,8 +11,16 @@
 -- Las filas «inv.*» son invariantes: deben valer lo indicado en la columna «esperado» en
 -- cualquier base sana (también sirven sin comparar con el origen).
 -- Probado en el ensayo local del 18-11-2026 (Postgres 16 con un stub mínimo de Supabase).
+-- #52 (A-74): las invariantes de privilegios dependen de si la migración 20261122120000 está aplicada
+-- (se detecta porque create_job_with_quote es SECURITY DEFINER). Así el script sirve antes y después.
+-- Probado en local con las dos variantes (ensayo-52/probar-restauracion.sh).
 
 with
+m52 as (
+  select coalesce((select p.prosecdef from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                    where n.nspname = 'public' and p.proname = 'create_job_with_quote'
+                      and pg_get_function_identity_arguments(p.oid) = 'p_job jsonb, p_quote jsonb'), false) as aplicada
+),
 cnt as (
   select 'conteo.auth.users' as control, count(*)::text as valor, '' as esperado from auth.users
   union all select 'conteo.auth.identities', count(*)::text, '' from auth.identities
@@ -66,7 +74,7 @@ inv as (
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and c.relkind in ('r', 'p') and c.relrowsecurity
   union all
-  select 'inv.politicas_public', count(*)::text, '17' from pg_policies where schemaname = 'public'
+  select 'inv.politicas_public', count(*)::text, case when (select aplicada from m52) then '13' else '17' end from pg_policies where schemaname = 'public'
   union all
   select 'inv.privilegios_tabla_anon', count(*)::text, '0'
     from information_schema.role_table_grants
@@ -74,7 +82,9 @@ inv as (
   union all
   select 'inv.privilegios_tabla_authenticated',
          coalesce(string_agg(table_name || ':' || privs, ' ' order by table_name), ''),
-         'client_quotes:DELETE,INSERT,SELECT jobs:DELETE,INSERT,SELECT profiles:DELETE,INSERT,SELECT,UPDATE vehicles:DELETE,INSERT,SELECT,UPDATE'
+         case when (select aplicada from m52)
+              then 'client_quotes:SELECT jobs:DELETE,SELECT profiles:DELETE,INSERT,SELECT,UPDATE vehicles:DELETE,INSERT,SELECT,UPDATE'
+              else 'client_quotes:DELETE,INSERT,SELECT jobs:DELETE,INSERT,SELECT profiles:DELETE,INSERT,SELECT,UPDATE vehicles:DELETE,INSERT,SELECT,UPDATE' end
     from (select table_name, string_agg(privilege_type, ',' order by privilege_type) privs
             from information_schema.role_table_grants
            where grantee = 'authenticated' and table_schema = 'public'
@@ -95,11 +105,16 @@ inv as (
   union all
   select 'inv.security_definer',
          coalesce(string_agg(n.nspname || '.' || p.proname, ' ' order by n.nspname, p.proname), ''),
-         'private.allocate_quote_number public.create_quote_share public.get_public_quote public.revoke_quote_share'
+         case when (select aplicada from m52)
+              then 'private.allocate_quote_number public.create_job_with_quote public.create_quote_share public.get_public_quote public.revoke_quote_share'
+              else 'private.allocate_quote_number public.create_quote_share public.get_public_quote public.revoke_quote_share' end
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname in ('public', 'private') and p.prosecdef
   union all
   select 'inv.esquema_private_usable_por_anon', has_schema_privilege('anon', 'private', 'usage')::text, 'false'
+  union all
+  select 'inv.esquema_private_usable_por_authenticated', has_schema_privilege('authenticated', 'private', 'usage')::text,
+         case when (select aplicada from m52) then 'false' else 'true' end
 )
 select control, valor, esperado from cnt
 union all select control, valor, esperado from huella

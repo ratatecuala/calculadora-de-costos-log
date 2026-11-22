@@ -1,5 +1,6 @@
--- HERRAMIENTA DE DISEÑO (#52, docs/23 §10). Pruebas del rediseño del contador (N1) sobre la propuesta
--- de #52, en un PostgreSQL LOCAL desechable. Cada prueba imprime «OK …» o se detiene con «FALLA …».
+-- HERRAMIENTA DE DISEÑO (#52, docs/23 §11). Pruebas del contador N1 sobre la migración REAL de #52
+-- (20261122120000), en un PostgreSQL LOCAL desechable. Cada prueba imprime «OK …» o se detiene con
+-- «FALLA …». L0 (históricos intactos) se comprueba en ensayar.sh justo después de aplicar la migración.
 -- Usuarios ficticios nuevos: D = …0d, E = …0e (contadores limpios).
 \set ON_ERROR_STOP 1
 \set QUIET 1
@@ -10,16 +11,6 @@ insert into auth.users (id, email) values
 create function prueba.contador(p uuid) returns integer language sql security definer set search_path = '' as
   $$ select last_number from public.quote_counters where owner_id = p $$;
 grant execute on function prueba.contador(uuid) to authenticated;
-
--- L0 · Documentos históricos intactos: la huella de todos los trabajos y cotizaciones existentes no
---      cambia al reemplazar la función (se compara con la tomada antes, en prueba.memo).
-do $$ begin
-  if (select v from prueba.memo where k = 'huella_antes') <>
-     (select md5(coalesce(string_agg(j.id::text || ':' || j.number || ':' || j.issued_number || ':' || coalesce(q.number::text, '-'), ',' order by j.id), ''))
-        from public.jobs j left join public.client_quotes q on q.job_id = j.id)
-  then raise exception 'FALLA L0: cambiaron trabajos o documentos existentes'; end if;
-  raise notice 'OK L0 trabajos y documentos existentes idénticos tras reemplazar la función';
-end $$;
 
 -- L1 · Importar el máximo de INTEGER (libre) ya no bloquea: se conserva interno y emitido, el contador
 --      no salta, y las cotizaciones nuevas siguen su secuencia.
