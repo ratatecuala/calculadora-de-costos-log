@@ -347,7 +347,7 @@ Comunicadas por el propietario por chat a Claude y **registradas literalmente** 
 
 ## Decisiones del 22-11-2026: P1 de A-73 (Frente A) y lista de comprobación para staging de #52 (Frente B)
 
-Comunicadas por el propietario por chat a Claude y **registradas literalmente** en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43) antes de trabajar. **APROBADAS.** Base: [auditoría de A-73](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7072905772) (0 P0 · 1 P1) y [auditoría de A-74](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7072906170) (0 P0 · 0 P1).
+Comunicadas por el propietario por chat a Claude y **registradas literalmente** en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7077903187) antes de trabajar. **APROBADAS.** Base: [auditoría de A-73](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7072905772) (0 P0 · 1 P1) y [auditoría de A-74](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7072906170) (0 P0 · 0 P1).
 
 | ID | Decisión | Alcance de la aprobación |
 |---|---|---|
@@ -355,3 +355,5 @@ Comunicadas por el propietario por chat a Claude y **registradas literalmente** 
 | A-76 | **Frente B:** la implementación local de #52 queda **aprobada técnicamente** por auditoría | La migración **no** se modifica salvo una incompatibilidad verificable. Se prepara **solo** una lista de comprobación, con instrucciones simples, para el respaldo y las verificaciones previas en staging. **Ninguna operación remota** |
 
 **No autoriza:** migraciones, consultas en Supabase, flags, despliegues, I-2, I-3 ni merge del PR #34.
+
+**Estado (22-11):** A-75 **implementada** ([24 §8](24-robustez-numerica.md)), con reauditoría solicitada.

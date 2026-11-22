@@ -6,6 +6,7 @@
  *   npx vite --port 5191 --strictPort                                  (sin flag)
  *   node scripts/e2e-numeros.mjs http://localhost:5190 http://localhost:5191 [carpeta-capturas]
  *
+ * También A-75: reemplazos (ejemplo, vehículo, margen predefinido) que quitan solo el error del campo.
  * También A-73: texto no numérico en cada campo, comparación opcional que no bloquea, borrador con texto
  * inválido (con la flag) y mínimo de rendimiento en «Mi vehículo».
  *
@@ -173,6 +174,47 @@ try {
       check(`${modo} · A-73: un texto inválido de último momento bloquea la emisión`, await crear.isDisabled());
       await campo(/^Peajes y TAG/).fill('4.200');
 
+      // ---------------- A-75 ----------------
+      // Reemplazos programáticos: quitan el error de texto SOLO de los campos que reemplazan.
+      // Tras un reemplazo, el costo puede cambiar y el aviso «Mantener este precio» aparece un render después.
+      const confirmarPrecio = async () => {
+        await aviso.waitFor({ state: 'detached', timeout: 3000 }).catch(() => undefined);
+        await page.waitForTimeout(250);
+        const k = page.getByRole('button', { name: 'Mantener este precio' });
+        if (await k.count()) await k.click();
+      };
+      const detalle = async (f) =>
+        JSON.stringify({ valor: await f.inputValue(), invalido: await f.getAttribute('aria-invalid'), aviso: await aviso.count(), crear: await crear.isEnabled(), errores: await page.locator('.field-error').allInnerTexts() });
+      const combustible = campo(/^Precio del combustible/);
+      await combustible.fill('abc');
+      await page.getByRole('button', { name: 'Cargar ejemplo ficticio' }).click();
+      await confirmarPrecio();
+      check(
+        `${modo} · A-75: combustible «abc» + «Cargar ejemplo ficticio» → 1.050, sin error y se puede cotizar`,
+        (await combustible.inputValue()) === '1.050' && (await combustible.getAttribute('aria-invalid')) !== 'true' && (await aviso.count()) === 0 && (await crear.isEnabled()),
+        await detalle(combustible),
+      );
+      await page.getByRole('button', { name: 'Otro', exact: true }).click();
+      await campo(/^Margen objetivo/).fill('abc');
+      check(`${modo} · A-75: margen «abc» bloquea la cotización`, (await aviso.isVisible()) && (await crear.isDisabled()));
+      await page.getByRole('button', { name: '15 %' }).click();
+      await confirmarPrecio();
+      check(
+        `${modo} · A-75: margen «abc» → elegir 15 %: ya no bloquea y el campo «Otro» se cierra`,
+        (await aviso.count()) === 0 && (await crear.isEnabled()) && (await campo(/^Margen objetivo/).count()) === 0,
+      );
+      await page.getByRole('button', { name: 'Otro', exact: true }).click();
+      await campo(/^Margen objetivo/).fill('abc');
+      await campo(/^Peajes y TAG/).fill('x');
+      await page.getByRole('button', { name: '15 %' }).click();
+      check(
+        `${modo} · A-75: elegir 15 % no quita el error de otro campo (peajes «x» sigue bloqueando)`,
+        (await campo(/^Peajes y TAG/).inputValue()) === 'x' && (await campo(/^Peajes y TAG/).getAttribute('aria-invalid')) === 'true' && (await aviso.isVisible()),
+      );
+      await campo(/^Peajes y TAG/).fill('4.200');
+      await confirmarPrecio();
+      check(`${modo} · A-75: tras corregir peajes, se puede cotizar`, (await aviso.count()) === 0 && (await crear.isEnabled()));
+
       // 2. La comparación opcional con valores inválidos no bloquea la cotización principal.
       await page.getByRole('button', { name: /Calcular ruta/ }).click();
       await page.getByText('Datos simulados.').first().waitFor({ timeout: 15000 });
@@ -228,6 +270,25 @@ try {
       await vDesg.fill('31');
       await page.getByRole('button', { name: 'Guardar vehículo' }).click();
       check(`${modo} · A-73: con datos válidos el vehículo se guarda`, await page.getByText('Prueba A-73').first().isVisible());
+      // A-75: elegir y restaurar un vehículo quita los errores de texto de rendimiento y desgaste.
+      await page.getByRole('button', { name: 'Cotizar' }).click();
+      const cRend = campo(/^Rendimiento/);
+      await cRend.fill('abc');
+      await campo(/^Peajes y TAG/).fill('x');
+      const selVehiculo = page.locator('.vehicle-picker select');
+      await selVehiculo.selectOption((await selVehiculo.locator('option', { hasText: 'Prueba A-73' }).getAttribute('value')) ?? '');
+      check(
+        `${modo} · A-75: rendimiento «abc» → elegir el vehículo: 9 km/L sin error; peajes «x» sigue marcado`,
+        (await cRend.inputValue()) === '9' && (await cRend.getAttribute('aria-invalid')) !== 'true' && (await campo(/^Peajes y TAG/).getAttribute('aria-invalid')) === 'true',
+        `rendimiento=${await cRend.inputValue()}`,
+      );
+      await campo(/^Peajes y TAG/).fill('4.200');
+      await cRend.fill('10');
+      await cRend.fill('abc');
+      await page.getByRole('button', { name: 'Restaurar valores del vehículo' }).click();
+      await confirmarPrecio();
+      check(`${modo} · A-75: «Restaurar valores del vehículo» → 9 km/L sin error`, (await cRend.inputValue()) === '9' && (await cRend.getAttribute('aria-invalid')) !== 'true' && (await aviso.count()) === 0, await detalle(cRend));
+      await page.getByRole('button', { name: 'Mi vehículo' }).click();
       // Vehículo guardado antes de A-73 con 0,05 km/L: se conserva idéntico y se marca para revisión.
       await page.evaluate(() => {
         const antiguo = { id: 'v-antiguo', name: 'Antigua', type: 'camioneta', fuel: 'diesel', kmPerL: 0.05, wearPerKm: 31, createdAt: '2026-11-18T00:00:00Z', updatedAt: '2026-11-18T00:00:00Z' };

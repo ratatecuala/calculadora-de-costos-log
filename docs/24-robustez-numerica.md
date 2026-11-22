@@ -1,6 +1,6 @@
 # 24 · Robustez ante números extremos en la calculadora (A-71)
 
-**Versión 2 · 22-11-2026 · Estado: IMPLEMENTADA.** A-71 está auditada (0 P0 · 0 P1 · 2 P2). Las correcciones de validación A-73 (§7) están implementadas, con auditoría solicitada.
+**Versión 3 · 22-11-2026 · Estado: IMPLEMENTADA.** A-71 está auditada (0 P0 · 0 P1 · 2 P2). A-73 (§7) está auditada (0 P0 · 1 P1). El P1 se corrigió con A-75 (§8), con reauditoría solicitada.
 - **Autorización:** A-71, [registro en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7071778285).
 - **Origen:** la [reauditoría de D-I8](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7071695047) y la observación de [22 §16.3](22-diseno-integracion-cotizador.md): un número finito pero enorme, como `1e308`, escrito en cualquier campo, podía hacer fallar el motor y cerrar la calculadora.
 
@@ -220,3 +220,68 @@ Como la calculadora llamaba al motor durante el dibujo de la pantalla, la excepc
 **Nota de método:** tras muchas corridas seguidas contra el mismo servidor de desarrollo, se agota el cupo **simulado** de rutas, que vive en memoria. Las corridas que se cortaron por esa causa se repitieron con servidores nuevos.
 
 **Sin probar:** Safari real, lector de pantalla real y staging.
+
+## 8. Auditoría de A-73 (0 P0 · 1 P1) y corrección del P1 (A-75, 22-11-2026)
+
+- **[Auditoría](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7072905772).**
+- **[Autorización (A-75)](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7077903187).**
+
+**P1:** un error de texto inválido seguía activo después de que una acción **reemplazara** el valor de su campo por otro válido. Pasaba con tres acciones:
+- «Cargar ejemplo ficticio» (`setParams`);
+- elegir un vehículo o «Restaurar valores del vehículo» (`selectVehicle` y `restoreVehicleValues`);
+- un margen predefinido, como 10 %, 15 % o 20 % (`setMargin`).
+
+El campo seguía mostrando «abc» y bloqueaba la cotización aunque el valor ya fuera válido.
+
+**Corrección** (`session.ts`, sin cambiar el motor ni el diseño):
+- **Regla:** fijar el valor de un campo, desde el propio campo o con una acción que lo reemplaza, quita el texto inválido de **ese** campo y de ninguno más (`textIssuesWithout`).
+- **Dónde se aplica:**
+  - `setParams`, solo con las claves que recibe;
+  - `selectVehicle`, solo rendimiento y desgaste; elegir «Sin vehículo» no cambia valores ni quita errores;
+  - `restoreVehicleValues`;
+  - `setMargin`, `setSurcharges`, `setChosenPrice` y `setTollsComparison`;
+  - `setLegOverride`, solo el km o los minutos que se fijan.
+- **Por qué no se pierde nada escrito:** un texto inválido nunca pasa por estos métodos, porque `NumberField` no llama a `onChange` con él (A-73).
+- **Si el valor nuevo está fuera de rango:** por ejemplo, un vehículo de 0,05 km/L. El texto se reemplaza, pero el campo **sigue marcado** con su error de rango; nada se resuelve en silencio.
+
+**Pruebas (Claude, 22-11-2026):**
+- **Unitarias nuevas** (`tests/limpieza-a75.test.ts`, 11):
+  - combustible «abc» + «Cargar ejemplo» se puede cotizar;
+  - el ejemplo no quita los errores de margen, recargos, tramos ni precio, y no cambia otros valores;
+  - **margen «abc» + 15 %: deja de bloquear** y se puede emitir; elegir un margen no quita el error de otro campo;
+  - el vehículo quita solo sus dos errores; «Restaurar valores» también; «Sin vehículo» no quita nada;
+  - un vehículo fuera de rango sigue marcado;
+  - en un tramo se quita solo el campo fijado;
+  - el borrador ya no guarda el texto antiguo.
+- **E2E** (`scripts/e2e-numeros.mjs`, 14 verificaciones por tamaño y modo, con y sin flag, Pixel 7, iPhone 13 emulado, 1366 y 1440):
+  - combustible «abc» + «Cargar ejemplo» da 1.050 sin error y se puede cotizar;
+  - **margen «abc» + 15 %** deja de bloquear y el campo «Otro» se cierra;
+  - el 15 % no quita el error de peajes «x»;
+  - rendimiento «abc» + elegir el vehículo da 9 km/L sin error, y peajes sigue marcado;
+  - «Restaurar valores del vehículo» da 9 km/L sin error.
+
+| Prueba | Resultado |
+|---|---|
+| `npm test` | **636/636** (625 + 11) |
+| Casos dorados | **64/64** |
+| Typecheck y 3 builds | Sin errores |
+| `e2e-numeros.mjs` | **900/900** (844 + 56), dos corridas |
+| `e2e-integracion.mjs` con la flag / sin flag | **278/278** / **24/24** |
+| `e2e-modulos.mjs` | **210/210** |
+| Anónimo en local, sin y con flag | **54/59** (5 de entorno) |
+| `src/engine`, `src/server`, `src/shared`, `supabase/` | **Sin cambios** |
+
+**Defectos reintroducidos: 9, todos detectados.**
+- **7 por las unitarias:**
+  - «Cargar ejemplo» no limpia: 3;
+  - el margen no limpia: 3;
+  - el vehículo no limpia: 2;
+  - «Restaurar» no limpia: 1;
+  - `setParams` limpia todos los errores (de más): 1;
+  - un tramo limpia km y minutos aunque cambie uno: 1;
+  - «Sin vehículo» limpia errores: 1.
+- **2 también por el E2E:**
+  - sin limpieza del margen: 24 fallas de A-75;
+  - sin limpieza en «Cargar ejemplo»: 32.
+
+**Nota de método:** tras un reemplazo, el costo puede cambiar y el aviso «Mantener este precio» aparece un render después. Las verificaciones de A-75 esperan a que la pantalla se asiente antes de comprobar.

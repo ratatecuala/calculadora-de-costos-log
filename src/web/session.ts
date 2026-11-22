@@ -401,7 +401,11 @@ export class QuoteSession {
       kmPerL: profile.kmPerL,
       wearPerKm: profile.wearPerKm,
     };
-    this.set({ vehicle: applied, params: { ...this.state.params, kmPerL: applied.kmPerL, wearPerKm: applied.wearPerKm } });
+    this.set({
+      vehicle: applied,
+      params: { ...this.state.params, kmPerL: applied.kmPerL, wearPerKm: applied.wearPerKm },
+      textIssues: this.textIssuesWithout(['params.kmPerL', 'params.wearPerKm']),
+    });
   }
 
   /** Campos del vehículo ajustados solo para esta cotización. */
@@ -415,7 +419,10 @@ export class QuoteSession {
   restoreVehicleValues(): void {
     const v = this.state.vehicle;
     if (!v) return;
-    this.set({ params: { ...this.state.params, kmPerL: v.kmPerL, wearPerKm: v.wearPerKm } });
+    this.set({
+      params: { ...this.state.params, kmPerL: v.kmPerL, wearPerKm: v.wearPerKm },
+      textIssues: this.textIssuesWithout(['params.kmPerL', 'params.wearPerKm']),
+    });
   }
 
   /** Inventario del borrador. No cambia el costo ni la huella del precio (D-I1). */
@@ -571,33 +578,56 @@ export class QuoteSession {
     };
   }
 
+  /*
+   * A-75 (P1 de la auditoría de A-73): fijar el valor de un campo —desde el propio campo o por una acción
+   * que lo reemplaza, como «Cargar ejemplo ficticio», elegir o restaurar un vehículo o un margen
+   * predefinido— quita el texto inválido de ESE campo, que ya no representa lo que se ve. Los demás
+   * campos conservan su error. Un texto inválido nunca pasa por estos métodos (NumberField no llama a
+   * onChange con él), así que no se pierde nada escrito.
+   */
   setParams(partial: Partial<TripParams>): void {
-    this.set({ params: { ...this.state.params, ...partial } });
+    this.set({
+      params: { ...this.state.params, ...partial },
+      textIssues: this.textIssuesWithout(Object.keys(partial).map((k) => `params.${k}`)),
+    });
   }
   setTollsComparison(value: number | null): void {
-    this.set({ tollsComparison: value });
+    this.set({ tollsComparison: value, textIssues: this.textIssuesWithout(['tollsComparison']) });
   }
   setMargin(margin: number): void {
-    this.set({ margin });
+    this.set({ margin, textIssues: this.textIssuesWithout(['margin']) });
   }
   setSurcharges(value: number): void {
-    this.set({ surcharges: Math.max(0, value) });
+    this.set({ surcharges: Math.max(0, value), textIssues: this.textIssuesWithout(['surcharges']) });
   }
   setChosenPrice(value: number | null): void {
     // La huella no depende del precio: se toma con el costo vigente al escribirlo.
-    this.set({ chosenPrice: value, priceBasis: value === null ? null : this.costFingerprint() });
+    this.set({ chosenPrice: value, priceBasis: value === null ? null : this.costFingerprint(), textIssues: this.textIssuesWithout(['chosenPrice']) });
+  }
+
+  /** Copia de `textIssues` sin esas claves (la misma referencia si no había ninguna). */
+  private textIssuesWithout(keys: string[]): Record<string, string> {
+    const current = this.state.textIssues;
+    if (!keys.some((k) => k in current)) return current;
+    const next = { ...current };
+    for (const k of keys) delete next[k];
+    return next;
   }
 
   /** Corrección de km o minutos de un tramo (queda como «declarado por ti»). */
   setLegOverride(kind: RouteKind, index: number, value: Partial<Pick<LegValue, 'km' | 'minutes'>>): void {
     const rs = this.routeState(kind);
+    // A-75: el tramo que se fija deja de tener texto inválido (solo los campos km/minutos tocados).
+    const textIssues = this.textIssuesWithout(Object.keys(value).map((f) => `${kind}.leg.${index}.${f}`));
     if (rs.status === 'manual') {
       const manualLegs = rs.manualLegs.map((l, i) => (i === index ? { ...l, ...value } : l));
+      this.set({ textIssues });
       this.setRouteState(kind, { ...rs, manualLegs });
       return;
     }
     const overrides = [...rs.overrides];
     overrides[index] = { ...overrides[index], ...value };
+    this.set({ textIssues });
     this.setRouteState(kind, { ...rs, overrides });
   }
 
