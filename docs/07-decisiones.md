@@ -331,3 +331,14 @@ Comunicadas por el propietario por chat a Claude y **registradas literalmente** 
 **No autoriza:** despliegues, migraciones reales, ejecución en Supabase, flags, I-2, I-3, IVA, Google Routes ni merge del PR #34.
 
 **Estado (22-11):** A-71 **implementada** ([24](24-robustez-numerica.md)), con auditoría solicitada. A-72: [23](23-revision-52-insert-directo.md) **versión 3** consolidada (diseño aprobado, riesgos de DEFINER, plan por autorizaciones y verificaciones de solo lectura preparadas, sin ejecutar); ensayo local 52/52. **Implementar #52 sigue sin autorizar.**
+
+## Decisiones del 22-11-2026: correcciones de validación (Frente A) e implementación LOCAL de #52 (Frente B)
+
+Comunicadas por el propietario por chat a Claude y **registradas literalmente** en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43) antes de trabajar. **APROBADAS.** Base: [auditoría del Frente A](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7072118320) (0 P0 · 0 P1 · 2 P2; A-71 apta para el cierre técnico) y [auditoría del Frente B](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7072118724) (A-72 apto para implementación local, con 1 P2 documental).
+
+| ID | Decisión | Alcance de la aprobación |
+|---|---|---|
+| A-73 | **Frente A, validación:**<br>(1) un texto no numérico muestra error y **bloquea la emisión**, sin confundirse con vacío ni con cero;<br>(2) una comparación opcional con valores inválidos **no** bloquea la cotización principal válida;<br>(3) el rendimiento mínimo de «Mi vehículo» se alinea con el de la calculadora, sin perder ni modificar en silencio los vehículos guardados | Sin cambiar fórmulas ni cotizaciones históricas, con compatibilidad. Pruebas unitarias, E2E y mutaciones |
+| A-74 | **Frente B, implementación LOCAL de #52:** migración nueva **en el repositorio** con D-52-1, D-52-2 y N1, ensayada **solo en PostgreSQL local desechable**. Adaptar las pruebas de RLS, numeración y T6c; verificar privilegios, concurrencia, idempotencia y reversión; corregir las instrucciones de las verificaciones de solo lectura para el editor SQL de Supabase | **No** autoriza ejecutar ninguna migración en Supabase. La implementación local **no** equivale a una autorización de ejecución remota, que sigue exigiendo respaldo real y A-59 |
+
+**No autoriza:** ejecutar migraciones en Supabase, modificar staging, flags, despliegues, I-2, I-3 ni merge del PR #34.
