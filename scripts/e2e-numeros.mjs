@@ -6,6 +6,9 @@
  *   npx vite --port 5191 --strictPort                                  (sin flag)
  *   node scripts/e2e-numeros.mjs http://localhost:5190 http://localhost:5191 [carpeta-capturas]
  *
+ * También A-73: texto no numérico en cada campo, comparación opcional que no bloquea, borrador con texto
+ * inválido (con la flag) y mínimo de rendimiento en «Mi vehículo».
+ *
  * En Pixel 7, iPhone 13 (emulados en Chromium), 1366×768 y 1440×900 comprueba, campo por campo, que
  * 1e308, negativos, decimales donde no corresponden y valores justo sobre el tope:
  *  - marcan el campo (aria-invalid) con su mensaje y el aviso general, sin errores de página;
@@ -146,6 +149,94 @@ try {
       if (capturas) await page.screenshot({ path: `${capturas}/a71-${modo.replace(' ', '-')}-${nombre.replace(/\W+/g, '-')}.png`, fullPage: true });
       await rend.fill('12');
       await campo(/^Precio del combustible/).fill('1.050');
+
+      // ---------------- A-73 ----------------
+      // 1. Texto no numérico en cada campo: marcado, conservado tal cual (ni vacío ni 0) y sin poder cotizar.
+      for (const [etiqueta, re, valido] of CAMPOS) {
+        const f = campo(re);
+        await f.fill('abc');
+        await f.press('Tab');
+        check(
+          `${modo} · A-73 ${etiqueta} = «abc»: marcado, conservado y cotización en pausa`,
+          (await f.getAttribute('aria-invalid')) === 'true' && (await f.inputValue()) === 'abc' && (await aviso.isVisible()) && (await crear.isDisabled()),
+          `valor=${await f.inputValue()}`,
+        );
+        await f.fill(valido);
+        await f.press('Tab');
+        const k = page.getByRole('button', { name: 'Mantener este precio' });
+        if (await k.count()) await k.click();
+        check(`${modo} · A-73 ${etiqueta}: al corregir, todo vuelve`, (await aviso.count()) === 0 && (await crear.isEnabled()));
+      }
+      // 1b. Texto inválido en el último momento, con todo listo para cotizar.
+      check(`${modo} · A-73: listo para cotizar antes del cambio`, await crear.isEnabled());
+      await campo(/^Peajes y TAG/).fill('4.200 pesos');
+      check(`${modo} · A-73: un texto inválido de último momento bloquea la emisión`, await crear.isDisabled());
+      await campo(/^Peajes y TAG/).fill('4.200');
+
+      // 2. La comparación opcional con valores inválidos no bloquea la cotización principal.
+      await page.getByRole('button', { name: /Calcular ruta/ }).click();
+      await page.getByText('Datos simulados.').first().waitFor({ timeout: 15000 });
+      const mantener = page.getByRole('button', { name: 'Mantener este precio' });
+      if (await mantener.count()) await mantener.click();
+      await page.getByText('Comparar con ruta sin peajes (opcional)').click();
+      await page.getByRole('button', { name: 'Comparar sin peajes' }).click();
+      const peajesComp = campo(/^Peajes de la ruta sin peajes/);
+      const hayComparacion = await peajesComp.waitFor({ timeout: 10000 }).then(() => true).catch(() => false);
+      check(`${modo} · A-73: la comparación sin peajes se calculó`, hayComparacion);
+      if (hayComparacion) {
+        for (const valor of ['1e308', 'abc']) {
+          await peajesComp.fill(valor);
+          await peajesComp.press('Tab');
+          check(
+            `${modo} · A-73: peajes de la comparación = «${valor}» → comparación en pausa, cotización principal disponible`,
+            (await peajesComp.getAttribute('aria-invalid')) === 'true' && (await page.getByTestId('pausa-comparacion').isVisible()) && (await aviso.count()) === 0 && (await crear.isEnabled()),
+          );
+        }
+        await peajesComp.fill('0');
+        check(`${modo} · A-73: comparación corregida`, (await page.getByTestId('pausa-comparacion').count()) === 0);
+      }
+
+      // 3. Borrador: un texto inválido se recupera literalmente (solo con la flag, que habilita el borrador).
+      if (modo === 'con flag') {
+        await campo(/^Peajes y TAG/).fill('abc');
+        await page.waitForTimeout(1500);
+        await page.reload({ waitUntil: 'networkidle' });
+        const oferta = page.getByTestId('oferta-borrador');
+        await oferta.waitFor({ timeout: 5000 });
+        await oferta.getByRole('button', { name: 'Recuperar' }).click();
+        const peajes = campo(/^Peajes y TAG/);
+        check(`${modo} · A-73: el texto inválido vuelve del borrador tal cual, marcado`, (await peajes.inputValue()) === 'abc' && (await peajes.getAttribute('aria-invalid')) === 'true');
+        check(`${modo} · A-73: tras recuperarlo, la cotización sigue bloqueada`, await crear.isDisabled());
+        await peajes.fill('4.200');
+      }
+
+      // 4. «Mi vehículo»: mínimo 0,1 km/L y texto inválido que bloquea el guardado.
+      await page.getByRole('button', { name: 'Mi vehículo' }).click();
+      const agregar = page.getByRole('button', { name: '+ Agregar vehículo' });
+      if (await agregar.count()) await agregar.click();
+      await page.getByPlaceholder('Ej.: Camioneta blanca').fill('Prueba A-73');
+      const vRend = campo(/^Rendimiento/);
+      const vDesg = campo(/^Desgaste estimado/);
+      await vRend.fill('0,05');
+      await page.getByRole('button', { name: 'Guardar vehículo' }).click();
+      const errRend = await vRend.locator('xpath=ancestor::label[1]').locator('.field-error').innerText().catch(() => '');
+      check(`${modo} · A-73: vehículo con 0,05 km/L → rechazado con el mensaje del mínimo`, (await vRend.getAttribute('aria-invalid')) === 'true' && /desde 0,1 km\/L/.test(errRend), errRend);
+      await vRend.fill('9');
+      await vDesg.fill('abc');
+      await page.getByRole('button', { name: 'Guardar vehículo' }).click();
+      check(`${modo} · A-73: desgaste «abc» → el vehículo no se guarda (ni como vacío)`, (await page.getByText('Nuevo vehículo').count()) === 1 && (await vDesg.getAttribute('aria-invalid')) === 'true');
+      await vDesg.fill('31');
+      await page.getByRole('button', { name: 'Guardar vehículo' }).click();
+      check(`${modo} · A-73: con datos válidos el vehículo se guarda`, await page.getByText('Prueba A-73').first().isVisible());
+      // Vehículo guardado antes de A-73 con 0,05 km/L: se conserva idéntico y se marca para revisión.
+      await page.evaluate(() => {
+        const antiguo = { id: 'v-antiguo', name: 'Antigua', type: 'camioneta', fuel: 'diesel', kmPerL: 0.05, wearPerKm: 31, createdAt: '2026-11-18T00:00:00Z', updatedAt: '2026-11-18T00:00:00Z' };
+        localStorage.setItem('cotizador.vehiculos.v1', JSON.stringify({ version: 1, vehicles: [antiguo], defaultId: null }));
+      });
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.getByRole('button', { name: 'Mi vehículo' }).click();
+      check(`${modo} · A-73: vehículo antiguo con 0,05 km/L listado y marcado para revisión`, (await page.getByTestId('vehiculo-revisar').isVisible()) && (await page.getByText('0,05 km/L').count()) === 1);
+      check(`${modo} · A-73: el vehículo antiguo no se modificó en el almacenamiento`, await page.evaluate(() => JSON.parse(localStorage.getItem('cotizador.vehiculos.v1')).vehicles[0].kmPerL === 0.05));
 
       if (telefono) {
         const desborde = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);

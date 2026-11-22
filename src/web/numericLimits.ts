@@ -19,6 +19,7 @@
  *  Number.MAX_SAFE_INTEGER (≈ 9·10^15). Ninguna operación intermedia puede dar infinito.
  */
 import { MAX_CLP } from '../shared/resources';
+import { INVALID_NUMBER_MESSAGE } from './format';
 import type { TripParams } from '../engine/inputs';
 import type { SessionState } from './session';
 
@@ -93,7 +94,7 @@ function legValues(rs: SessionState['habitual']): Legs {
  * Todos los valores numéricos fuera de rango del estado. Los km y minutos de una ruta del proveedor
  * no se validan aquí (los entrega el servidor ya validados); sí las correcciones del usuario.
  */
-export function numericIssues(s: SessionState): NumericIssues {
+export function numericIssues(s: SessionState, opts: { includeText?: boolean } = {}): NumericIssues {
   const out: NumericIssues = {};
   const add = (key: string, v: number | null, limit: FieldLimit) => {
     const issue = limitIssue(v, limit);
@@ -110,7 +111,21 @@ export function numericIssues(s: SessionState): NumericIssues {
   add('surcharges', s.surcharges, MONEY_LIMIT);
   add('chosenPrice', s.chosenPrice, MONEY_LIMIT);
   add('tollsComparison', s.tollsComparison, MONEY_LIMIT);
+  // A-73: un texto que no es un número es INVÁLIDO (no faltante ni cero): pausa y bloquea igual.
+  if (opts.includeText !== false) for (const key of Object.keys(s.textIssues ?? {})) out[key] = INVALID_NUMBER_MESSAGE;
   return out;
+}
+
+/** Claves de campo que admiten texto inválido registrado en la sesión (y en el borrador). */
+export const TEXT_ISSUE_KEY = /^(params\.(fuelPricePerL|kmPerL|wearPerKm|fixedPerHour|ownerPerHour|helpers|helperFee|loadMinutes|tolls|otherCosts)|(habitual|evitarPeajes)\.leg\.[0-2]\.(km|minutes)|margin|surcharges|chosenPrice|tollsComparison)$/;
+
+/**
+ * ¿Este error impide COTIZAR? (A-73) La comparación sin peajes es opcional: sus errores (peajes de la
+ * comparación y tramos de la ruta sin peajes) pausan solo la comparación, nunca la cotización principal.
+ */
+export function blocksQuote(key: string): boolean {
+  if (key === 'chosenPrice') return true;
+  return blocksComputation(key, 'habitual');
 }
 
 /** ¿Este error impide calcular la ruta `kind`? El precio elegido no impide calcular el costo. */

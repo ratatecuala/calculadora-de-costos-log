@@ -132,6 +132,13 @@ const draftDataSchema = z.object({
     equipment: z.array(z.object({ key: z.string(), label: z.string(), amount: numOrNull })).max(MAX_EQUIPMENT),
   }),
   manualRoute: manualRouteSchema,
+  // A-73: textos inválidos escritos (se recuperan literalmente). Si la entrada está dañada se ignora
+  // solo esta parte; la sesión vuelve a filtrar claves y textos al restaurar.
+  invalidTexts: z
+    .record(z.string().max(40), z.string().max(200))
+    .refine((r) => Object.keys(r).length <= 40)
+    .optional()
+    .catch(undefined),
 });
 
 const storedSchema = z.object({ format: z.literal(DRAFT_FORMAT), savedAt: z.string(), data: draftDataSchema });

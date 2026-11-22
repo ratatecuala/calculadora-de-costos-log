@@ -1,6 +1,6 @@
 # 24 · Robustez ante números extremos en la calculadora (A-71)
 
-**Versión 1 · 22-11-2026 · Estado: IMPLEMENTADA**, con auditoría solicitada.
+**Versión 2 · 22-11-2026 · Estado: IMPLEMENTADA.** A-71 está auditada (0 P0 · 0 P1 · 2 P2). Las correcciones de validación A-73 (§7) están implementadas, con auditoría solicitada.
 - **Autorización:** A-71, [registro en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7071778285).
 - **Origen:** la [reauditoría de D-I8](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7071695047) y la observación de [22 §16.3](22-diseno-integracion-cotizador.md): un número finito pero enorme, como `1e308`, escrito en cualquier campo, podía hacer fallar el motor y cerrar la calculadora.
 
@@ -137,6 +137,86 @@ Como la calculadora llamaba al motor durante el dibujo de la pantalla, la excepc
 
 ## 6. Pendiente y observaciones
 
-- **Texto no numérico (A-50, sin cambios):** un texto que no es un número, como `abc`, `-5` o `1e400` (que se vuelve infinito al leerlo), se avisa en el campo y cuenta como **faltante**, tal como se aprobó en A-50. Los valores numéricos fuera de rango, en cambio, **pausan** el cálculo. Si prefieres que el texto inválido también pause el cálculo, es una decisión aparte.
-- **Formulario de «Mi vehículo»:** admite rendimientos entre 0 y 0,1 km/L, que la calculadora marca al aplicarlos. Alinear el mínimo de ese formulario cambiaría su esquema compartido y la lectura de los perfiles guardados, y no se hizo sin tu autorización.
+- *Estado actual: corregido por A-73 (§7).* **Texto no numérico (A-50, sin cambios en A-71):** un texto que no es un número, como `abc`, `-5` o `1e400` (que se vuelve infinito al leerlo), se avisa en el campo y cuenta como **faltante**, tal como se aprobó en A-50. Los valores numéricos fuera de rango, en cambio, **pausan** el cálculo. Si prefieres que el texto inválido también pause el cálculo, es una decisión aparte.
+- *Estado actual: alineado por A-73 (§7).* **Formulario de «Mi vehículo»:** admitía rendimientos entre 0 y 0,1 km/L, que la calculadora marca al aplicarlos. Alinear el mínimo de ese formulario cambiaría su esquema compartido y la lectura de los perfiles guardados, y no se hizo sin tu autorización.
 - **No probado:** Safari real, lector de pantalla y staging, que no se desplegó.
+
+## 7. Auditoría de A-71 (0 P0 · 0 P1 · 2 P2) y correcciones de validación (A-73, 22-11-2026)
+
+- **[Auditoría](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7072118320):** A-71 es apta para el cierre técnico, con dos P2 y una observación sobre «Mi vehículo».
+- **[Autorización (A-73)](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7072135863).**
+
+**Sin cambios en:** el motor, las fórmulas (casos dorados 64/64), `src/server`, Supabase y las flags (siguen apagadas). Sin despliegue ni merge.
+
+### 7.1 Qué se corrigió
+
+| Pedido | Corrección | Archivos |
+|---|---|---|
+| **1. Texto no numérico:** error y emisión bloqueada, sin confundirlo con vacío ni con cero (P2-2) | `NumberField` con `onInvalidText`: un texto que no es un número, como `abc`, `-5` o `1e400`, **no llama a `onChange`**. El valor anterior no se reemplaza por vacío ni por 0; antes, en ayudantes, carga y descarga, otros gastos, recargos y margen, «abc» se convertía en el acto en «0». La sesión lo registra en `textIssues` con la misma clave que `numericIssues`: **pausa el cálculo** y **bloquea la emisión** (`canQuote` y `buildJobRecord`). Se guarda en el borrador (`invalidTexts`) y se recupera **literalmente**, salvo el del precio (el precio nunca se recupera, D-I8), el de los peajes de la comparación (que no se recupera) y los de tramos que ya no existen. Un texto inválido recuperado **no** descarta el recorrido manual: el campo lo muestra con su error hasta que se corrija. El aviso se sigue anunciando como alerta | `NumberField.tsx`, `session.ts`, `numericLimits.ts`, `draftStore.ts`, `Calculator.tsx`, `jobs.ts` |
+| **2. Comparación opcional:** sus errores no bloquean la cotización principal válida (P2-1) | `blocksQuote`: los errores de la comparación sin peajes (sus peajes, sus tramos y sus textos) pausan **solo la comparación**. `canQuote` y `buildJobRecord` usan `quoteBlockers()`. Aviso propio: «La comparación sin peajes queda en pausa por un valor inválido. No afecta a tu cotización principal.» | `numericLimits.ts`, `session.ts`, `jobs.ts`, `Calculator.tsx` |
+| **3. «Mi vehículo»:** mínimo de 0,1 km/L, sin perder ni modificar en silencio los vehículos guardados | El esquema de **creación y edición** exige ≥ 0,1 km/L (o vacío). Los vehículos guardados se leen **sin** ese esquema, así que se conservan idénticos. Los antiguos con 0 < rendimiento < 0,1 se marcan con «Revisa el rendimiento…». Editarlos sin corregir se rechaza con el mensaje, sin tocar lo guardado. Un texto inválido en el formulario impide guardar (antes se guardaba como vacío). El `CHECK` de la base (> 0) no cambia | `shared/vehicle.ts`, `VehiclesView.tsx` |
+
+**Regresión encontrada y corregida durante la verificación:** al pasar el aviso de texto inválido como error externo, `NumberField` le quitaba el `role="alert"` de A-50. Lo detectó la suite anónima (54/59 → 50/59); se restauró, y ahora una prueba unitaria lo protege.
+
+### 7.2 Pruebas (Claude, 22-11-2026)
+
+**Unitarias nuevas** (`tests/validacion-a73.test.ts`, 22):
+- texto inválido en 7 claves distintas: error, pausa, sin emitir, valor intacto, texto visible tal cual y anunciado como alerta, y corrección;
+- precio como texto: el costo sigue visible y no se puede emitir;
+- texto inválido de último momento;
+- un texto que sí es número, vacío o una clave desconocida no se registran;
+- vacío sigue siendo faltante y cero sigue siendo un dato;
+- un cambio de recorrido limpia los textos de los tramos;
+- borrador:
+  - recuperación literal, con el precio y la comparación excluidos y el recorrido conservado;
+  - entradas manipuladas filtradas;
+  - campo dañado ignorado sin perder el resto;
+  - borradores anteriores a A-73;
+- comparación inválida (peajes, tramo o texto) que no bloquea, y un error principal que sí;
+- vehículo:
+  - mínimo, con 0,1 y 100 válidos;
+  - uno antiguo de 0,05 listado idéntico y marcado;
+  - editarlo sin corregir se rechaza y queda igual;
+  - aplicado en la calculadora, se marca.
+
+**E2E** (`scripts/e2e-numeros.mjs`, ampliado, **con y sin flag**, Pixel 7, iPhone 13 emulado, 1366 y 1440):
+- «abc» en cada uno de los 13 campos: marcado, conservado tal cual (también en ayudantes y carga y descarga, que antes pasaban a «0») y sin poder cotizar;
+- texto inválido de último momento;
+- comparación sin peajes con «1e308» y «abc»: la comparación queda en pausa y se puede cotizar;
+- borrador con «abc» en peajes: vuelve tal cual y bloqueado (con la flag);
+- «Mi vehículo» con 0,05 rechazado y «abc» que no se guarda;
+- un vehículo antiguo de 0,05 inyectado en el almacenamiento se lista, se marca y no se modifica.
+
+| Prueba | Resultado |
+|---|---|
+| `npm test` | **622/622** (600 + 22) |
+| Casos dorados | **64/64** |
+| Typecheck y 3 builds | Sin errores |
+| `e2e-numeros.mjs` | **844/844** (540 + 304 de A-73), varias corridas con servidores nuevos |
+| `e2e-integracion.mjs` con la flag / `--sin-flag` | **278/278** (dos corridas) / **24/24** |
+| `e2e-modulos.mjs` | **210/210** |
+| `e2e-staging-anonimo.mjs` en local, sin y con flag | **54/59** (las 5 fallas de entorno de siempre), tras corregir la regresión del `role="alert"` |
+
+**Defectos reintroducidos: 16, todos detectados.**
+- **11 por las unitarias:**
+  - el texto no se registra: 11 fallan;
+  - los textos no cuentan como error: 9;
+  - la comparación vuelve a bloquear: 2;
+  - `buildJobRecord` exige que no haya ningún error: 2;
+  - el borrador no recupera los textos: 2;
+  - un texto recuperado descarta el recorrido: 1;
+  - se recupera el texto del precio: 1;
+  - un cambio de recorrido no limpia los textos de los tramos: 1;
+  - el mínimo «> 0» vuelve al vehículo: 2;
+  - el vehículo antiguo no se marca: 1;
+  - se acepta un texto que sí es número: 1.
+- **4 por el E2E:**
+  - `NumberField` vuelve a pasar el texto como vacío o 0;
+  - el campo de ayudantes no informa el texto (8 fallas);
+  - el texto recuperado no se muestra;
+  - el formulario de vehículos guarda pese al texto.
+- **1 por una prueba unitaria nueva:** se pierde el `role="alert"` (7 fallan).
+
+**Nota de método:** tras muchas corridas seguidas contra el mismo servidor de desarrollo, se agota el cupo **simulado** de rutas, que vive en memoria. Las corridas que se cortaron por esa causa se repitieron con servidores nuevos.
+
+**Sin probar:** Safari real, lector de pantalla real y staging.

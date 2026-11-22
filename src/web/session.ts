@@ -34,7 +34,8 @@ import type { AppliedVehicle, VehicleProfile } from '../shared/vehicle';
 import { emptyInventoryDraft, type InventoryDraft } from './modules/inventoryDraft';
 import { emptyResourcesDraft, type ResourcesDraft } from './modules/resourcesDraft';
 import { buildWaypoints, routeKey } from '../shared/waypoints';
-import { blocksComputation, MAX_LEG_KM, MAX_LEG_MINUTES, numericIssues, type NumericIssues } from './numericLimits';
+import { invalidAmountText } from './format';
+import { blocksComputation, blocksQuote, MAX_LEG_KM, MAX_LEG_MINUTES, numericIssues, TEXT_ISSUE_KEY, type NumericIssues } from './numericLimits';
 
 export interface RouteClient {
   requestRoute(input: RouteRequestInput): Promise<RouteApiResponse>;
@@ -129,6 +130,11 @@ export interface SessionState {
    */
   cargo: InventoryDraft;
   resources: ResourcesDraft;
+  /**
+   * A-73: textos escritos que no son números, por campo (misma clave que `numericIssues`). No cambian
+   * el valor del campo: lo dejan inválido, pausan el cálculo y bloquean la emisión hasta corregirlos.
+   */
+  textIssues: Record<string, string>;
 }
 
 /**
@@ -146,6 +152,8 @@ export interface DraftData {
   resources: ResourcesDraft;
   /** D-I8 (A-69): recorrido manual vigente con al menos un valor escrito; si no, `null`. */
   manualRoute?: ManualRouteDraft | null;
+  /** A-73: textos inválidos escritos (se recuperan literalmente, nunca como vacío o cero). */
+  invalidTexts?: Record<string, string>;
 }
 
 /** Motivos de modo manual que NO se reintentan al volver a presionar «Calcular ruta». */
@@ -203,6 +211,7 @@ export function initialState(): SessionState {
     priceBasis: null,
     cargo: emptyInventoryDraft(),
     resources: emptyResourcesDraft(),
+    textIssues: {},
   };
 }
 
@@ -251,6 +260,7 @@ export class QuoteSession {
         inputs,
         habitual: { ...emptyRoute(), status: 'desactualizado', key: h.key },
         comparison: emptyRoute(),
+        textIssues: this.withoutLegTextIssues(['habitual', 'evitarPeajes']),
       });
       return;
     }
@@ -266,7 +276,32 @@ export class QuoteSession {
       inputs,
       habitual: stale ? { ...h, status: 'desactualizado' } : (restored ?? h),
       comparison: stale ? emptyRoute() : this.state.comparison,
+      ...(stale ? { textIssues: this.withoutLegTextIssues(['habitual', 'evitarPeajes']) } : {}),
     });
+  }
+
+  /**
+   * A-73: registra (o borra, con `null`) el texto inválido escrito en un campo. Un texto que en realidad
+   * es un número válido no se registra.
+   */
+  setTextIssue(key: string, text: string | null): void {
+    if (!TEXT_ISSUE_KEY.test(key)) return;
+    const current = this.state.textIssues;
+    if (text === null || invalidAmountText(text) === null) {
+      if (!(key in current)) return;
+      const next = { ...current };
+      delete next[key];
+      this.set({ textIssues: next });
+      return;
+    }
+    if (current[key] === text) return;
+    this.set({ textIssues: { ...current, [key]: text } });
+  }
+
+  private withoutLegTextIssues(kinds: RouteKind[]): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(this.state.textIssues)) if (!kinds.some((kind) => k.startsWith(`${kind}.leg.`))) out[k] = v;
+    return out;
   }
 
   /**
@@ -278,8 +313,16 @@ export class QuoteSession {
       this.computation('habitual') !== null &&
       this.state.chosenPrice !== null &&
       !this.priceNeedsConfirmation() &&
-      Object.keys(this.numericIssues()).length === 0
+      this.quoteBlockers().length === 0
     );
+  }
+
+  /**
+   * Errores que impiden cotizar (A-73): todos los de la ruta principal, el costo y el precio, incluidos
+   * los textos inválidos. Los de la comparación opcional sin peajes NO impiden cotizar.
+   */
+  quoteBlockers(): string[] {
+    return Object.keys(this.numericIssues()).filter(blocksQuote);
   }
 
   /** Valores numéricos fuera de rango, por campo (A-71). Nunca se corrigen solos. */
@@ -396,6 +439,7 @@ export class QuoteSession {
       cargo: s.cargo,
       resources: s.resources,
       manualRoute: this.manualRouteDraft(),
+      invalidTexts: s.textIssues,
     });
   }
 
@@ -462,7 +506,9 @@ export class QuoteSession {
       vehicle: d.vehicle ? { ...d.vehicle } : null,
       cargo: structuredClone(d.cargo),
       resources: structuredClone(d.resources),
+      textIssues: {},
     };
+    next.textIssues = this.recoveredTextIssues(d.invalidTexts, next.habitual);
     // P2 de la auditoría de D-I8 (A-70): si el cálculo con el recorrido recuperado fallaría (p. ej.,
     // otros datos dañados del borrador), se descarta SOLO el recorrido. El resto se conserva y la
     // pantalla nunca recibe un recorrido que haga fallar al motor.
@@ -471,12 +517,31 @@ export class QuoteSession {
     this.set(next);
   }
 
+  /**
+   * A-73: textos inválidos del borrador que se recuperan literalmente. Se descartan los de la
+   * comparación y sus peajes (no se recuperan), el del precio (nunca se recupera, D-I8) y los de tramos que no
+   * existen en el recorrido recuperado. Solo se aceptan textos que de verdad no son números.
+   */
+  private recoveredTextIssues(texts: Record<string, string> | undefined, habitual: RouteState): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const [key, text] of Object.entries(texts ?? {})) {
+      if (!TEXT_ISSUE_KEY.test(key) || typeof text !== 'string' || invalidAmountText(text) === null) continue;
+      if (key === 'chosenPrice' || key === 'tollsComparison' || key.startsWith('evitarPeajes.')) continue;
+      const leg = /^habitual\.leg\.(\d)\./.exec(key);
+      if (leg && !(habitual.recovered && Number(leg[1]) < habitual.manualLegs.length)) continue;
+      out[key] = text;
+    }
+    return out;
+  }
+
   /** ¿El cálculo con este estado termina sin error? Se prueba sin publicar el estado. */
   private computesSafely(candidate: SessionState): boolean {
     const previous = this.state;
     this.state = candidate;
     try {
-      return this.safeCompute('habitual').error === null && Object.keys(numericIssues(candidate)).length === 0;
+      // Solo los valores fuera de rango descartan el recorrido (A-70); un texto inválido recuperado lo
+      // conserva: el campo muestra el texto y su error hasta que el usuario lo corrija (A-73).
+      return this.safeCompute('habitual').error === null && Object.keys(numericIssues(candidate, { includeText: false })).length === 0;
     } finally {
       this.state = previous;
     }
@@ -541,6 +606,7 @@ export class QuoteSession {
     // Tercera revisión (P1): una consulta pendiente queda invalidada; su respuesta tardía
     // no puede reemplazar los km y minutos que el usuario escriba a mano.
     this.generation[kind] += 1;
+    this.set({ textIssues: this.withoutLegTextIssues([kind]) });
     this.setRouteState(kind, {
       ...emptyRoute(),
       status: 'manual',
@@ -583,6 +649,7 @@ export class QuoteSession {
     const declared = rs.status === 'manual' && rs.key === key ? rs.manualLegs : [];
 
     const generation = ++this.generation[kind];
+    this.set({ textIssues: this.withoutLegTextIssues([kind]) });
     this.setRouteState(kind, { ...emptyRoute(), status: 'cargando', key });
     this.set({ routeRequests: this.state.routeRequests + 1 });
     let response: RouteApiResponse;

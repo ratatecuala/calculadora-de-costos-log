@@ -8,6 +8,7 @@ import { buildWaypoints } from '../../shared/waypoints';
 import { boundedText, formatInputNumber, formatKm, formatMinutes, missingText, ROLE_LABEL, signedBoundedText, SOURCE_LABEL } from '../format';
 import type { QuoteSession, RouteComputation, RouteState } from '../session';
 import { bloqueoEmision } from '../modules/integracion';
+import { blocksComputation, blocksQuote } from '../numericLimits';
 import { CargoSection } from './CargoSection';
 import { Fold } from './Fold';
 import { NumberField } from './NumberField';
@@ -46,8 +47,11 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles,
   const adjusted = session.vehicleAdjustments();
   // A-71: valores fuera de rango por campo; el cálculo queda en pausa y nada se corrige solo.
   const issues = session.numericIssues();
-  const err = (field: keyof typeof s.params) => issues[`params.${field}`];
-  const numerosInvalidos = Object.keys(issues).length > 0;
+  // A-73: error, aviso de texto inválido y texto recuperado de cada campo, con la misma clave.
+  const campo = (key: string) => ({ error: issues[key], onInvalidText: (t: string | null) => session.setTextIssue(key, t), invalidText: s.textIssues[key] });
+  const p = (field: keyof typeof s.params) => campo(`params.${field}`);
+  const numerosInvalidos = session.quoteBlockers().length > 0;
+  const soloComparacion = Object.keys(issues).filter((k) => !blocksQuote(k)).length > 0;
   const fallaCalculo = session.computationError('habitual');
   // D-I3: con el detalle activo, no se emite si tiene datos por corregir.
   const bloqueoCarga = cargoEnabled ? bloqueoEmision(s.cargo, s.resources) : null;
@@ -116,7 +120,7 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles,
               value={s.params.kmPerL}
               onChange={(v) => session.setParams({ kmPerL: v })}
               tag={adjusted.includes('kmPerL') ? 'Solo esta cotización' : undefined}
-              error={err('kmPerL')}
+              {...p('kmPerL')}
             />
             <NumberField
               label="Desgaste del vehículo"
@@ -125,34 +129,34 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles,
               onChange={(v) => session.setParams({ wearPerKm: v })}
               hint="Neumáticos, aceite y mantención"
               tag={adjusted.includes('wearPerKm') ? 'Solo esta cotización' : undefined}
-              error={err('wearPerKm')}
+              {...p('wearPerKm')}
             />
             <NumberField
               label={s.vehicle?.fuel === 'gasolina' ? 'Precio de la gasolina' : s.vehicle?.fuel === 'diesel' ? 'Precio del diésel' : 'Precio del combustible'}
               suffix="$/L"
               value={s.params.fuelPricePerL}
               onChange={(v) => session.setParams({ fuelPricePerL: v })}
-              error={err('fuelPricePerL')}
+              {...p('fuelPricePerL')}
             />
             {/* A-71: sin redondear en silencio; un número con decimales se marca como inválido. */}
-            <NumberField label="Ayudantes" value={s.params.helpers} placeholder="0" onChange={(v) => session.setParams({ helpers: v ?? 0 })} error={err('helpers')} />
-            <NumberField label="Pago por ayudante" suffix="$" value={s.params.helperFee} onChange={(v) => session.setParams({ helperFee: v })} error={err('helperFee')} />
+            <NumberField label="Ayudantes" value={s.params.helpers} placeholder="0" onChange={(v) => session.setParams({ helpers: v ?? 0 })} {...p('helpers')} />
+            <NumberField label="Pago por ayudante" suffix="$" value={s.params.helperFee} onChange={(v) => session.setParams({ helperFee: v })} {...p('helperFee')} />
             <NumberField
               label="Peajes y TAG"
               suffix="$"
               value={s.params.tolls}
               onChange={(v) => session.setParams({ tolls: v })}
               hint="Vacío = no lo sé · 0 = no hay peajes"
-              error={err('tolls')}
+              {...p('tolls')}
             />
-            <NumberField label="Carga y descarga" suffix="min" value={s.params.loadMinutes} placeholder="0" onChange={(v) => session.setParams({ loadMinutes: v ?? 0 })} error={err('loadMinutes')} />
+            <NumberField label="Carga y descarga" suffix="min" value={s.params.loadMinutes} placeholder="0" onChange={(v) => session.setParams({ loadMinutes: v ?? 0 })} {...p('loadMinutes')} />
           </div>
           <Fold summary="Opciones avanzadas">
             <div className="grid2">
-              <NumberField label="Parte de tus gastos fijos" suffix="$/h" value={s.params.fixedPerHour} onChange={(v) => session.setParams({ fixedPerHour: v })} hint="Seguro, permiso, patente" error={err('fixedPerHour')} />
-              <NumberField label="Lo que quieres ganar por tu trabajo" suffix="$/h" value={s.params.ownerPerHour} onChange={(v) => session.setParams({ ownerPerHour: v })} hint="Es tu meta, no un gasto" error={err('ownerPerHour')} />
-              <NumberField label="Otros gastos" suffix="$" value={s.params.otherCosts} placeholder="0" onChange={(v) => session.setParams({ otherCosts: v ?? 0 })} hint="Estacionamiento, materiales" error={err('otherCosts')} />
-              <NumberField label="Recargos al precio" suffix="$" value={s.surcharges} placeholder="0" onChange={(v) => session.setSurcharges(v ?? 0)} hint="Urgencia, pisos, etc." error={issues.surcharges} />
+              <NumberField label="Parte de tus gastos fijos" suffix="$/h" value={s.params.fixedPerHour} onChange={(v) => session.setParams({ fixedPerHour: v })} hint="Seguro, permiso, patente" {...p('fixedPerHour')} />
+              <NumberField label="Lo que quieres ganar por tu trabajo" suffix="$/h" value={s.params.ownerPerHour} onChange={(v) => session.setParams({ ownerPerHour: v })} hint="Es tu meta, no un gasto" {...p('ownerPerHour')} />
+              <NumberField label="Otros gastos" suffix="$" value={s.params.otherCosts} placeholder="0" onChange={(v) => session.setParams({ otherCosts: v ?? 0 })} hint="Estacionamiento, materiales" {...p('otherCosts')} />
+              <NumberField label="Recargos al precio" suffix="$" value={s.surcharges} placeholder="0" onChange={(v) => session.setSurcharges(v ?? 0)} hint="Urgencia, pisos, etc." {...campo('surcharges')} />
             </div>
           </Fold>
         </div>
@@ -168,7 +172,12 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles,
         </button>
         {numerosInvalidos ? (
           <p className="warn" role="alert" data-testid="bloqueo-numeros">
-            Hay valores fuera de rango (marcados en rojo). El cálculo queda en pausa hasta que los revises; no se cambió ningún dato.
+            Hay valores inválidos o fuera de rango (marcados en rojo). El cálculo queda en pausa y no se puede cotizar hasta que los revises; no se cambió ningún dato.
+          </p>
+        ) : null}
+        {soloComparacion ? (
+          <p className="sub" role="status" data-testid="pausa-comparacion">
+            La comparación sin peajes queda en pausa por un valor inválido. No afecta a tu cotización principal.
           </p>
         ) : null}
         {fallaCalculo ? (
@@ -275,6 +284,7 @@ function TextField({ label, value, onChange, placeholder }: { label: string; val
 function RouteCard(props: { title: string; rs: RouteState; computation: RouteComputation | null; kind: RouteKind; session: QuoteSession; mapsUrl: string | null }) {
   const { rs, computation, kind, session, mapsUrl } = props;
   const issues = session.numericIssues();
+  const textIssues = session.getSnapshot().textIssues;
   if (rs.status === 'vacio' || rs.status === 'cargando') return null;
   if (rs.status === 'desactualizado') {
     // Ruta de direcciones anteriores: no se muestra ni se usa para calcular (auditoría P0).
@@ -344,10 +354,10 @@ function RouteCard(props: { title: string; rs: RouteState; computation: RouteCom
                 {ROLE_LABEL[leg.from]} → {ROLE_LABEL[leg.to]}
               </td>
               <td>
-                <NumberField compact decimals={1} label={`Km tramo ${i + 1}`} value={leg.km} onChange={(v) => session.setLegOverride(kind, i, { km: v })} placeholder="km" error={issues[`${kind}.leg.${i}.km`]} />
+                <NumberField compact decimals={1} label={`Km tramo ${i + 1}`} value={leg.km} onChange={(v) => session.setLegOverride(kind, i, { km: v })} placeholder="km" error={issues[`${kind}.leg.${i}.km`]} onInvalidText={(t) => session.setTextIssue(`${kind}.leg.${i}.km`, t)} invalidText={textIssues[`${kind}.leg.${i}.km`]} />
               </td>
               <td>
-                <NumberField compact decimals={0} label={`Minutos tramo ${i + 1}`} value={leg.minutes} onChange={(v) => session.setLegOverride(kind, i, { minutes: v })} placeholder="min" error={issues[`${kind}.leg.${i}.minutes`]} />
+                <NumberField compact decimals={0} label={`Minutos tramo ${i + 1}`} value={leg.minutes} onChange={(v) => session.setLegOverride(kind, i, { minutes: v })} placeholder="min" error={issues[`${kind}.leg.${i}.minutes`]} onInvalidText={(t) => session.setTextIssue(`${kind}.leg.${i}.minutes`, t)} invalidText={textIssues[`${kind}.leg.${i}.minutes`]} />
               </td>
             </tr>
           ))}
@@ -447,6 +457,8 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
           value={Math.round(s.margin * 10000) / 100}
           onChange={(v) => session.setMargin((v ?? 0) / 100)}
           error={issues.margin}
+          onInvalidText={(t) => session.setTextIssue('margin', t)}
+          invalidText={s.textIssues.margin}
         />
       ) : null}
       {m ? (
@@ -455,7 +467,7 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
           <strong className="num">{boundedText(m.suggested, 'precio')}</strong>
         </div>
       ) : (
-        <p className="sub">{Object.keys(issues).some((k) => k !== 'chosenPrice') ? 'Revisa los campos marcados para ver el precio sugerido.' : 'Calcula la ruta para ver el precio sugerido.'}</p>
+        <p className="sub">{Object.keys(issues).some((k) => blocksComputation(k, 'habitual')) ? 'Revisa los campos marcados para ver el precio sugerido.' : 'Calcula la ruta para ver el precio sugerido.'}</p>
       )}
       {m && !m.complete ? <p className="sub">Precio indicativo: faltan datos, puede quedar corto.</p> : null}
       <NumberField
@@ -465,6 +477,8 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
         onChange={(v) => session.setChosenPrice(v)}
         placeholder={m ? formatInputNumber(displayAmount(m.suggested), 0) : 'Escribe tu precio'}
         error={issues.chosenPrice}
+        onInvalidText={(t) => session.setTextIssue('chosenPrice', t)}
+        invalidText={s.textIssues.chosenPrice}
       />
       {session.priceNeedsConfirmation() ? (
         <div className="warn" role="alert">
@@ -522,6 +536,8 @@ function ComparisonCard(props: { session: QuoteSession; habitualReady: boolean; 
             value={s.tollsComparison}
             onChange={(v) => session.setTollsComparison(v)}
             error={session.numericIssues().tollsComparison}
+            onInvalidText={(t) => session.setTextIssue('tollsComparison', t)}
+            invalidText={s.textIssues.tollsComparison}
             hint="Vacío = no lo sé · 0 = no hay"
           />
           {comparison ? (

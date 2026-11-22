@@ -334,7 +334,7 @@ Comunicadas por el propietario por chat a Claude y **registradas literalmente** 
 
 ## Decisiones del 22-11-2026: correcciones de validación (Frente A) e implementación LOCAL de #52 (Frente B)
 
-Comunicadas por el propietario por chat a Claude y **registradas literalmente** en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43) antes de trabajar. **APROBADAS.** Base: [auditoría del Frente A](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7072118320) (0 P0 · 0 P1 · 2 P2; A-71 apta para el cierre técnico) y [auditoría del Frente B](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7072118724) (A-72 apto para implementación local, con 1 P2 documental).
+Comunicadas por el propietario por chat a Claude y **registradas literalmente** en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7072135863) antes de trabajar. **APROBADAS.** Base: [auditoría del Frente A](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7072118320) (0 P0 · 0 P1 · 2 P2; A-71 apta para el cierre técnico) y [auditoría del Frente B](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7072118724) (A-72 apto para implementación local, con 1 P2 documental).
 
 | ID | Decisión | Alcance de la aprobación |
 |---|---|---|
@@ -342,3 +342,5 @@ Comunicadas por el propietario por chat a Claude y **registradas literalmente** 
 | A-74 | **Frente B, implementación LOCAL de #52:** migración nueva **en el repositorio** con D-52-1, D-52-2 y N1, ensayada **solo en PostgreSQL local desechable**. Adaptar las pruebas de RLS, numeración y T6c; verificar privilegios, concurrencia, idempotencia y reversión; corregir las instrucciones de las verificaciones de solo lectura para el editor SQL de Supabase | **No** autoriza ejecutar ninguna migración en Supabase. La implementación local **no** equivale a una autorización de ejecución remota, que sigue exigiendo respaldo real y A-59 |
 
 **No autoriza:** ejecutar migraciones en Supabase, modificar staging, flags, despliegues, I-2, I-3 ni merge del PR #34.
+
+**Estado (22-11):** A-73 **implementada** ([24 §7](24-robustez-numerica.md)), con auditoría solicitada.

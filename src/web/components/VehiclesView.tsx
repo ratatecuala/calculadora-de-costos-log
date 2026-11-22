@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatClp } from '../../engine/rounding';
-import { FUEL_LABEL, VEHICLE_TYPE_LABEL, type FuelType, type VehicleInput, type VehicleProfile, type VehicleType } from '../../shared/vehicle';
+import { FUEL_LABEL, VEHICLE_TYPE_LABEL, vehicleNeedsReview, type FuelType, type VehicleInput, type VehicleProfile, type VehicleType } from '../../shared/vehicle';
+import { INVALID_NUMBER_MESSAGE } from '../format';
 import { VehicleValidationError, type VehicleRepository } from '../vehicleRepository';
 import { NumberField } from './NumberField';
 
@@ -20,6 +21,12 @@ const EMPTY: VehicleInput = { name: '', type: 'camioneta', fuel: 'gasolina', kmP
 export function VehiclesView({ repository, vehicles, defaultId, onChanged, onUse, where = 'local' }: Props) {
   const [editing, setEditing] = useState<{ id: string | null; input: VehicleInput } | null>(vehicles.length === 0 ? { id: null, input: EMPTY } : null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // A-73: textos que no son números en el formulario: se marcan y bloquean el guardado (nunca se guardan como vacío).
+  const [textos, setTextos] = useState<Record<string, string>>({});
+  const abierto = editing !== null;
+  useEffect(() => {
+    if (!abierto) setTextos({}); // al cerrar el formulario no quedan textos pendientes de otro vehículo
+  }, [abierto]);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   // Tras un intento fallido, el foco va al primer campo con error (QA UX, H-07).
@@ -44,6 +51,11 @@ export function VehiclesView({ repository, vehicles, defaultId, onChanged, onUse
 
   const save = async () => {
     if (!editing) return;
+    if (Object.keys(textos).length > 0) {
+      setErrors(Object.fromEntries(Object.keys(textos).map((k) => [k, INVALID_NUMBER_MESSAGE])));
+      setAttempt((n) => n + 1);
+      return;
+    }
     setErrors({});
     const ok = await run(() => (editing.id ? repository.update(editing.id, editing.input) : repository.create(editing.input)));
     if (ok) setEditing(null);
@@ -52,6 +64,13 @@ export function VehiclesView({ repository, vehicles, defaultId, onChanged, onUse
 
   if (editing) {
     const set = (patch: Partial<VehicleInput>) => setEditing({ ...editing, input: { ...editing.input, ...patch } });
+    const marcarTexto = (campo: string, t: string | null) =>
+      setTextos((prev) => {
+        const next = { ...prev };
+        if (t === null) delete next[campo];
+        else next[campo] = t;
+        return next;
+      });
     return (
       <div className="layout single">
         {/* Formulario real: Enter guarda, como en cualquier formulario (QA UX, H-07). */}
@@ -107,6 +126,7 @@ export function VehiclesView({ repository, vehicles, defaultId, onChanged, onUse
               onChange={(v) => set({ kmPerL: v })}
               hint="Si no lo sabes, déjalo vacío"
               error={errors.kmPerL}
+              onInvalidText={(t) => marcarTexto('kmPerL', t)}
             />
             <NumberField
               label="Desgaste estimado"
@@ -115,6 +135,7 @@ export function VehiclesView({ repository, vehicles, defaultId, onChanged, onUse
               onChange={(v) => set({ wearPerKm: v })}
               hint="Neumáticos, aceite y mantención"
               error={errors.wearPerKm}
+              onInvalidText={(t) => marcarTexto('wearPerKm', t)}
             />
           </div>
           <p className="sub">No usamos valores de referencia: si dejas un dato vacío, el costo del viaje se mostrará como parcial hasta que lo completes.</p>
@@ -165,6 +186,11 @@ export function VehiclesView({ repository, vehicles, defaultId, onChanged, onUse
               <span>Rendimiento</span>
               <span className="num">{v.kmPerL === null ? <span className="tag tag-missing">Falta</span> : `${String(v.kmPerL).replace('.', ',')} km/L`}</span>
             </div>
+            {vehicleNeedsReview(v) ? (
+              <p className="warn" data-testid="vehiculo-revisar">
+                Revisa el rendimiento: es menor que 0,1 km/L. Lo conservamos tal cual; edítalo para corregirlo.
+              </p>
+            ) : null}
             <div className="ln">
               <span>Desgaste</span>
               <span className="num">{v.wearPerKm === null ? <span className="tag tag-missing">Falta</span> : `${formatClp(v.wearPerKm)} por km`}</span>

@@ -76,7 +76,7 @@ El Worker guardaba el *stub* del Durable Object entre solicitudes. En Workers, u
 ## 5. Resultados de pruebas
 
 ### 5.1 Automáticas (sin red): `npm test`
-*(Cifra del 18-11; hoy `npm test` da **600/600** en la rama, con código que staging aún no tiene.)* **225 pruebas en verde** al 18-11-2026 (incluye la validación independiente del motor, [15](15-validacion-motor.md), y las regresiones de experiencia de usuario, [14](14-qa-ux.md)). Historial: 140 tras la quinta auditoría, 154 con A-47.
+*(Cifra del 18-11; hoy `npm test` da **622/622** en la rama, con código que staging aún no tiene.)* **225 pruebas en verde** al 18-11-2026 (incluye la validación independiente del motor, [15](15-validacion-motor.md), y las regresiones de experiencia de usuario, [14](14-qa-ux.md)). Historial: 140 tras la quinta auditoría, 154 con A-47.
 
 ### 5.2 RLS real con dos usuarios: `scripts/verificar-rls.mjs` → **39/39** (40/40 tras la corrección del 18-11, §5.4 bis)
 Sesiones reales (JWT emitidos por Supabase) de los usuarios A y B y un visitante anónimo, con la clave publicable:
