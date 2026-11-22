@@ -1,6 +1,6 @@
 # 05 · Pruebas, calibración y validación del lanzamiento gratuito
 
-**Estado vigente (22-11-2026, con D-I8 parcial, A-70, A-71 y A-73):** `npm test` **622/622** y casos dorados **64/64**; detalle por archivo en «Pruebas del cotizador ampliado» y cifras vigentes al final. Las metas numéricas de validación real se aprobarán en #12; **no** se han hecho viajes de validación con transportistas.
+**Estado vigente (22-11-2026, con D-I8 parcial, A-70, A-71, A-73 y la migración local de #52, A-74):** `npm test` **625/625** y casos dorados **64/64**; detalle por archivo en «Pruebas del cotizador ampliado» y cifras vigentes al final. Las metas numéricas de validación real se aprobarán en #12; **no** se han hecho viajes de validación con transportistas.
 
 *Estado original (16-11-2026, histórico): estrategia de control propuesta, sin código ni viajes de validación ejecutados.*
 
@@ -100,11 +100,12 @@ Agregadas en la fase 0 (A-63), la fase 1 (A-66), la integración I-1 + I-1b (A-6
 | `tests/modulos.estado.test.ts` | 17 | Interfaz plegable: estado de cada objeto, apertura al agregar, separación de datos de la carga (cliente) y recursos internos (transportista), filas inválidas |
 | `tests/modulos.flag.test.ts` | 7 | La flag `VITE_FF_CARGA_RECURSOS` está apagada por defecto; el mismo marcado sirve a teléfono y PC |
 | `tests/integracion.test.ts` | 63 | I-1 + I-1b: versión del snapshot según la flag y el repositorio, emisión v2, costo idéntico con editores vacíos o llenos (D-I1), «Servicio» e «Incluye» (D-I5), copia mixta v1/v2 con diferidas (C2), borrador aislado por dueño (C1), interfaz idéntica con la flag apagada y autoguardado con temporizadores controlados |
+| `tests/sin-escritura-directa.test.ts` | 3 | #52 (A-74): `src/` no escribe directamente en `jobs` ni en `client_quotes` y solo guarda por la función RPC |
 | `tests/validacion-a73.test.ts` | 22 | Validación A-73: texto no numérico (pausa, bloquea, no reemplaza, recuperación literal del borrador y alerta accesible), comparación opcional que no bloquea y mínimo de «Mi vehículo» sin perder los guardados ([24 §7](24-robustez-numerica.md)) |
 | `tests/limites-numericos.test.ts` | 32 | Robustez numérica (A-71): límites por campo, inválido ≠ faltante ≠ cero, 1e308 en los 14 campos, todos los topes a la vez sin infinitos, barrera ante fallos del motor y compatibilidad con borradores y cotizaciones ([24](24-robustez-numerica.md)) |
 | `tests/recorrido-manual.test.ts` | 40 | D-I8 parcial (A-69) y su P2 (A-70: valores negativos, extremos o de otro tipo descartan solo el recorrido y la calculadora no falla): recorrido manual de 1, 2 y 3 tramos recuperado con su aviso; invalidación al cambiar direcciones; nunca precio ni datos del proveedor (también con borradores manipulados); cotización emitida idéntica e historial intacto byte a byte |
 
-**Suma:** 249 (18-11) + 96 de la fase 0 (44 + 22 + 30) + 120 de la fase 1 (39 + 57 + 17 + 7) + 63 de la integración + 40 de D-I8 + 32 de A-71 + 22 de A-73 = **622**.
+**Suma:** 249 (18-11) + 96 de la fase 0 (44 + 22 + 30) + 120 de la fase 1 (39 + 57 + 17 + 7) + 63 de la integración + 40 de D-I8 + 32 de A-71 + 22 de A-73 + 3 de #52 = **625**.
 
 **Navegador local (Playwright; Pixel 7, iPhone 13 emulado, 1366 y 1440):**
 
@@ -116,7 +117,7 @@ Agregadas en la fase 0 (A-63), la fase 1 (A-66), la integración I-1 + I-1b (A-6
 | `scripts/e2e-integracion.mjs --sin-flag` | **24/24** |
 | `scripts/e2e-staging-anonimo.mjs` contra el servidor local | **54/59**: las 5 restantes son propias de staging (acceso privado 401 y `localhost` contado como dominio externo) |
 | Borradores M3/M4 en PostgreSQL local desechable (`scripts/diseno/`) | **18/18** y 3 controles negativos; C3 **27/27**; medición de 16 KB **10/10** ([21 §11](21-diseno-datos-cotizador.md)) |
-| Ensayo del diseño de #52 (A-72) en PostgreSQL local desechable (`scripts/diseno/ensayo-52/`), herramienta de diseño y no migración | **52/52** (22-11, también con B+). Cubre H1–H4, S0–S8, L0–L10 (contador N1: límites de `INTEGER`, concurrencia y reintentos), X1–X8 (contador ya inflado, rendimiento con 10.000 importaciones, privilegios por defecto, `pg_temp`, `service_role`, mensajes, disparadores, borrado concurrente), V0 (las verificaciones de solo lectura no escriben) y T1–T15 de M3/M4. Controles: C1, C3, C4 y «contador actual» fallan; C2 confirma la doble capa. 2 mutaciones del contador, detectadas ([23 §7](23-revision-52-insert-directo.md)) |
+| Migración de #52 (A-74) en PostgreSQL local desechable (`scripts/diseno/ensayo-52/` y `probar-borradores.sh`), sin tocar Supabase | **65 OK** y **24/24** (22-11). Cubre la migración real, la idempotencia, la reversión sin pérdida de datos, las verificaciones de solo lectura (psql y editor, con paridad), M3/M4 con T6c y T6d y `verificar-restauracion.sql` antes y después con datos reales. Controles C1–C5 y «contador actual», más 5 mutaciones: detectados ([23 §11](23-revision-52-insert-directo.md)). `verificar-rls.mjs` y `verificar-numeracion.mjs` adaptados **sin ejecutar** (requieren staging) |
 
 ### Pruebas contra servicios reales (staging, 18-11-2026)
 
@@ -169,7 +170,7 @@ El flujo completo se verificó en navegador (móvil y escritorio) contra el serv
 
 | Verificación | Resultado | Quién |
 |---|---|---|
-| `npm test` | **622/622**, typecheck y builds sin errores | Claude (ejecutadas) |
+| `npm test` | **625/625**, typecheck y builds sin errores | Claude (ejecutadas) |
 | Casos dorados por recálculo independiente | **64/64** | Claude (ejecutadas) |
 | E2E locales del cotizador ampliado | 210/210, 278/278, 844/844, 24/24 y 54/59 (tabla anterior) | Claude (ejecutadas) |
 | Staging real (versión del 18-11) | 59/59 sin cuenta, 41/41 con cuentas, RLS 40/40, numeración 17/17, Cloudflare 8/8 y 2/2 | Claude (ejecutadas el 18-11) |

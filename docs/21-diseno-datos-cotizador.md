@@ -295,7 +295,7 @@ La marca es local a la transacción (`is_local = true`) y desaparece al terminar
 2. `select rolconfig from pg_roles where rolname = 'authenticator';` → si aparece `pgrst.db_schemas`, no debe incluir `private`.
 3. Si `private` estuviera expuesto: **detenerse**, informar y no migrar.
 
-**Observación fuera de alcance (no se corrige aquí):** desde el esquema inicial, `authenticated` puede hacer `INSERT` directo en `jobs` (lo necesita la v1, que es `SECURITY INVOKER`). Solo afecta los datos del propio usuario, pero le permite crear un trabajo sin pasar por la numeración atómica. Cambiarlo exigiría una migración propia con tu autorización; queda propuesto como mejora de A-47. *Estado actual (22-11):* diseño de #52 aprobado (A-72) en [23](23-revision-52-insert-directo.md) versión 3, sin implementar; con la propuesta, la T6c de estos borradores debe reescribirse (23 §5).
+**Observación fuera de alcance (no se corrige aquí):** desde el esquema inicial, `authenticated` puede hacer `INSERT` directo en `jobs` (lo necesita la v1, que es `SECURITY INVOKER`). Solo afecta los datos del propio usuario, pero le permite crear un trabajo sin pasar por la numeración atómica. Cambiarlo exigiría una migración propia con tu autorización; queda propuesto como mejora de A-47. *Estado actual (22-11):* migración de #52 implementada solo en local (A-74, [23 §11](23-revision-52-insert-directo.md)), sin aplicar en Supabase; con ella, el borrador M4 exige D-52-3 (v2 DEFINER); con la propuesta, la T6c de estos borradores debe reescribirse (23 §5).
 
 ### 8.1 M3 · `job_cargo_items` inalterable (P1-1)
 

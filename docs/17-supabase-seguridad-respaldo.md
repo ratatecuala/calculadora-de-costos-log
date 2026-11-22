@@ -43,6 +43,8 @@ Asesor de rendimiento: **sin hallazgos**. Invariantes de `scripts/verificar-rest
 | 13 | Tiempos de espera | `statement_timeout`: `anon` 3 s, `authenticated` 8 s (valores estándar) | `pg_roles.rolconfig` | — |
 | 14 | Asesores | Seguridad: H5, H6, H7. Rendimiento: ninguno | `get_advisors` | §3 y §4 |
 | 15 | Invariantes de la base | Contador ≥ máximo en todas las cuentas (una cuenta tiene contador mayor que su máximo porque sus trabajos se borraron: correcto, los números no se reutilizan); sin números duplicados; sin cotizaciones sin trabajo; sin filas sin usuario; RLS 6/6; políticas 17; privilegios iguales a los esperados | `scripts/verificar-restauracion.sql` (sin la sección de huellas), solo lectura | — |
+
+*Estado actual (22-11, A-74):* la migración de #52 (en el repositorio, **no aplicada en staging**) cambia tres cosas: las políticas pasan de 17 a 13, se revoca la escritura directa y, con N1, un contador puede quedar por debajo del máximo tras una importación. `verificar-restauracion.sql` detecta si la migración está aplicada y valida el estado correspondiente ([23 §11](23-revision-52-insert-directo.md)).
 | 16 | Ajustes de Auth | No se pueden leer con herramientas de solo lectura sobre la base | — | §3 |
 
 Conteos de staging al 18-11-2026 (todos de prueba): `auth.users` 2 · `auth.identities` 2 · `profiles` 1 · `vehicles` 13 · `jobs` 23 · `client_quotes` 23 · `quote_shares` 11 (0 vigentes) · `quote_counters` 2.

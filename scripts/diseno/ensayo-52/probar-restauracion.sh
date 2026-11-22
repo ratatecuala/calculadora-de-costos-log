@@ -25,9 +25,26 @@ for estado in antes despues; do
     [[ "$estado" == antes && "$m" == "$mig" ]] && continue
     psql -q -X -v ON_ERROR_STOP=1 -d "$db" -f "$m" >/dev/null
   done
+  # Datos reales (no una base vacía): una cotización nueva y la importación de un número alto libre (900).
+  # Antes de #52 el contador salta a 900; con N1 queda en 1 (< máximo), y la invariante debe aceptarlo.
+  psql -q -X -v ON_ERROR_STOP=1 -d "$db" >/dev/null <<'SQL'
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000f1', 'r@prueba.invalid');
+insert into auth.identities (id, user_id) values ('00000000-0000-0000-0000-0000000000f2', '00000000-0000-0000-0000-0000000000f1');
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000f1', true);
+select public.create_job_with_quote(
+  '{"quote_date":"2026-11-22","client_name":"Cliente ficticio","net_price":50000,"internal":{"engineVersion":"x"}}'::jsonb,
+  '{"issued_at":"2026-11-22","client_name":"Cliente ficticio","net_price":50000,"total":50000}'::jsonb);
+select public.create_job_with_quote(
+  '{"local_id":"f0000000-0000-4000-8000-000000000001","issued_number":900,"quote_date":"2026-11-22","client_name":"Importada","net_price":50000,"internal":{"engineVersion":"x"}}'::jsonb,
+  '{"issued_at":"2026-11-22","client_name":"Importada","net_price":50000,"total":50000}'::jsonb);
+commit;
+SQL
+  contador=$(psql -X -Atq -d "$db" -c "select last_number from public.quote_counters where owner_id = '00000000-0000-0000-0000-0000000000f1'")
   salida=$(psql -X -At -F ' | ' -v ON_ERROR_STOP=1 -d "$db" -f "$repo/scripts/verificar-restauracion.sql")
   malas=$(echo "$salida" | awk -F ' \\| ' '$1 ~ /^inv\./ && $2 != $3 {print}')
   total=$(echo "$salida" | grep -c '^inv\.')
   if [[ -n "$malas" ]]; then echo "$malas"; echo "FALLA restauración ($estado de la migración): invariantes distintas de lo esperado"; exit 1; fi
-  echo "OK verificar-restauracion.sql $estado de la migración: $total invariantes «inv.*» con el valor esperado"
+  echo "OK verificar-restauracion.sql $estado de la migración: $total invariantes «inv.*» con el valor esperado (con datos: contador $contador tras importar el N° 900)"
 done

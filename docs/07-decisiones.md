@@ -343,4 +343,4 @@ Comunicadas por el propietario por chat a Claude y **registradas literalmente** 
 
 **No autoriza:** ejecutar migraciones en Supabase, modificar staging, flags, despliegues, I-2, I-3 ni merge del PR #34.
 
-**Estado (22-11):** A-73 **implementada** ([24 §7](24-robustez-numerica.md)), con auditoría solicitada.
+**Estado (22-11):** A-73 **implementada** ([24 §7](24-robustez-numerica.md)), con auditoría solicitada. A-74 **implementada solo en el repositorio y en local** ([23 §11](23-revision-52-insert-directo.md)), **no aplicada en Supabase**; auditoría solicitada.

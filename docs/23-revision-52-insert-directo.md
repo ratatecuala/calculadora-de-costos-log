@@ -519,3 +519,20 @@ drop index if exists public.jobs_owner_issued_idx;
   5. repetir las suites.
 
   M3/M4 vienen después y deberán adoptar D-52-3 (§4.5).
+
+### 11.x Revisión de integración (Claude, 22-11-2026)
+
+Al integrar este frente en la rama del PR #34, Claude **repitió** todas las ejecuciones:
+- `ensayar.sh`: **65 OK**, 0 fallas.
+- `probar-borradores.sh`: **24/24**.
+- Controles: C1, C3, C4 y C5 fallan como corresponde; C2 da 61 OK (doble capa).
+- `CONTADOR=actual` y las 5 mutaciones de la migración: **todos detectados**.
+- `npm test`: **625/625** sobre el árbol integrado con el Frente A.
+
+**Hallazgo y corrección:** `scripts/verificar-restauracion.sql` exigía, también con la migración aplicada, que ningún contador fuera menor que el número máximo de su cuenta (`inv.contador_menor_que_maximo`). Con N1 eso es **normal** tras importar un número alto libre, así que en uso real el script habría dado un **falso error**. La prueba de restauración no lo detectaba porque corría sobre bases **vacías**.
+
+| Cambio | Detalle |
+|---|---|
+| Condición | Con la migración aplicada, solo cuenta como error una cuenta con trabajos **sin** contador. Antes de la migración, la regla anterior se mantiene |
+| Prueba | `probar-restauracion.sh` carga **datos reales** antes de verificar: una cotización nueva y la importación libre del N° 900. Antes de migrar, el contador queda en 900; después, en 1 |
+| Control | Con la condición anterior, la verificación posterior a la migración **falla** (`inv.contador_menor_que_maximo | 1 | 0`); con la corrección pasa en ambos estados |

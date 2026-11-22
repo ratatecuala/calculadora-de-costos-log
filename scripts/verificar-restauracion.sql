@@ -43,13 +43,15 @@ huella as (
   union all select 'huella.public.vehicles.id', md5(coalesce(string_agg(id::text, ',' order by id), '')), '' from public.vehicles
 ),
 inv as (
-  -- Numeración (A-47): el contador de cada cuenta es >= su número máximo (los números borrados no
-  -- se reutilizan, por eso puede ser mayor) y toda cuenta con trabajos tiene contador.
+  -- Numeración (A-47): toda cuenta con trabajos tiene contador. Antes de #52, además, el contador es
+  -- >= su número máximo (los números borrados no se reutilizan, por eso puede ser mayor). Con #52 (N1,
+  -- A-72) las importaciones conservan su número SIN mover el contador, así que un contador por debajo
+  -- del máximo es normal y ya no es un error.
   select 'inv.contador_menor_que_maximo' as control,
          count(*)::text as valor, '0' as esperado
     from (select owner_id, max(number) m from public.jobs group by owner_id) j
     left join public.quote_counters c using (owner_id)
-   where c.last_number is null or c.last_number < j.m
+   where c.last_number is null or (not (select aplicada from m52) and c.last_number < j.m)
   union all
   select 'inv.numeros_duplicados_por_cuenta', count(*)::text, '0'
     from (select 1 from public.jobs group by owner_id, number having count(*) > 1) d
