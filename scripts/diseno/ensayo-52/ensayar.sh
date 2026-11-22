@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # HERRAMIENTA DE DISEÑO (#52, docs/23). Ensaya la PROPUESTA de #52 en un PostgreSQL LOCAL desechable.
 # Nunca se conecta a Supabase. No es una migración. Crea una base nueva, aplica el stub de Supabase y
-# las 3 migraciones reales, demuestra los huecos (H1–H3), aplica la propuesta y la verifica (S0–S8),
-# y por último aplica los borradores M3/M4 encima y repite sus pruebas con la T6c reescrita.
+# las 3 migraciones reales, demuestra los huecos (H1–H4), aplica la propuesta y la verifica (S0–S8),
+# ensaya el rediseño del contador (L0–L10, docs/23 §10) y por último aplica los borradores M3/M4
+# encima y repite sus pruebas con la T6c reescrita.
 #
 #   PGHOST=/ruta/al/socket PGPORT=55433 PGUSER=medir scripts/diseno/ensayo-52/ensayar.sh
 #   BMAS=1     → variante B+ (authenticated sin acceso al esquema private; la v2 de M4 como DEFINER)
@@ -10,6 +11,7 @@
 #   CONTROL=C2 → solo el revoke del GRANT, conservando la política (S1 debe seguir en OK)
 #   CONTROL=C3 → sin SECURITY DEFINER (el guardado debe fallar)
 #   CONTROL=C4 → sin revocar INSERT/DELETE en client_quotes (S2 debe fallar)
+#   CONTADOR=actual → control: sin el rediseño del contador (N1), con la función actual (L1 debe fallar)
 set -euo pipefail
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$dir/../../.." && pwd)"
@@ -25,7 +27,7 @@ trap limpiar EXIT
 psql -X -q -d postgres -c "create database $db" >/dev/null
 creada=1
 run() { psql -q -X -v ON_ERROR_STOP=1 -d "$db" "$@"; }
-filtro() { sed -n 's/^.*NOTICE:  //p; s/^.*ERROR:  /ERROR: /p; /^---/p; /^variante/p; /^control/p'; }
+filtro() { sed -n 's/^.*NOTICE:  //p; s/^.*ERROR:  /ERROR: /p; /^---/p; /^variante/p; /^control/p; /^contador/p'; }
 
 cp "$dir/ensayo-52.sql" "$tmp/ensayo.sql"
 quitar() { python3 - "$tmp/ensayo.sql" "$@" <<'PY'
@@ -59,6 +61,41 @@ f=0; for p in "${pids[@]}"; do wait "$p" || f=$((f + 1)); done
 read -r n d mi ma < <(psql -X -Atq -F ' ' -d "$db" -c "select count(*), count(distinct number), min(number), max(number) from public.jobs where owner_id='00000000-0000-0000-0000-00000000000c' and number > $antes")
 if [[ $f == 0 && $n == 20 && $d == 20 && $((ma - mi)) == 19 ]]; then echo "OK S8 concurrencia con DEFINER: 20 simultáneos → N° $mi…$ma únicos y correlativos"
 else echo "FALLA S8 errores=$f n=$n distintos=$d rango=$mi..$ma"; exit 1; fi
+
+# Rediseño del contador (N1, docs/23 §10): huella de lo existente, función propuesta y pruebas L0–L9.
+huella="select md5(coalesce(string_agg(j.id::text || ':' || j.number || ':' || j.issued_number || ':' || coalesce(q.number::text, '-'), ',' order by j.id), '')) from public.jobs j left join public.client_quotes q on q.job_id = j.id"
+run -c "insert into prueba.memo values ('huella_antes', ($huella))" >/dev/null
+if [[ "${CONTADOR:-propuesto}" == propuesto ]]; then
+  run -f "$dir/contador-52.sql" >/dev/null
+  echo "contador: rediseño N1 aplicado (docs/23 §10)"
+else
+  echo "control: contador ACTUAL (sin el rediseño); L1 debe fallar"
+fi
+run -f "$dir/pruebas-contador.sql" 2>&1 | filtro
+
+# L10 · concurrencia y reintentos simultáneos (cuenta D, contador en 4):
+#   G1: 20 cotizaciones nuevas; G2: 5 importaciones distintas con el MISMO número libre 900000;
+#   G3: la MISMA importación (mismo local_id, N° 800000) enviada 5 veces a la vez.
+uid=00000000-0000-0000-0000-00000000000d
+llamar() { psql -X -q -v ON_ERROR_STOP=1 -d "$db" -c "begin; set local role authenticated; select set_config('request.jwt.claim.sub','$uid',true); select public.create_job_with_quote($1, prueba.quote()); commit;" >/dev/null; }
+pids=()
+for i in $(seq 1 20); do llamar "prueba.job()" & pids+=($!); done
+for i in 1 2 3 4 5; do llamar "prueba.job('d0000000-0000-4000-8000-0000000002$(printf %02d "$i")', 900000)" & pids+=($!); done
+for i in 1 2 3 4 5; do llamar "prueba.job('d0000000-0000-4000-8000-000000000300', 800000)" & pids+=($!); done
+f=0; for p in "${pids[@]}"; do wait "$p" || f=$((f + 1)); done
+read -r g2 g2p g3 cnt dup rango < <(psql -X -Atq -F ' ' -d "$db" -c "
+  select (select count(*) from public.jobs where owner_id = '$uid' and issued_number = 900000),
+         (select count(*) from public.jobs where owner_id = '$uid' and number = 900000),
+         (select count(*) from public.jobs where owner_id = '$uid' and local_id = 'd0000000-0000-4000-8000-000000000300' and number = 800000),
+         (select last_number from public.quote_counters where owner_id = '$uid'),
+         (select count(*) - count(distinct number) from public.jobs where owner_id = '$uid'),
+         (select count(*) filter (where number between 5 and 28) = 24 and count(*) filter (where number between 29 and 499) = 0 from public.jobs where owner_id = '$uid')")
+esperado_cnt=28; [[ "${CONTADOR:-propuesto}" == propuesto ]] || esperado_cnt=900000
+if [[ $f == 0 && $g2 == 5 && $g2p == 1 && $g3 == 1 && $dup == 0 && $cnt == "$esperado_cnt" && $rango == t ]]; then
+  echo "OK L10 concurrencia: 20 nuevas + 5 importaciones con el mismo N° + 5 reintentos simultáneos → 0 errores, sin duplicados, 1 copia del reintento, internos 5…28 correlativos, contador $cnt"
+else
+  echo "FALLA L10 errores=$f g2=$g2 g2_interno=$g2p g3=$g3 contador=$cnt duplicados=$dup rango=$rango"; exit 1
+fi
 
 # Borradores M3/M4 encima de la propuesta, con la T6c reescrita (t6c-52.sql).
 run -f "$repo/scripts/diseno/borradores/M3_job_cargo_items.sql" >/dev/null

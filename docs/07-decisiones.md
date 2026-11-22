@@ -303,7 +303,7 @@ Comunicada por el propietario por chat a Claude y **registrada literalmente** en
 
 **No autoriza:** I-2, I-3, M3/M4, migraciones, fórmulas económicas, IVA, Google Routes, despliegues, activación de flags ni merge del PR #34.
 
-**Estado (21-11):** D-I8 parcial **implementada** (`e5534c7`, [22 §15](22-diseno-integracion-cotizador.md)), en auditoría. Revisión de #52 **entregada** en [23](23-revision-52-insert-directo.md): propuestas **D-52-1 a D-52-5**, **pendientes de tu decisión**. La implementación de #52 sigue **no autorizada**.
+**Estado (21-11):** D-I8 parcial **implementada** (`e5534c7`, [22 §15](22-diseno-integracion-cotizador.md)). Revisión de #52 **entregada** en [23](23-revision-52-insert-directo.md). *Estado actual (22-11): ver A-70.*
 
 ## Decisión del 22-11-2026: corrección del P2 de D-I8 y rediseño del contador en #52 (solo diseño)
 
@@ -317,3 +317,4 @@ Comunicada por el propietario por chat a Claude y **registrada literalmente** en
 
 **No autoriza:** implementar #52, migraciones, flags, despliegues, I-2, I-3, merge del PR #34 ni el PR documental hacia `main`.
 
+**Estado (22-11):** P2 de D-I8 corregido ([22 §16](22-diseno-integracion-cotizador.md)). [23](23-revision-52-insert-directo.md) versión 2: H4 (desbordamiento del contador) y **rediseño N1** con ensayo local 42/42. **D-52-4 v2 y D-52-4b, pendientes de tu decisión.** La implementación de #52 sigue **no autorizada**.

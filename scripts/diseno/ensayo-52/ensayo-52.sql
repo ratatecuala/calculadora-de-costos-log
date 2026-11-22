@@ -71,6 +71,23 @@ do $$ declare j uuid := (select v::uuid from prueba.memo where k = 'a_job1'); n 
 end $$;
 rollback;
 
+-- H4 · (revisión de ChatGPT del 22-11) Importación por la función con un número emitido libre igual al
+--      máximo de INTEGER: el contador sube a 2.147.483.647 y la siguiente cotización normal desborda.
+--      Existe HOY, sin INSERT directo, y #52 (D-52-1) por sí solo no lo corrige.
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', true);
+do $$ declare r jsonb; begin
+  r := public.create_job_with_quote(prueba.job('44444444-4444-4444-8444-444444444444', 2147483647), prueba.quote());
+  begin
+    perform public.create_job_with_quote(prueba.job(), prueba.quote());
+    raise notice 'H4 no reproducido';
+  exception when numeric_value_out_of_range then
+    raise notice 'HUECO H4 confirmado: tras importar el N° 2.147.483.647, la siguiente cotización falla (integer out of range): la cuenta queda bloqueada';
+  end;
+end $$;
+rollback;
+
 -- ===================== FASE 2: corrección propuesta (borrador) =====================
 \echo '--- FASE 2 (corrección propuesta aplicada) ---'
 reset role;
