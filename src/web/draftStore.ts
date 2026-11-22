@@ -13,7 +13,7 @@
 import { z } from 'zod';
 import { CARGO_HANDLING, MAX_CARGO_ITEMS } from '../shared/cargo';
 import { HELPER_SEGMENTS, MAX_EQUIPMENT, MAX_HELPERS } from '../shared/resources';
-import type { DraftData } from './session';
+import { MAX_MANUAL_LEG_KM, MAX_MANUAL_LEG_MINUTES, type DraftData } from './session';
 import type { KeyValueStore } from './vehicleRepository';
 
 export const DRAFT_KEY = 'cotizador.borrador.v1';
@@ -55,7 +55,15 @@ const role = z.enum(['base', 'A', 'B']);
 const manualRouteSchema = z
   .object({
     key: z.string().min(1).max(2000),
-    legs: z.array(z.object({ from: role, to: role, km: numOrNull, minutes: numOrNull }).strict()).min(1).max(MAX_MANUAL_LEGS),
+    // A-70: km y minutos ≥ 0 y bajo el tope técnico; un valor fuera de rango invalida SOLO el recorrido.
+    legs: z
+      .array(
+        z
+          .object({ from: role, to: role, km: num.min(0).max(MAX_MANUAL_LEG_KM).nullable(), minutes: num.min(0).max(MAX_MANUAL_LEG_MINUTES).nullable() })
+          .strict(),
+      )
+      .min(1)
+      .max(MAX_MANUAL_LEGS),
   })
   .strict()
   .nullable()

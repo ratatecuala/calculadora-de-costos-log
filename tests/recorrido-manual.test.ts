@@ -384,3 +384,112 @@ describe('D-I8 · el motor y las cotizaciones históricas no cambian', () => {
     expect(await repo.list()).toEqual([emitida]);
   });
 });
+
+// ---------------------------------------------------------------------------
+describe('A-70 · P2 de la auditoría: un recorrido recuperado dañado nunca hace fallar la calculadora', () => {
+  /** Borrador válido de 3 tramos con carga, para comprobar que el resto se conserva. */
+  function base3(): DraftData {
+    const s = manual(BASE_A_B_BASE, [[8.5, 15], [25, 40], [31.2, 47]]);
+    s.setMargin(0.2);
+    s.setSurcharges(3000);
+    return s.draftData();
+  }
+  function conTramo(d: DraftData, i: number, cambio: Record<string, unknown>): unknown {
+    return { ...d, manualRoute: { ...d.manualRoute!, legs: d.manualRoute!.legs.map((l, j) => (j === i ? { ...l, ...cambio } : l)) } };
+  }
+  /** Lee del almacenamiento como la app, restaura y renderiza la calculadora: no debe lanzar. */
+  async function recuperarYRenderizar(crudo: unknown): Promise<QuoteSession> {
+    const store = new MemoryKeyValueStore();
+    guardarCrudo(store, crudo);
+    const r = new DraftStore(store).read('local');
+    expect(r.status).toBe('ok');
+    const s = new QuoteSession(noRoutes);
+    if (r.status === 'ok') expect(() => s.restoreDraft(r.draft.data)).not.toThrow();
+    const { createElement } = await import('react');
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const { Calculator } = await import('../src/web/components/Calculator');
+    expect(() => renderToStaticMarkup(createElement(Calculator, { session: s, vehicles: [], onManageVehicles: () => undefined, onCreateQuote: () => undefined, cargoEnabled: true }))).not.toThrow();
+    return s;
+  }
+  /** El recorrido se descartó entero y el resto del borrador sigue igual, sin precio. */
+  function soloSeDescartoElRecorrido(s: QuoteSession, d: DraftData): void {
+    const snap = s.getSnapshot();
+    expect(snap.habitual.status).toBe('vacio');
+    expect(snap.habitual.manualLegs).toEqual([]);
+    expect(s.computation('habitual')).toBeNull();
+    expect(snap.inputs).toEqual(d.inputs);
+    expect(snap.params).toEqual(d.params);
+    expect(snap.margin).toBe(d.margin);
+    expect(snap.surcharges).toBe(d.surcharges);
+    expect(snap.vehicle).toEqual(d.vehicle);
+    expect(snap.cargo).toEqual(d.cargo);
+    expect(snap.resources).toEqual(d.resources);
+    expect(snap.chosenPrice).toBeNull();
+    expect(s.canQuote()).toBe(false);
+  }
+
+  const invalidos: Array<[string, Record<string, unknown>]> = [
+    ['km = -1', { km: -1 }],
+    ['minutos = -0,5', { minutes: -0.5 }],
+    ['km negativo diminuto (-1e-9)', { km: -1e-9 }],
+    ['km extremo finito (1e308)', { km: 1e308 }],
+    ['minutos extremos finitos (1e308)', { minutes: 1e308 }],
+    ['km justo sobre el tope (100.000,01)', { km: 100_000.01 }],
+    ['minutos justo sobre el tope (100.001)', { minutes: 100_001 }],
+    ['km como texto («25»)', { km: '25' }],
+    ['minutos booleanos', { minutes: true }],
+    ['km como objeto', { km: { valor: 25 } }],
+  ];
+  for (const [nombre, cambio] of invalidos) {
+    it(`${nombre} en un tramo: se descarta todo el recorrido (no solo el tramo), sin error y con el resto intacto`, async () => {
+      const d = base3();
+      const crudo = conTramo(d, 1, cambio);
+      const store = new MemoryKeyValueStore();
+      guardarCrudo(store, crudo);
+      const r = new DraftStore(store).read('local');
+      expect(r.status === 'ok' && r.draft.data.manualRoute).toBeNull();
+      soloSeDescartoElRecorrido(await recuperarYRenderizar(crudo), d);
+    });
+  }
+
+  it('en el tope exacto (100.000 km y 100.000 min por tramo, 3 tramos) se recupera y el cálculo funciona', async () => {
+    const d = base3();
+    const tope = { ...d, manualRoute: { ...d.manualRoute!, legs: d.manualRoute!.legs.map((l) => ({ ...l, km: 100_000, minutes: 100_000 })) } };
+    const s = await recuperarYRenderizar(tope);
+    expect(s.getSnapshot().habitual).toMatchObject({ status: 'manual', recovered: true });
+    expect(s.computation('habitual')?.km).toBe(300_000);
+  });
+
+  it('0 km y 0 minutos son datos válidos (no faltantes) y se recuperan', async () => {
+    const d = manual(A_B, [[0, 0]]).draftData();
+    const s = await recuperarYRenderizar(d);
+    expect(s.getSnapshot().habitual.manualLegs).toEqual([{ from: 'A', to: 'B', km: 0, minutes: 0 }]);
+    expect(s.computation('habitual')).not.toBeNull();
+  });
+
+  it('defensa de la sesión: restoreDraft con valores inválidos que no pasaron por el esquema no aplica el recorrido ni lanza', () => {
+    for (const cambio of [{ km: -5 }, { minutes: Number.POSITIVE_INFINITY }, { km: Number.NaN }, { km: 1e308 }, { minutes: 100_001 }]) {
+      const d = base3();
+      const s = new QuoteSession(noRoutes);
+      expect(() => s.restoreDraft(conTramo(d, 0, cambio) as DraftData)).not.toThrow();
+      soloSeDescartoElRecorrido(s, d);
+    }
+  });
+
+  it('otros datos del borrador dañados (ayudantes −1, carga y descarga 1e308, combustible 1e308): se descarta solo el recorrido, sin inventar valores', async () => {
+    for (const params of [{ helpers: -1 }, { loadMinutes: 1e308 }, { fuelPricePerL: 1e308 }]) {
+      const d = base3();
+      const crudo = { ...d, params: { ...d.params, ...params } };
+      const s = await recuperarYRenderizar(crudo);
+      soloSeDescartoElRecorrido(s, crudo as DraftData);
+    }
+  });
+
+  it('regresión: un borrador válido se sigue recuperando igual (3 tramos, aviso y costo)', async () => {
+    const d = base3();
+    const s = await recuperarYRenderizar(d);
+    expect(s.getSnapshot().habitual).toMatchObject({ status: 'manual', recovered: true, message: RECOVERED_ROUTE_MESSAGE });
+    expect(s.computation('habitual')?.km).toBeCloseTo(64.7, 6);
+    expect(s.getSnapshot().chosenPrice).toBeNull();
+  });
+});

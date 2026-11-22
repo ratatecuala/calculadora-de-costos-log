@@ -1,6 +1,6 @@
 # 22 · Diseño de integración: inventario y recursos en el cotizador (puerta P2)
 
-**Versión 2 · 20-11-2026 · Estado:** D-I1 a D-I7 **APROBADAS** (A-67). **I-1 + I-1b IMPLEMENTADAS** (A-68), con C1 y C2, detrás de la flag **apagada** (§10), y **CERRADAS TÉCNICAMENTE** por la [auditoría final](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743) sobre `2f8e112`: **0 P0 · 0 P1** (§14). **D-I8 parcial** (§12, punto 1: solo el recorrido manual) **aprobada (A-69) e implementada el 21-11** (§15), con auditoría solicitada; el punto 2 sigue sin autorizar. La flag sigue apagada; I-2, I-3, implementar #52, migraciones y despliegues **no autorizados**.
+**Versión 2 · 20-11-2026 · Estado:** D-I1 a D-I7 **APROBADAS** (A-67). **I-1 + I-1b IMPLEMENTADAS** (A-68), con C1 y C2, detrás de la flag **apagada** (§10), y **CERRADAS TÉCNICAMENTE** por la [auditoría final](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743) sobre `2f8e112`: **0 P0 · 0 P1** (§14). **D-I8 parcial** (§12, punto 1: solo el recorrido manual) **aprobada (A-69) e implementada el 21-11** (§15); auditada (0 P0 · 0 P1 · 1 P2), con el P2 corregido el 22-11 (A-70, §16) y una nueva auditoría solicitada. El punto 2 sigue sin autorizar. La flag sigue apagada; I-2, I-3, implementar #52, migraciones y despliegues **no autorizados**.
 
 **Cambios respecto de la versión 1:** resuelve la [auditoría del diseño](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7050466337) (2 P1 de diseño y 2 P2 de experiencia de usuario). La tabla del §8 resume cada uno.
 
@@ -499,3 +499,78 @@ Además, una ruta del proveedor con una corrección no se guarda ni vuelve.
 
 - Safari real, lector de pantalla y cuentas reales: siguen siendo puertas antes de encender la flag (§14).
 - Con cuenta no hay borrador (I-1), así que D-I8 solo actúa sin cuenta. C1 no cambia: al iniciar sesión, el borrador local, ahora con su recorrido manual, se guarda aislado.
+
+## 16. Auditoría de D-I8 (`e5534c7`: 0 P0 · 0 P1 · 1 P2) y corrección del P2 (A-70, 22-11-2026)
+
+[Auditoría](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7071423796): D-I8 parcial es apta para el cierre técnico, con un P2 de validación defensiva. [Autorización de la corrección (A-70)](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7071441529).
+
+**P2:** el esquema del recorrido manual aceptaba km y minutos negativos o extremos. Un borrador dañado o manipulado los reconstruía al recuperarlo, y el motor lanzaba un error dentro de `<Calculator>`, con la pantalla rota.
+
+**Comprobación previa con el motor** (sin modificarlo):
+- lanza `InvalidTripInputError` con km o minutos negativos;
+- lanza `InvalidAmountError` cuando una partida se vuelve infinita: por ejemplo, con 1e308 km, con 1e308 minutos o con una «carga y descarga» de 1e308.
+
+Por eso no bastaba con exigir `≥ 0`.
+
+### 16.1 Corrección: tres capas, sin cambiar el motor ni el diseño
+
+| Capa | Archivo | Qué hace |
+|---|---|---|
+| 1. Lectura del almacenamiento | `draftStore.ts` | En el esquema del recorrido, km y minutos deben ser `≥ 0` y no superar el **tope técnico por tramo**: `MAX_MANUAL_LEG_KM = 100.000` y `MAX_MANUAL_LEG_MINUTES = 100.000`. Un valor fuera de rango, de otro tipo o no finito invalida **solo el recorrido** (`catch`): direcciones, costos, margen, recargos, vehículo, inventario y recursos se recuperan igual |
+| 2. Restauración | `session.ts` (`recoveredRoute`, `manualLegValueValid`) | La misma validación, para un `DraftData` que no haya pasado por el esquema |
+| 3. Cálculo seguro | `session.ts` (`computesSafely`) | Antes de publicar el estado, se prueba el cálculo con el recorrido recuperado. Si fallaría, porque hay **otros** datos dañados (ayudantes −1, «carga y descarga» o combustible 1e308), se descarta solo el recorrido. Los datos dañados no se corrigen ni se reemplazan por 0 |
+
+**Criterios:**
+- El recorrido inválido se descarta **entero**, no solo el tramo. Un recorrido de 3 tramos con uno descartado no es el que escribió el usuario, así que se pide escribirlo de nuevo.
+- Los topes son **técnicos**, no comerciales: están muy por encima de cualquier viaje real, y en el tope exacto (3 × 100.000 km y 3 × 100.000 min) el cálculo funciona.
+- 0 km y 0 minutos siguen siendo datos válidos.
+- Sin texto nuevo en la interfaz: un borrador dañado vuelve sin recorrido, como un borrador sin recorrido manual.
+
+### 16.2 Pruebas (Claude, 22-11-2026)
+
+**Unitarias nuevas (15, en `tests/recorrido-manual.test.ts`):**
+- 10 valores inválidos en un tramo, cada uno leído como lo hace la app, restaurado y **renderizado** con `Calculator` sin errores:
+  - −1, −0,5, −1e-9, 1e308 km, 1e308 min;
+  - justo sobre el tope (100.000,01 km y 100.001 min);
+  - texto, booleano y objeto.
+
+  En todos se descarta el recorrido y el resto del borrador queda igual, sin precio.
+- Tope exacto: se recupera y el cálculo da 300.000 km.
+- 0 km y 0 min se recuperan.
+- Defensa de la sesión con −5, `Infinity`, `NaN`, 1e308 y 100.001 sin pasar por el esquema.
+- Otros datos dañados (ayudantes −1, «carga y descarga» 1e308, combustible 1e308): se descarta solo el recorrido y los datos dañados no se modifican.
+- Regresión: un borrador válido de 3 tramos se recupera igual que antes.
+
+**E2E nuevo (`scripts/e2e-integracion.mjs`, 10 verificaciones por tamaño):** en los 4 tamaños se manipula el borrador real del navegador (km −1 y km 1e308), se recarga y se recupera. Se comprueba:
+- **0 errores de página**;
+- el recorrido no se aplica;
+- direcciones y costos vuelven;
+- la calculadora sigue usable.
+
+| Prueba | Resultado |
+|---|---|
+| `npm test` | **568/568** (553 + 15) |
+| Casos dorados | **64/64** |
+| Typecheck y 3 builds | Sin errores |
+| `e2e-integracion.mjs` con la flag | **278/278** (238 + 40), tres corridas |
+| `e2e-integracion.mjs --sin-flag` | **24/24** |
+| `e2e-modulos.mjs` | **210/210** |
+| `e2e-staging-anonimo.mjs` en local, sin y con flag | **54/59** (las 5 fallas de entorno de siempre) |
+| `src/engine`, `src/server`, `src/shared`, `supabase/` | **Sin cambios** |
+
+**Defectos reintroducidos a propósito (todos detectados):**
+
+| Defecto | Unitarias que fallan |
+|---|---|
+| Esquema sin el mínimo 0 | 3 |
+| Esquema sin el tope | 4 |
+| Esquema como en `e5534c7` | 7 |
+| La sesión no valida los valores | 1 |
+| Sin la comprobación de cálculo seguro | 1 |
+| Tope demasiado bajo (rechaza el tope exacto) | 1 |
+| **Sin ninguna de las tres capas (código de `e5534c7`)** | **9**; además, el E2E reproduce la caída de `<Calculator>` por `InvalidTripInputError` y se detiene |
+
+### 16.3 Observaciones fuera del alcance (no corregidas, para tu decisión)
+
+- **Valores enormes escritos a mano (anterior a D-I8):** `parseAmount` acepta cualquier número finito ≥ 0. Si alguien escribe, por ejemplo, `1e308` en un campo de costo o de km, el motor lanza `InvalidAmountError` y la calculadora puede fallar, con o sin borrador. Corregirlo toca la interfaz o la validación de entradas (A-50) y no se hizo sin tu autorización.
+- **Nota de experiencia de usuario de la auditoría:** tras recuperar un recorrido manual y presionar «Calcular ruta», la regla anterior conserva los km escritos como correcciones sobre la ruta del proveedor, con un aviso. Conviene que el texto deje claro que las cifras declaradas prevalecen. No se cambió: el punto 2 de D-I8 sigue sin autorizar.

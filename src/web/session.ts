@@ -73,6 +73,19 @@ export interface RouteState {
   recovered?: true;
 }
 
+/**
+ * Topes TÉCNICOS por tramo para un recorrido manual RECUPERADO (P2 de la auditoría de D-I8, A-70):
+ * evitan que un borrador dañado o manipulado reconstruya valores que desborden el cálculo. Son
+ * holgados (más que cualquier viaje real) y no son un límite comercial ni cambian el motor.
+ */
+export const MAX_MANUAL_LEG_KM = 100_000;
+export const MAX_MANUAL_LEG_MINUTES = 100_000;
+
+/** Un km o minuto recuperado es válido si falta (null) o es finito, ≥ 0 y no supera el tope. */
+export function manualLegValueValid(v: number | null, max: number): boolean {
+  return v === null || (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= max);
+}
+
 /** Aviso al recuperar un recorrido manual (D-I8, A-69). */
 export const RECOVERED_ROUTE_MESSAGE = 'Recorrido recuperado: revisa los kilómetros y minutos';
 
@@ -417,7 +430,7 @@ export class QuoteSession {
   restoreDraft(d: DraftData): void {
     for (const k of Object.keys(this.generation) as RouteKind[]) this.generation[k] += 1;
     const inputs = { ...d.inputs };
-    this.set({
+    const next: SessionState = {
       ...initialState(),
       habitual: this.recoveredRoute(inputs, d.manualRoute ?? null),
       inputs,
@@ -427,7 +440,26 @@ export class QuoteSession {
       vehicle: d.vehicle ? { ...d.vehicle } : null,
       cargo: structuredClone(d.cargo),
       resources: structuredClone(d.resources),
-    });
+    };
+    // P2 de la auditoría de D-I8 (A-70): si el cálculo con el recorrido recuperado fallaría (p. ej.,
+    // otros datos dañados del borrador), se descarta SOLO el recorrido. El resto se conserva y la
+    // pantalla nunca recibe un recorrido que haga fallar al motor.
+    if (next.habitual.recovered && !this.computesSafely(next)) next.habitual = emptyRoute();
+    this.set(next);
+  }
+
+  /** ¿El cálculo con este estado termina sin error? Se prueba sin publicar el estado. */
+  private computesSafely(candidate: SessionState): boolean {
+    const previous = this.state;
+    this.state = candidate;
+    try {
+      this.computation('habitual');
+      return true;
+    } catch {
+      return false;
+    } finally {
+      this.state = previous;
+    }
   }
 
   /** Recorrido manual recuperado, o una ruta vacía si no coincide con las direcciones (D-I8). */
@@ -440,6 +472,8 @@ export class QuoteSession {
       m.key === key &&
       m.legs.length === template.length &&
       m.legs.every((l, i) => l.from === template[i]!.from && l.to === template[i]!.to) &&
+      // Defensa en profundidad (A-70): sin negativos, no finitos ni valores sobre el tope técnico.
+      m.legs.every((l) => manualLegValueValid(l.km, MAX_MANUAL_LEG_KM) && manualLegValueValid(l.minutes, MAX_MANUAL_LEG_MINUTES)) &&
       m.legs.some((l) => l.km !== null || l.minutes !== null);
     if (!coincide) return emptyRoute();
     return {

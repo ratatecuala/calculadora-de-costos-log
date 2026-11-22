@@ -1,6 +1,6 @@
 # 07 · Registro de decisiones — estado actualizado
 
-**Criterio:** lo aprobado por el propietario se distingue de alternativas propuestas. Este archivo se está actualizando en el **PR #34**, todavía sin fusionar. **Última sincronización: 21-11-2026**, con A-69 (D-I8 parcial, implementada y en auditoría: [22 §15](22-diseno-integracion-cotizador.md)) y la [auditoría final de I-1 + I-1b](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743). Las secciones antiguas conservan su texto original; cuando su estado cambió, se indica con una nota de estado actual. Nombre comercial **PENDIENTE**; no reutilizar el nombre anterior como marca.
+**Criterio:** lo aprobado por el propietario se distingue de alternativas propuestas. Este archivo se está actualizando en el **PR #34**, todavía sin fusionar. **Última sincronización: 22-11-2026**, con A-69 (D-I8 parcial: [22 §15](22-diseno-integracion-cotizador.md)) y A-70 (P2 de D-I8 corregido, [22 §16](22-diseno-integracion-cotizador.md); rediseño del contador en #52, [23](23-revision-52-insert-directo.md)) y la [auditoría final de I-1 + I-1b](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743). Las secciones antiguas conservan su texto original; cuando su estado cambió, se indica con una nota de estado actual. Nombre comercial **PENDIENTE**; no reutilizar el nombre anterior como marca.
 
 ## Aprobado / dirección explícita del propietario
 
@@ -304,3 +304,16 @@ Comunicada por el propietario por chat a Claude y **registrada literalmente** en
 **No autoriza:** I-2, I-3, M3/M4, migraciones, fórmulas económicas, IVA, Google Routes, despliegues, activación de flags ni merge del PR #34.
 
 **Estado (21-11):** D-I8 parcial **implementada** (`e5534c7`, [22 §15](22-diseno-integracion-cotizador.md)), en auditoría. Revisión de #52 **entregada** en [23](23-revision-52-insert-directo.md): propuestas **D-52-1 a D-52-5**, **pendientes de tu decisión**. La implementación de #52 sigue **no autorizada**.
+
+## Decisión del 22-11-2026: corrección del P2 de D-I8 y rediseño del contador en #52 (solo diseño)
+
+Comunicada por el propietario por chat a Claude y **registrada literalmente** en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7071441529) antes de ejecutar. **APROBADA.** Base: [auditoría de D-I8](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7071423796) y [revisión de #52](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7071428749).
+
+| ID | Decisión | Alcance de la aprobación |
+|---|---|---|
+| A-70 | **D-I8, P2:** un recorrido manual recuperado de un borrador dañado o manipulado no puede reconstruir km o minutos negativos o desbordados ni hacer fallar la calculadora; si se descarta, el resto del borrador se conserva | Corrección con pruebas de regresión, casos extremos y casos dorados; **sin** cambiar la funcionalidad, el diseño ni el motor. Implementada en [22 §16](22-diseno-integracion-cotizador.md) |
+| — | **#52, solo diseño:** rediseñar en [23](23-revision-52-insert-directo.md) la protección de `quote_counters` ante importaciones con números muy altos, con pruebas de límites de `INTEGER`, concurrencia y reintentos | **No** autoriza implementar #52 ni crear o ejecutar migraciones |
+| — | **D-52-1 y D-52-2:** aceptadas **como orientación técnica**. **D-52-3:** criterio futuro. **D-52-4:** requiere rediseño. **D-52-5:** provisional | No son autorizaciones de implementación |
+
+**No autoriza:** implementar #52, migraciones, flags, despliegues, I-2, I-3, merge del PR #34 ni el PR documental hacia `main`.
+

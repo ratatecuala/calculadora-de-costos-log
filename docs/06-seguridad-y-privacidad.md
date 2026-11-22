@@ -32,7 +32,7 @@
 | `cotizador.trabajos.v1` | Historial local de cotizaciones (v1 y, solo sin cuenta y con la flag de integración encendida, v2 con inventario y recursos) | Solo en ese navegador; sin respaldo; se avisa al usuario |
 | `cotizador.vehiculos.v1` | Perfiles de «Mi vehículo» sin cuenta | Ídem |
 | `cotizador.negocio.v1` | Datos comerciales del emisor | Ídem |
-| `cotizador.borrador.v1` | Borrador sin emitir (I-1b): direcciones, costos, vehículo, inventario y recursos escritos por el usuario y, desde D-I8 (A-69), los km y minutos del **recorrido manual** con la clave de sus direcciones; **nunca** datos del proveedor de rutas, correcciones sobre rutas automáticas ni el precio | Solo del modo sin cuenta; no se ofrece a otra identidad (C1); se borra al emitir o descartar |
+| `cotizador.borrador.v1` | Borrador sin emitir (I-1b): direcciones, costos, vehículo, inventario y recursos escritos por el usuario y, desde D-I8 (A-69), los km y minutos del **recorrido manual** con la clave de sus direcciones; **nunca** datos del proveedor de rutas, correcciones sobre rutas automáticas ni el precio. Al leerlo se valida: un recorrido con valores negativos, enormes o de otro tipo se descarta sin perder el resto (A-70) | Solo del modo sin cuenta; no se ofrece a otra identidad (C1); se borra al emitir o descartar |
 | `cotizador.migracion.v1` | Registro de la copia del historial local a la cuenta: por identificador de cuenta, los identificadores de cotizaciones y vehículos ya copiados, y las diferidas con su número y motivo | No contiene costos, montos ni direcciones |
 
 El inventario y los recursos **no** aparecen en el PDF, el enlace público ni WhatsApp (D-I7, A-67): el cliente ve solo la descripción del servicio.

@@ -132,6 +132,38 @@ async function rutaProveedorNoSeGuarda(page) {
   check('D-I8: al recuperar no vuelve ninguna ruta del proveedor', (await page.getByTestId('ruta-recuperada').count()) === 0 && (await page.getByLabel('Km tramo 1', { exact: true }).count()) === 0);
 }
 
+/**
+ * A-70 (P2 de la auditoría de D-I8): un borrador MANIPULADO en el almacenamiento (km negativo o
+ * extremo) no rompe la calculadora: el recorrido se descarta y el resto del borrador vuelve.
+ */
+async function borradorDanado(page, nombre, errores) {
+  for (const [etiqueta, valor] of [['km −1', -1], ['km 1e308', 1e308]]) {
+    await empezarLimpio(page);
+    await direcciones(page, 1);
+    await page.getByRole('button', { name: 'Cargar ejemplo ficticio' }).click();
+    await page.getByRole('button', { name: 'Prefiero ingresar los km a mano' }).click();
+    await page.getByLabel('Km tramo 1', { exact: true }).fill('25');
+    await page.getByLabel('Minutos tramo 1', { exact: true }).fill('40');
+    await page.waitForTimeout(1500);
+    const manipulado = await page.evaluate((v) => {
+      const m = JSON.parse(localStorage.getItem('cotizador.borrador.v1'));
+      if (!m?.local?.data?.manualRoute) return false;
+      m.local.data.manualRoute.legs[0].km = v;
+      localStorage.setItem('cotizador.borrador.v1', JSON.stringify(m));
+      return true;
+    }, valor);
+    check(`A-70 ${etiqueta}: el borrador se manipuló en el almacenamiento`, manipulado);
+    const antes = errores.length;
+    await recuperarAlRecargar(page);
+    await page.waitForTimeout(300);
+    check(`A-70 ${etiqueta}: recuperar no produce errores de página`, errores.length === antes, errores.slice(antes).join(' | '));
+    check(`A-70 ${etiqueta}: el recorrido dañado no se aplica`, (await page.getByTestId('ruta-recuperada').count()) === 0 && (await page.getByLabel('Km tramo 1', { exact: true }).count()) === 0);
+    check(`A-70 ${etiqueta}: el resto del borrador vuelve (direcciones y costos)`, (await page.getByLabel('Desde (A)').inputValue()) === 'Calle Uno 123, Ñuñoa' && (await page.getByLabel('Rendimiento').inputValue()) !== '');
+    check(`A-70 ${etiqueta}: la calculadora sigue usable (escribir los km a mano)`, await page.getByRole('button', { name: 'Prefiero ingresar los km a mano' }).isEnabled());
+  }
+  await shot(page, nombre, 'a70-borrador-danado', { fullPage: true });
+}
+
 /** Texto de las columnas de costo y precio: debe ser idéntico con y sin detalle de carga (D-I1). */
 const costos = (page) => page.evaluate(() => [...document.querySelectorAll('.layout > .col')].slice(1).map((c) => c.innerText).join('\n'));
 
@@ -329,6 +361,7 @@ try {
     await recorridoManual(page, nombre, 1);
     await recorridoManual(page, nombre, 3);
     await rutaProveedorNoSeGuarda(page);
+    await borradorDanado(page, nombre, errores);
     check('sin errores en la consola', errores.length === 0, errores.join(' | '));
     await ctx.close();
   }
