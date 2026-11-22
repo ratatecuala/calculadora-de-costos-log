@@ -357,3 +357,15 @@ Comunicadas por el propietario por chat a Claude y **registradas literalmente** 
 **No autoriza:** migraciones, consultas en Supabase, flags, despliegues, I-2, I-3 ni merge del PR #34.
 
 **Estado (22-11):** A-75 **implementada** ([24 §8](24-robustez-numerica.md)), con reauditoría solicitada. A-76: [25 · Lista de comprobación](25-lista-staging-52.md) **preparada**; nada ejecutado, migración sin cambios.
+
+## Decisión del 22-11-2026: procedimiento reproducible de respaldo y restauración (docs/25 v2)
+
+Comunicada por el propietario por chat a Claude y **registrada literalmente** en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7078172931) antes de trabajar. **APROBADA.** Base: [reauditoría de A-75](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7078148135) (0 P0 · 0 P1 · 0 P2) y [auditoría de A-76](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7078148568) (0 P0 · 1 P1 · 2 P2).
+
+**A-75 queda cerrada técnicamente.** No se hacen más cambios en ese frente.
+
+| ID | Decisión | Alcance de la aprobación |
+|---|---|---|
+| A-77 | Corregir **exclusivamente la documentación y las herramientas locales** para que el procedimiento de respaldo y restauración de docs/25 sea realmente reproducible:<br>(1) corregir el nombre de la migración;<br>(2) resolver la incompatibilidad entre el *stub* mínimo de Auth y los datos de un respaldo real, sin presentar como validado un simulacro que no pueda restaurarlos;<br>(3) preparar y probar una restauración local compatible con el estado anterior a #52, sin aplicar por accidente la migración nueva;<br>(4) corregir la contradicción del modo de solo lectura en el editor SQL;<br>(5) adaptar las instrucciones a Windows 11 para un propietario sin conocimientos técnicos, con requisitos previos, comandos exactos y protección de los archivos descifrados;<br>(6) probar con datos ficticios y documentar resultados reales, limitaciones y pendientes | Se permite trabajar en paralelo en worktrees separados si no comparten archivos. **No** se accede a Supabase, **no** se piden credenciales, **no** se ejecutan respaldos reales ni migraciones remotas. **No** se cambian el motor, I-2/I-3, las flags, los despliegues ni el PR #34. Se entregan commits y se pide una **última reauditoría del procedimiento** antes de solicitar autorizaciones para trabajar en staging |
+
+**Estado (22-11):** A-77 **implementada solo en documentación y herramientas locales**: [25 · Lista de comprobación v2](25-lista-staging-52.md) y `scripts/simulacro/`. Probada con datos ficticios en PostgreSQL local (15/15; 6 mutaciones detectadas). Reauditoría solicitada. Nada ejecutado contra Supabase.

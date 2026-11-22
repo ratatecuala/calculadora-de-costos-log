@@ -173,8 +173,8 @@ La ruta B reconstruye el esquema con las **migraciones del repositorio**, que re
 
 1. **Destino:**
    - un proyecto Supabase nuevo en `sa-east-1` (ver H9: hoy exige pausar un proyecto o pagar); o
-   - un Postgres local (§5.6).
-2. **Descifrar y comprobar:**
+   - un Postgres local: para eso usa el **simulacro automático** de §5.6, que hace los pasos 2 a 6 por sí solo y borra los archivos descifrados al terminar.
+2. **Descifrar y comprobar** (solo para restaurar en un proyecto nuevo). Hazlo dentro de una carpeta privada (`mkdir -m 700`), fuera del repositorio y de carpetas sincronizadas, y **bórrala al terminar**:
    ```bash
    age -d -i ~/.config/cotizador/clave-respaldo.txt respaldo-<fecha>.tar.age | tar -xf -
    ```
@@ -182,7 +182,7 @@ La ruta B reconstruye el esquema con las **migraciones del repositorio**, que re
    cd respaldo-<fecha> && grep -E '\.sql$' manifiesto.txt | shasum -a 256 -c -
    ```
 3. **Esquema desde el repositorio:**
-   > **Estado actual (22-11, A-76):** el repositorio ya contiene la migración de #52 (`20261122120000_guardado_unico_y_contador.sql`), que **staging todavía no tiene**. Para restaurar un respaldo tomado **antes** de aplicarla, usa **solo las 3 migraciones anteriores** con la vía `psql` de abajo. `supabase db push` las aplicaría todas, y el `diff` de la verificación no daría cero sin que hubiera ningún problema real. Ver [25 · Lista de comprobación](25-lista-staging-52.md), paso 2.6.
+   > **Estado actual (22-11, A-76):** el repositorio ya contiene la migración de #52 (`20261122120000_guardado_unico_y_contador.sql`), que **staging todavía no tiene**. Para restaurar un respaldo tomado **antes** de aplicarla, usa **solo las 3 migraciones anteriores** con la vía `psql` de abajo. `supabase db push` las aplicaría todas, y el `diff` de la verificación no daría cero sin que hubiera ningún problema real. El nombre exacto de cada migración, y cuáles aplicar según el estado del origen, están en la lista explícita de `scripts/simulacro/simulacro-restauracion.sh` (A-77). Ver [25 · Lista de comprobación](25-lista-staging-52.md), paso 2.3.
    - con la CLI: `supabase link --project-ref <nuevo-project-ref>` y luego `supabase db push`;
    - o, sin CLI, por cada archivo:
    ```bash
@@ -193,7 +193,7 @@ La ruta B reconstruye el esquema con las **migraciones del repositorio**, que re
    psql "$NEW_DB_URL" --single-transaction --variable ON_ERROR_STOP=1 \
      --command 'SET session_replication_role = replica' --file data.sql
    ```
-   El modo `replica` desactiva los *triggers* y las claves foráneas durante la carga, así que el orden de las tablas no importa. Si `data.sql` (modo `cli`) trae `COPY` de tablas internas que el destino no tiene, se comentan esa línea y su `\.` (documentación oficial, *Troubleshooting*).
+   El modo `replica` desactiva los *triggers* y las claves foráneas durante la carga, así que el orden de las tablas no importa. Si `data.sql` (modo `cli`) trae `COPY` de tablas internas que el destino no tiene, se comentan esa línea y su `\.` (documentación oficial, *Troubleshooting*). El simulacro lo hace con `scripts/simulacro/procesar-respaldo.py filtrar`, que además omite los cambios de rol del volcado (`SET SESSION AUTHORIZATION`).
 5. **Reconfigurar a mano:**
    - Auth (§3) y Google (§7): la URI de callback cambia con el nuevo `<project-ref>`;
    - nueva clave publicable y URL en `.env.staging.local`; recompilar y desplegar el Worker.
@@ -211,7 +211,15 @@ La ruta B reconstruye el esquema con las **migraciones del repositorio**, que re
 
 ### 5.6 Simulacro local (gratuito)
 
-- **Opción 1, sin Docker (la ensayada):** Postgres 17 local, más un *stub* mínimo de Supabase (roles `anon`/`authenticated`/`service_role`, esquema `auth` con `users`, `identities` y `auth.uid()`, y `pgcrypto` en `extensions`). Después, los pasos 3, 4 y 6 de §5.5. El *stub* usado está descrito en §6.
+- **Opción 1, sin Docker (A-77, automática):** `scripts/simulacro/simulacro-restauracion.sh`. Instrucciones para Windows 11 en [25 · Lista de comprobación](25-lista-staging-52.md), fases 0 y 2b.
+  - **Por qué cambió:** el *stub* de §6 creaba `auth.users(id, email)`. Un respaldo real trae **todas** las columnas de Auth de Supabase, así que su `COPY` fallaba (`column "instance_id" … does not exist`). Además, ese *stub* nunca quedó en el repositorio. **El ensayo del 18-11 no valida la restauración de un respaldo real.**
+  - **Qué hace ahora:**
+    - crea `auth.users` y `auth.identities` con **las columnas que trae el propio respaldo**: `id` como `uuid` y las demás como texto, porque la estructura de Auth no viaja en el respaldo;
+    - aplica solo las migraciones que corresponden al estado del origen (antes o después de #52) y comprueba que la base quedó en ese estado;
+    - carga los datos filtrados;
+    - compara la verificación con la del origen;
+    - borra siempre la carpeta temporal.
+  - **Probado con datos ficticios:** 15/15 ([25 §7](25-lista-staging-52.md)).
 - **Opción 2, con Docker:** `supabase start` levanta una pila local con el esquema `auth` real (cadena local `postgresql://postgres:postgres@127.0.0.1:54322/postgres`). Luego, pasos 3, 4 y 6. No ensayada aquí: el contenedor de Claude no tiene Docker en funcionamiento.
 
 ## 6. Ensayo local de respaldo y restauración (18-11-2026)
@@ -282,7 +290,7 @@ La ruta B reconstruye el esquema con las **migraciones del repositorio**, que re
 
 **Límites del ensayo:**
 - Postgres 16 y no 17.
-- *Stub* en vez de Supabase real: no están la estructura completa de `auth`, ni `storage`, ni Supavisor.
+- *Stub* en vez de Supabase real: no están la estructura completa de `auth`, ni `storage`, ni Supavisor. **Corrección (A-77, 22-11-2026):** ese *stub* (`auth.users(id, email)`) **no puede** cargar los datos de Auth de un respaldo real. El ensayo solo valida respaldos de un origen con ese mismo *stub*. Lo reemplaza el simulacro de §5.6.
 - No se ensayó el modo `cli` (sin Docker).
 - No se ensayó contra el proyecto real (requiere `<db-password>` y un cliente 17).
 
@@ -290,7 +298,7 @@ El clúster se detuvo y se borró al terminar. El *stub* y los datos ficticios q
 
 **Primer respaldo real (PENDIENTE, propietario):**
 1. Ejecutar `scripts/respaldo-supabase.sh` en modo `cli` o `pgdump` (cliente 17).
-2. Hacer un simulacro local por la ruta B.
+2. Hacer el simulacro local automático (§5.6 y [25](25-lista-staging-52.md), paso 2.3).
 3. Registrar aquí la fecha y el resultado del `diff`.
 
 ## 7. Google OAuth: checklist

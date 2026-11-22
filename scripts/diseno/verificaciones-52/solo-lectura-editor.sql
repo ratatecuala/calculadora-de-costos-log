@@ -9,8 +9,10 @@
 --     sentencia fija la transacción implícita en SOLO LECTURA y la segunda es UNA única consulta que
 --     devuelve todas las verificaciones como filas (verificacion, resultado). Así el editor, que muestra
 --     el resultado de la última sentencia, las muestra todas juntas.
---   * Si el editor rechazara `set transaction read only`, se puede ejecutar solo la consulta SELECT: solo
---     lee catálogos y cuenta filas, sin llamar a funciones que escriban.
+--   * SOLO INFORMATIVA (A-77). No se sabe si el editor ejecuta la primera línea en la misma transacción,
+--     así que V17 puede salir `off`. La VERIFICACIÓN FORMAL es la vía psql (solo-lectura.sql, docs/25
+--     paso 3.1), con V17 = `on`. Si el editor rechaza `set transaction read only` o V17 no es `on`, usa la
+--     vía psql: NO borres esa línea. Las consultas solo leen catálogos y cuentan filas.
 --   * Devuelve CONTEOS, máximos y configuración: nunca ids de cuentas ni correos. Pegar el resultado en #52.
 --   * Ningún hallazgo se repara automáticamente (D-52-4b, A-72).
 -- Probada en local con `psql -c "$(cat …)"` (una sola consulta, como el editor) y con la versión psql

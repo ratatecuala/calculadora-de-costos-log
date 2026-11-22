@@ -302,7 +302,7 @@ Al terminar no quedó ninguna base `ensayo52_*`. Los escenarios X y las verifica
 - Ninguna crea, modifica ni borra nada. Una escritura dentro de la transacción de solo lectura falla en las dos modalidades (V0d).
 - Las consultas de datos devuelven **conteos** y máximos, nunca ids ni correos.
 - Una verificación que no aparece en el resultado no devolvió filas (por ejemplo, V8 sin `pgrst.db_schemas`: revisar el panel).
-- **No probado en el editor real** (no se tocó Supabase). Se entiende que el editor envía el texto como una sola consulta, y eso se reprodujo en local con `psql -c "$(cat solo-lectura-editor.sql)"`. Si el editor rechazara `set transaction read only`, se puede ejecutar solo la consulta `SELECT`: únicamente lee catálogos y cuenta filas.
+- **No probado en el editor real** (no se tocó Supabase). Se entiende que el editor envía el texto como una sola consulta, y eso se reprodujo en local con `psql -c "$(cat solo-lectura-editor.sql)"`. **Corrección A-77:** la versión del editor es **solo informativa**. No se sabe si el editor ejecuta su primera línea en la misma transacción, así que V17 puede salir `off`. La **verificación formal** es la vía psql, con V17 = `on` ([25](25-lista-staging-52.md), paso 3.1). Si el editor rechaza `set transaction read only`, se usa psql: **no** se borra esa línea.
 
 **Pruebas en local** (`verificaciones-52/probar.sh`, llamado por `ensayar.sh`):
 - **V0a:** la versión psql corre completa (39 filas en la base de ensayo);
