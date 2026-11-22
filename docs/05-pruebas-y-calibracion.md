@@ -115,7 +115,7 @@ Agregadas en la fase 0 (A-63), la fase 1 (A-66), la integración I-1 + I-1b (A-6
 | `scripts/e2e-integracion.mjs --sin-flag` | **24/24** |
 | `scripts/e2e-staging-anonimo.mjs` contra el servidor local | **54/59**: las 5 restantes son propias de staging (acceso privado 401 y `localhost` contado como dominio externo) |
 | Borradores M3/M4 en PostgreSQL local desechable (`scripts/diseno/`) | **18/18** y 3 controles negativos; C3 **27/27**; medición de 16 KB **10/10** ([21 §11](21-diseno-datos-cotizador.md)) |
-| Ensayo de la propuesta de #52 en PostgreSQL local desechable (`scripts/diseno/ensayo-52/`), herramienta de diseño y no migración | Huecos H1–H4 reproducidos; con la propuesta y el rediseño del contador, **42/42** (también con B+), incluidos los límites de `INTEGER`, la concurrencia y los reintentos (L0–L10). Los controles negativos C1, C3, C4 y «contador actual» fallan como corresponde, y C2 confirma la doble capa; 2 mutaciones del rediseño, detectadas ([23 §6 y §10](23-revision-52-insert-directo.md)) |
+| Ensayo del diseño de #52 (A-72) en PostgreSQL local desechable (`scripts/diseno/ensayo-52/`), herramienta de diseño y no migración | **52/52** (22-11, también con B+). Cubre H1–H4, S0–S8, L0–L10 (contador N1: límites de `INTEGER`, concurrencia y reintentos), X1–X8 (contador ya inflado, rendimiento con 10.000 importaciones, privilegios por defecto, `pg_temp`, `service_role`, mensajes, disparadores, borrado concurrente), V0 (las verificaciones de solo lectura no escriben) y T1–T15 de M3/M4. Controles: C1, C3, C4 y «contador actual» fallan; C2 confirma la doble capa. 2 mutaciones del contador, detectadas ([23 §7](23-revision-52-insert-directo.md)) |
 
 ### Pruebas contra servicios reales (staging, 18-11-2026)
 

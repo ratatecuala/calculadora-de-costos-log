@@ -330,4 +330,4 @@ Comunicadas por el propietario por chat a Claude y **registradas literalmente** 
 
 **No autoriza:** despliegues, migraciones reales, ejecución en Supabase, flags, I-2, I-3, IVA, Google Routes ni merge del PR #34.
 
-**Estado (22-11):** A-71 **implementada** ([24](24-robustez-numerica.md)), con auditoría solicitada.
+**Estado (22-11):** A-71 **implementada** ([24](24-robustez-numerica.md)), con auditoría solicitada. A-72: [23](23-revision-52-insert-directo.md) **versión 3** consolidada (diseño aprobado, riesgos de DEFINER, plan por autorizaciones y verificaciones de solo lectura preparadas, sin ejecutar); ensayo local 52/52. **Implementar #52 sigue sin autorizar.**
