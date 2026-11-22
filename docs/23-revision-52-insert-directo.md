@@ -11,6 +11,8 @@ D-52-3 queda reservado para M4, D-52-5 es provisional y D-52-4b solo se resolver
 
 **Implementación local (A-74, [registro en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7072135863)):** la migración existe en `supabase/migrations/20261122120000_guardado_unico_y_contador.sql` y está ensayada **solo** en PostgreSQL local desechable (§11).
 
+**Siguiente paso preparado (A-76):** la implementación local quedó **aprobada técnicamente** por la [auditoría](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7072906170). La [lista de comprobación para el respaldo y las verificaciones previas en staging](25-lista-staging-52.md) está preparada; nada se ha ejecutado.
+
 **Lo que sigue sin autorización:**
 - aplicar la migración en Supabase o en staging, por cualquier vía (`supabase db push` incluido): exige la auditoría del código, el respaldo real (A-52), las verificaciones de solo lectura y la autorización individual A-59;
 - ejecutar cualquier cosa en Supabase, incluidas las verificaciones de solo lectura de §8;

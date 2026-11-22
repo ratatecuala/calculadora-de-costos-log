@@ -356,4 +356,4 @@ Comunicadas por el propietario por chat a Claude y **registradas literalmente** 
 
 **No autoriza:** migraciones, consultas en Supabase, flags, despliegues, I-2, I-3 ni merge del PR #34.
 
-**Estado (22-11):** A-75 **implementada** ([24 §8](24-robustez-numerica.md)), con reauditoría solicitada.
+**Estado (22-11):** A-75 **implementada** ([24 §8](24-robustez-numerica.md)), con reauditoría solicitada. A-76: [25 · Lista de comprobación](25-lista-staging-52.md) **preparada**; nada ejecutado, migración sin cambios.

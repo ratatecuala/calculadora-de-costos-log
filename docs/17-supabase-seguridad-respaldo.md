@@ -182,6 +182,7 @@ La ruta B reconstruye el esquema con las **migraciones del repositorio**, que re
    cd respaldo-<fecha> && grep -E '\.sql$' manifiesto.txt | shasum -a 256 -c -
    ```
 3. **Esquema desde el repositorio:**
+   > **Estado actual (22-11, A-76):** el repositorio ya contiene la migración de #52 (`20261122120000_guardado_unico_y_contador.sql`), que **staging todavía no tiene**. Para restaurar un respaldo tomado **antes** de aplicarla, usa **solo las 3 migraciones anteriores** con la vía `psql` de abajo. `supabase db push` las aplicaría todas, y el `diff` de la verificación no daría cero sin que hubiera ningún problema real. Ver [25 · Lista de comprobación](25-lista-staging-52.md), paso 2.6.
    - con la CLI: `supabase link --project-ref <nuevo-project-ref>` y luego `supabase db push`;
    - o, sin CLI, por cada archivo:
    ```bash
