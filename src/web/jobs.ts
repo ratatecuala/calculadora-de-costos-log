@@ -109,6 +109,8 @@ export function buildJobRecord(
   const computation = session.computation('habitual');
   // Quinta auditoría (P2): la confirmación del precio también se exige en el último paso.
   if (!computation || s.chosenPrice === null || session.priceNeedsConfirmation()) return null;
+  // A-71: nunca se emite con un valor numérico fuera de rango (tampoco desde el último paso).
+  if (Object.keys(session.numericIssues()).length > 0) return null;
   const keep = session.retainable('habitual');
   const m = computation.measures;
   const record: JobRecord & { internal: JobInternalV1 } = {

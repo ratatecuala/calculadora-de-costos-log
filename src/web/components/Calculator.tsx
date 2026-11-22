@@ -44,6 +44,11 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles,
   const cmp = session.comparisonResult();
   const loading = s.habitual.status === 'cargando';
   const adjusted = session.vehicleAdjustments();
+  // A-71: valores fuera de rango por campo; el cálculo queda en pausa y nada se corrige solo.
+  const issues = session.numericIssues();
+  const err = (field: keyof typeof s.params) => issues[`params.${field}`];
+  const numerosInvalidos = Object.keys(issues).length > 0;
+  const fallaCalculo = session.computationError('habitual');
   // D-I3: con el detalle activo, no se emite si tiene datos por corregir.
   const bloqueoCarga = cargoEnabled ? bloqueoEmision(s.cargo, s.resources) : null;
   const mapsUrl = (() => {
@@ -111,6 +116,7 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles,
               value={s.params.kmPerL}
               onChange={(v) => session.setParams({ kmPerL: v })}
               tag={adjusted.includes('kmPerL') ? 'Solo esta cotización' : undefined}
+              error={err('kmPerL')}
             />
             <NumberField
               label="Desgaste del vehículo"
@@ -119,30 +125,34 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles,
               onChange={(v) => session.setParams({ wearPerKm: v })}
               hint="Neumáticos, aceite y mantención"
               tag={adjusted.includes('wearPerKm') ? 'Solo esta cotización' : undefined}
+              error={err('wearPerKm')}
             />
             <NumberField
               label={s.vehicle?.fuel === 'gasolina' ? 'Precio de la gasolina' : s.vehicle?.fuel === 'diesel' ? 'Precio del diésel' : 'Precio del combustible'}
               suffix="$/L"
               value={s.params.fuelPricePerL}
               onChange={(v) => session.setParams({ fuelPricePerL: v })}
+              error={err('fuelPricePerL')}
             />
-            <NumberField label="Ayudantes" value={s.params.helpers} placeholder="0" onChange={(v) => session.setParams({ helpers: Math.round(v ?? 0) })} />
-            <NumberField label="Pago por ayudante" suffix="$" value={s.params.helperFee} onChange={(v) => session.setParams({ helperFee: v })} />
+            {/* A-71: sin redondear en silencio; un número con decimales se marca como inválido. */}
+            <NumberField label="Ayudantes" value={s.params.helpers} placeholder="0" onChange={(v) => session.setParams({ helpers: v ?? 0 })} error={err('helpers')} />
+            <NumberField label="Pago por ayudante" suffix="$" value={s.params.helperFee} onChange={(v) => session.setParams({ helperFee: v })} error={err('helperFee')} />
             <NumberField
               label="Peajes y TAG"
               suffix="$"
               value={s.params.tolls}
               onChange={(v) => session.setParams({ tolls: v })}
               hint="Vacío = no lo sé · 0 = no hay peajes"
+              error={err('tolls')}
             />
-            <NumberField label="Carga y descarga" suffix="min" value={s.params.loadMinutes} placeholder="0" onChange={(v) => session.setParams({ loadMinutes: v ?? 0 })} />
+            <NumberField label="Carga y descarga" suffix="min" value={s.params.loadMinutes} placeholder="0" onChange={(v) => session.setParams({ loadMinutes: v ?? 0 })} error={err('loadMinutes')} />
           </div>
           <Fold summary="Opciones avanzadas">
             <div className="grid2">
-              <NumberField label="Parte de tus gastos fijos" suffix="$/h" value={s.params.fixedPerHour} onChange={(v) => session.setParams({ fixedPerHour: v })} hint="Seguro, permiso, patente" />
-              <NumberField label="Lo que quieres ganar por tu trabajo" suffix="$/h" value={s.params.ownerPerHour} onChange={(v) => session.setParams({ ownerPerHour: v })} hint="Es tu meta, no un gasto" />
-              <NumberField label="Otros gastos" suffix="$" value={s.params.otherCosts} placeholder="0" onChange={(v) => session.setParams({ otherCosts: v ?? 0 })} hint="Estacionamiento, materiales" />
-              <NumberField label="Recargos al precio" suffix="$" value={s.surcharges} placeholder="0" onChange={(v) => session.setSurcharges(v ?? 0)} hint="Urgencia, pisos, etc." />
+              <NumberField label="Parte de tus gastos fijos" suffix="$/h" value={s.params.fixedPerHour} onChange={(v) => session.setParams({ fixedPerHour: v })} hint="Seguro, permiso, patente" error={err('fixedPerHour')} />
+              <NumberField label="Lo que quieres ganar por tu trabajo" suffix="$/h" value={s.params.ownerPerHour} onChange={(v) => session.setParams({ ownerPerHour: v })} hint="Es tu meta, no un gasto" error={err('ownerPerHour')} />
+              <NumberField label="Otros gastos" suffix="$" value={s.params.otherCosts} placeholder="0" onChange={(v) => session.setParams({ otherCosts: v ?? 0 })} hint="Estacionamiento, materiales" error={err('otherCosts')} />
+              <NumberField label="Recargos al precio" suffix="$" value={s.surcharges} placeholder="0" onChange={(v) => session.setSurcharges(v ?? 0)} hint="Urgencia, pisos, etc." error={issues.surcharges} />
             </div>
           </Fold>
         </div>
@@ -156,12 +166,22 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles,
         <button type="button" className="btn" disabled={!session.canQuote() || bloqueoCarga !== null} onClick={onCreateQuote}>
           Crear cotización
         </button>
+        {numerosInvalidos ? (
+          <p className="warn" role="alert" data-testid="bloqueo-numeros">
+            Hay valores fuera de rango (marcados en rojo). El cálculo queda en pausa hasta que los revises; no se cambió ningún dato.
+          </p>
+        ) : null}
+        {fallaCalculo ? (
+          <p className="warn" role="alert" data-testid="falla-calculo">
+            {fallaCalculo}
+          </p>
+        ) : null}
         {bloqueoCarga ? (
           <p className="warn" data-testid="bloqueo-carga">
             Revisa el detalle de la carga antes de crear la cotización: {bloqueoCarga}
           </p>
         ) : null}
-        {!habitual ? <p className="sub">Calcula la ruta (o ingresa los km) para cotizar.</p> : null}
+        {!habitual && !numerosInvalidos ? <p className="sub">Calcula la ruta (o ingresa los km) para cotizar.</p> : null}
         {habitual && s.chosenPrice === null ? <p className="sub">Escribe el precio que vas a cobrar para crear la cotización.</p> : null}
         {session.priceNeedsConfirmation() ? <p className="sub">Confirma tu precio (en «Tu precio») para crear la cotización.</p> : null}
       </section>
@@ -254,6 +274,7 @@ function TextField({ label, value, onChange, placeholder }: { label: string; val
 
 function RouteCard(props: { title: string; rs: RouteState; computation: RouteComputation | null; kind: RouteKind; session: QuoteSession; mapsUrl: string | null }) {
   const { rs, computation, kind, session, mapsUrl } = props;
+  const issues = session.numericIssues();
   if (rs.status === 'vacio' || rs.status === 'cargando') return null;
   if (rs.status === 'desactualizado') {
     // Ruta de direcciones anteriores: no se muestra ni se usa para calcular (auditoría P0).
@@ -323,10 +344,10 @@ function RouteCard(props: { title: string; rs: RouteState; computation: RouteCom
                 {ROLE_LABEL[leg.from]} → {ROLE_LABEL[leg.to]}
               </td>
               <td>
-                <NumberField compact decimals={1} label={`Km tramo ${i + 1}`} value={leg.km} onChange={(v) => session.setLegOverride(kind, i, { km: v })} placeholder="km" />
+                <NumberField compact decimals={1} label={`Km tramo ${i + 1}`} value={leg.km} onChange={(v) => session.setLegOverride(kind, i, { km: v })} placeholder="km" error={issues[`${kind}.leg.${i}.km`]} />
               </td>
               <td>
-                <NumberField compact decimals={0} label={`Minutos tramo ${i + 1}`} value={leg.minutes} onChange={(v) => session.setLegOverride(kind, i, { minutes: v })} placeholder="min" />
+                <NumberField compact decimals={0} label={`Minutos tramo ${i + 1}`} value={leg.minutes} onChange={(v) => session.setLegOverride(kind, i, { minutes: v })} placeholder="min" error={issues[`${kind}.leg.${i}.minutes`]} />
               </td>
             </tr>
           ))}
@@ -388,9 +409,12 @@ function Breakdown({ computation }: { computation: RouteComputation | null }) {
 
 function PriceCard({ session, computation }: { session: QuoteSession; computation: RouteComputation | null }) {
   const s = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
-  const [custom, setCustom] = useState(false);
+  const [custom, setCustom] = useState(() => ![0.1, 0.15, 0.2].includes(s.margin));
   const m = computation?.measures ?? null;
   const pct = Math.round(s.margin * 100);
+  const issues = session.numericIssues();
+  // A-71: un margen fuera de rango (p. ej., de un borrador dañado) siempre queda a la vista.
+  const showCustom = custom || issues.margin !== undefined;
   return (
     <div className="card highlight">
       <h2 className="sec">Tu precio</h2>
@@ -401,7 +425,7 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
           <button
             type="button"
             key={p}
-            className={!custom && pct === p ? 'seg seg-on' : 'seg'}
+            className={!showCustom && pct === p ? 'seg seg-on' : 'seg'}
             onClick={() => {
               setCustom(false);
               session.setMargin(p / 100);
@@ -410,12 +434,20 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
             {p} %
           </button>
         ))}
-        <button type="button" className={custom ? 'seg seg-on' : 'seg'} onClick={() => setCustom(true)}>
+        <button type="button" className={showCustom ? 'seg seg-on' : 'seg'} onClick={() => setCustom(true)}>
           Otro
         </button>
       </div>
-      {custom ? (
-        <NumberField label="Margen objetivo" suffix="%" decimals={2} value={Math.round(s.margin * 10000) / 100} onChange={(v) => session.setMargin(Math.min(80, Math.max(0, v ?? 0)) / 100)} />
+      {showCustom ? (
+        // A-71: sin recortar en silencio a 0–80 %; un valor fuera de rango se marca en el campo.
+        <NumberField
+          label="Margen objetivo"
+          suffix="%"
+          decimals={2}
+          value={Math.round(s.margin * 10000) / 100}
+          onChange={(v) => session.setMargin((v ?? 0) / 100)}
+          error={issues.margin}
+        />
       ) : null}
       {m ? (
         <div className="suggest">
@@ -423,7 +455,7 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
           <strong className="num">{boundedText(m.suggested, 'precio')}</strong>
         </div>
       ) : (
-        <p className="sub">Calcula la ruta para ver el precio sugerido.</p>
+        <p className="sub">{Object.keys(issues).some((k) => k !== 'chosenPrice') ? 'Revisa los campos marcados para ver el precio sugerido.' : 'Calcula la ruta para ver el precio sugerido.'}</p>
       )}
       {m && !m.complete ? <p className="sub">Precio indicativo: faltan datos, puede quedar corto.</p> : null}
       <NumberField
@@ -432,6 +464,7 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
         value={s.chosenPrice}
         onChange={(v) => session.setChosenPrice(v)}
         placeholder={m ? formatInputNumber(displayAmount(m.suggested), 0) : 'Escribe tu precio'}
+        error={issues.chosenPrice}
       />
       {session.priceNeedsConfirmation() ? (
         <div className="warn" role="alert">
@@ -488,6 +521,7 @@ function ComparisonCard(props: { session: QuoteSession; habitualReady: boolean; 
             suffix="$"
             value={s.tollsComparison}
             onChange={(v) => session.setTollsComparison(v)}
+            error={session.numericIssues().tollsComparison}
             hint="Vacío = no lo sé · 0 = no hay"
           />
           {comparison ? (

@@ -34,6 +34,7 @@ import type { AppliedVehicle, VehicleProfile } from '../shared/vehicle';
 import { emptyInventoryDraft, type InventoryDraft } from './modules/inventoryDraft';
 import { emptyResourcesDraft, type ResourcesDraft } from './modules/resourcesDraft';
 import { buildWaypoints, routeKey } from '../shared/waypoints';
+import { blocksComputation, MAX_LEG_KM, MAX_LEG_MINUTES, numericIssues, type NumericIssues } from './numericLimits';
 
 export interface RouteClient {
   requestRoute(input: RouteRequestInput): Promise<RouteApiResponse>;
@@ -78,8 +79,8 @@ export interface RouteState {
  * evitan que un borrador dañado o manipulado reconstruya valores que desborden el cálculo. Son
  * holgados (más que cualquier viaje real) y no son un límite comercial ni cambian el motor.
  */
-export const MAX_MANUAL_LEG_KM = 100_000;
-export const MAX_MANUAL_LEG_MINUTES = 100_000;
+export const MAX_MANUAL_LEG_KM = MAX_LEG_KM;
+export const MAX_MANUAL_LEG_MINUTES = MAX_LEG_MINUTES;
 
 /** Un km o minuto recuperado es válido si falta (null) o es finito, ≥ 0 y no supera el tope. */
 export function manualLegValueValid(v: number | null, max: number): boolean {
@@ -268,9 +269,30 @@ export class QuoteSession {
     });
   }
 
-  /** Se puede crear una cotización solo con un cálculo vigente y un precio elegido. */
+  /**
+   * Se puede crear una cotización solo con un cálculo vigente, un precio elegido y ningún valor
+   * numérico fuera de rango (A-71).
+   */
   canQuote(): boolean {
-    return this.computation('habitual') !== null && this.state.chosenPrice !== null && !this.priceNeedsConfirmation();
+    return (
+      this.computation('habitual') !== null &&
+      this.state.chosenPrice !== null &&
+      !this.priceNeedsConfirmation() &&
+      Object.keys(this.numericIssues()).length === 0
+    );
+  }
+
+  /** Valores numéricos fuera de rango, por campo (A-71). Nunca se corrigen solos. */
+  numericIssues(): NumericIssues {
+    return numericIssues(this.state);
+  }
+
+  /**
+   * Barrera de cálculo (A-71): si, pese a los límites, el motor lanzara un error con estos datos, se
+   * informa aquí (y `computation` devuelve null) en lugar de romper la pantalla.
+   */
+  computationError(kind: RouteKind): string | null {
+    return this.safeCompute(kind).error;
   }
 
   /** Huella del costo vigente: recorrido + tipo y valor del costo (al peso). */
@@ -445,6 +467,7 @@ export class QuoteSession {
     // otros datos dañados del borrador), se descarta SOLO el recorrido. El resto se conserva y la
     // pantalla nunca recibe un recorrido que haga fallar al motor.
     if (next.habitual.recovered && !this.computesSafely(next)) next.habitual = emptyRoute();
+    // (A-71) «Fallaría» incluye ahora los valores fuera de rango que pausan el cálculo.
     this.set(next);
   }
 
@@ -453,10 +476,7 @@ export class QuoteSession {
     const previous = this.state;
     this.state = candidate;
     try {
-      this.computation('habitual');
-      return true;
-    } catch {
-      return false;
+      return this.safeCompute('habitual').error === null && Object.keys(numericIssues(candidate)).length === 0;
     } finally {
       this.state = previous;
     }
@@ -602,6 +622,25 @@ export class QuoteSession {
 
   // ---- Resultados derivados (motor económico en el navegador) ----
   computation(kind: RouteKind): RouteComputation | null {
+    return this.safeCompute(kind).result;
+  }
+
+  /**
+   * A-71: con un valor fuera de rango que afecta a esta ruta, el cálculo queda en pausa (null) y el
+   * campo muestra su error; nada se reemplaza. Un precio elegido fuera de rango no pausa el costo: se
+   * calcula sin él y no se puede cotizar. Cualquier error del motor queda contenido aquí.
+   */
+  private safeCompute(kind: RouteKind): { result: RouteComputation | null; error: string | null } {
+    const issues = numericIssues(this.state);
+    if (Object.keys(issues).some((k) => blocksComputation(k, kind))) return { result: null, error: null };
+    try {
+      return { result: this.compute(kind, issues.chosenPrice ? null : this.state.chosenPrice), error: null };
+    } catch {
+      return { result: null, error: 'No se pudo calcular con estos valores. Revisa los datos del viaje.' };
+    }
+  }
+
+  private compute(kind: RouteKind, price: number | null): RouteComputation | null {
     const rs = this.routeState(kind);
     // Solo con la ruta del recorrido ACTUAL (auditoría P0).
     if (rs.key === null || rs.key !== this.requestKey(this.state.inputs, kind)) return null;
@@ -633,7 +672,7 @@ export class QuoteSession {
       items,
       margin: this.state.margin,
       surcharges: this.state.surcharges,
-      price: this.state.chosenPrice,
+      price,
     });
     const single = (values: RouteSource[]): MixedSource => (new Set(values).size === 1 ? values[0]! : 'mixto');
     const kmSource = single(legs.map((l) => l.kmSource));

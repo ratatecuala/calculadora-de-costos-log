@@ -17,7 +17,9 @@ interface Props {
   error?: string;
 }
 
-const toText = formatInputNumber;
+/** A-71: un valor enorme (p. ej., recuperado de un borrador) se muestra en notación corta, no con cientos de dígitos. */
+const toText = (value: number | null, decimals: number) =>
+  value !== null && Math.abs(value) >= Number.MAX_SAFE_INTEGER ? String(value) : formatInputNumber(value, decimals);
 
 /** Campo numérico que acepta «1.050», «12,5» o vacío (= no lo sé). */
 export function NumberField({ label, value, onChange, suffix, hint, placeholder, tag, compact, decimals = 2, error }: Props) {
@@ -56,8 +58,9 @@ export function NumberField({ label, value, onChange, suffix, hint, placeholder,
           onBlur={() => {
             // Al salir del campo se muestra con separador de miles. Un texto ilegible no se borra y
             // tampoco se reformatea si mostrarlo redondeado ocultaría decimales escritos.
+            // A-71: un valor enorme (p. ej., 1e308) se deja tal como se escribió, con su error a la vista.
             const formatted = toText(value, decimals);
-            if (value !== null && parseAmount(formatted) === value) setText(formatted);
+            if (value !== null && Math.abs(value) < Number.MAX_SAFE_INTEGER && parseAmount(formatted) === value) setText(formatted);
           }}
         />
         {suffix ? (

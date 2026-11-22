@@ -329,3 +329,5 @@ Comunicadas por el propietario por chat a Claude y **registradas literalmente** 
 | A-72 | **Frente B: diseño de #52 aprobado.** Aprobadas como decisiones de diseño:<br>• **D-52-4 v2 / N1**, incluido el cambio de numeración (contador en 12 + importación del N° 5000 → la siguiente nueva es la N° 13; el importado conserva su número);<br>• **D-52-1** y **D-52-2** como criterios de diseño.<br>**D-52-3**, reservado para M4. **D-52-5**, provisional. **D-52-4b**, solo si aparecen contadores inflados, nunca con reparación automática | Consolidar docs/23; revisar los riesgos de DEFINER, privilegios, RLS e identidad; plan de implementación, reversión y pruebas; ampliar los ensayos en PostgreSQL local; preparar verificaciones de **solo lectura** sin ejecutarlas. **No** autoriza implementar #52 en las migraciones reales ni tocar Supabase |
 
 **No autoriza:** despliegues, migraciones reales, ejecución en Supabase, flags, I-2, I-3, IVA, Google Routes ni merge del PR #34.
+
+**Estado (22-11):** A-71 **implementada** ([24](24-robustez-numerica.md)), con auditoría solicitada.
