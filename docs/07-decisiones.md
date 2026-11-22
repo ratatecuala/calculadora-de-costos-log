@@ -302,3 +302,5 @@ Comunicada por el propietario por chat a Claude y **registrada literalmente** en
 | — | **#52:** solo la **revisión técnica documental** (solución, riesgos, pruebas de seguridad y relación con M3/M4) | **Implementación no autorizada**: el propietario revisará y aprobará la solución antes |
 
 **No autoriza:** I-2, I-3, M3/M4, migraciones, fórmulas económicas, IVA, Google Routes, despliegues, activación de flags ni merge del PR #34.
+
+**Estado (21-11):** D-I8 parcial **implementada** (`e5534c7`, [22 §15](22-diseno-integracion-cotizador.md)), en auditoría. Revisión de #52 **entregada** en [23](23-revision-52-insert-directo.md): propuestas **D-52-1 a D-52-5**, **pendientes de tu decisión**. La implementación de #52 sigue **no autorizada**.

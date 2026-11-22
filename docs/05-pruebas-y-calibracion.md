@@ -113,6 +113,7 @@ Agregadas en la fase 0 (A-63), la fase 1 (A-66), la integración I-1 + I-1b (A-6
 | `scripts/e2e-integracion.mjs --sin-flag` | **24/24** |
 | `scripts/e2e-staging-anonimo.mjs` contra el servidor local | **54/59**: las 5 restantes son propias de staging (acceso privado 401 y `localhost` contado como dominio externo) |
 | Borradores M3/M4 en PostgreSQL local desechable (`scripts/diseno/`) | **18/18** y 3 controles negativos; C3 **27/27**; medición de 16 KB **10/10** ([21 §11](21-diseno-datos-cotizador.md)) |
+| Ensayo de la propuesta de #52 en PostgreSQL local desechable (`scripts/diseno/ensayo-52/`), herramienta de diseño y no migración | Huecos H1–H3 reproducidos; con la propuesta **31/31** (también con B+); controles negativos C1, C3 y C4 fallan como corresponde y C2 confirma la doble capa ([23 §6](23-revision-52-insert-directo.md)) |
 
 ### Pruebas contra servicios reales (staging, 18-11-2026)
 
