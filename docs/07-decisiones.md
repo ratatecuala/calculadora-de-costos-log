@@ -318,3 +318,14 @@ Comunicada por el propietario por chat a Claude y **registrada literalmente** en
 **No autoriza:** implementar #52, migraciones, flags, despliegues, I-2, I-3, merge del PR #34 ni el PR documental hacia `main`.
 
 **Estado (22-11):** P2 de D-I8 corregido ([22 §16](22-diseno-integracion-cotizador.md)). [23](23-revision-52-insert-directo.md) versión 2: H4 (desbordamiento del contador) y **rediseño N1** con ensayo local 42/42. **D-52-4 v2 y D-52-4b, pendientes de tu decisión.** La implementación de #52 sigue **no autorizada**.
+
+## Decisiones del 22-11-2026: robustez numérica (Frente A) y diseño de #52 aprobado (Frente B)
+
+Comunicadas por el propietario por chat a Claude y **registradas literalmente** en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7071778285) antes de trabajar. **APROBADAS.** Base: [reauditoría de D-I8](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7071695047) (0 P0 · 0 P1 · 0 P2: D-I8 parcial apta para el cierre técnico) y [reauditoría de docs/23 v2](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7071695410).
+
+| ID | Decisión | Alcance de la aprobación |
+|---|---|---|
+| A-71 | **Frente A: robustez ante números extremos** en todas las entradas numéricas de la calculadora: km, minutos, combustible, rendimiento, desgaste, ayudantes, gastos fijos, remuneración, peajes, carga y descarga, otros costos, margen y recargos | Implementar límites técnicos por campo y operaciones intermedias sin infinitos; distinguir inválido, faltante y cero; error junto al campo sin cerrar la calculadora. **Sin** reemplazos silenciosos ni cambios de fórmulas. Compatible con cotizaciones antiguas y borradores, con y sin flags. Pruebas unitarias, de límites y E2E en teléfono y PC, con mutaciones |
+| A-72 | **Frente B: diseño de #52 aprobado.** Aprobadas como decisiones de diseño:<br>• **D-52-4 v2 / N1**, incluido el cambio de numeración (contador en 12 + importación del N° 5000 → la siguiente nueva es la N° 13; el importado conserva su número);<br>• **D-52-1** y **D-52-2** como criterios de diseño.<br>**D-52-3**, reservado para M4. **D-52-5**, provisional. **D-52-4b**, solo si aparecen contadores inflados, nunca con reparación automática | Consolidar docs/23; revisar los riesgos de DEFINER, privilegios, RLS e identidad; plan de implementación, reversión y pruebas; ampliar los ensayos en PostgreSQL local; preparar verificaciones de **solo lectura** sin ejecutarlas. **No** autoriza implementar #52 en las migraciones reales ni tocar Supabase |
+
+**No autoriza:** despliegues, migraciones reales, ejecución en Supabase, flags, I-2, I-3, IVA, Google Routes ni merge del PR #34.
