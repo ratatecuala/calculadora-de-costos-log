@@ -47,7 +47,7 @@ begin
   return v_next::integer;
 end;
 $$;
-revoke all on function private.allocate_quote_number(integer) from public, anon;
+revoke all on function private.allocate_quote_number(integer) from public, anon, service_role;
 -- Sin GRANT a authenticated: con #52 (D-52-1) la llama solo create_job_with_quote (SECURITY DEFINER).
 -- Índice para la comprobación del número emitido dentro del bucle.
 create index if not exists jobs_owner_issued_idx on public.jobs (owner_id, issued_number);

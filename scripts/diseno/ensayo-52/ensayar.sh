@@ -12,6 +12,9 @@
 #   CONTROL=C3 → sin SECURITY DEFINER (el guardado debe fallar)
 #   CONTROL=C4 → sin revocar INSERT/DELETE en client_quotes (S2 debe fallar)
 #   CONTADOR=actual → control: sin el rediseño del contador (N1), con la función actual (L1 debe fallar)
+#   VERIFICACIONES=/ruta/archivo.txt → guarda la salida completa de las verificaciones de solo lectura
+# Con el contador propuesto también corre los escenarios X1–X8 (escenarios-extra.sql) y prueba
+# scripts/diseno/verificaciones-52/solo-lectura.sql contra la base desechable (docs/23 v3).
 set -euo pipefail
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$dir/../../.." && pwd)"
@@ -22,13 +25,12 @@ esac
 tmp="$(mktemp -d)"
 db="ensayo52_$(date +%s)_$$"
 creada=0
-limpiar() { rm -f "$tmp"/*.sql; rmdir "$tmp" 2>/dev/null || true; if [[ $creada == 1 ]]; then psql -X -q -d postgres -c "drop database if exists $db" >/dev/null || true; fi; }
+limpiar() { rm -f "$tmp"/*.sql "$tmp"/*.txt; rmdir "$tmp" 2>/dev/null || true; if [[ $creada == 1 ]]; then psql -X -q -d postgres -c "drop database if exists $db" >/dev/null || true; fi; }
 trap limpiar EXIT
 psql -X -q -d postgres -c "create database $db" >/dev/null
 creada=1
 run() { psql -q -X -v ON_ERROR_STOP=1 -d "$db" "$@"; }
 filtro() { sed -n 's/^.*NOTICE:  //p; s/^.*ERROR:  /ERROR: /p; /^---/p; /^variante/p; /^control/p; /^contador/p'; }
-
 cp "$dir/ensayo-52.sql" "$tmp/ensayo.sql"
 quitar() { python3 - "$tmp/ensayo.sql" "$@" <<'PY'
 import sys
@@ -97,6 +99,37 @@ else
   echo "FALLA L10 errores=$f g2=$g2 g2_interno=$g2p g3=$g3 contador=$cnt duplicados=$dup rango=$rango"; exit 1
 fi
 
+if [[ "${CONTADOR:-propuesto}" == propuesto ]]; then
+  # Escenarios adicionales (docs/23 v3 §7): X1–X7.
+  run -f "$dir/escenarios-extra.sql" 2>&1 | filtro
+
+  # X8 · Borrado e importación concurrentes del mismo número (cuenta H). T1 borra el trabajo con el
+  #      interno 7 y espera 1 s antes de confirmar; T2 importa el N° 7 mientras tanto.
+  uh=00000000-0000-0000-0000-000000000011
+  run -c "begin; set local role authenticated; select set_config('request.jwt.claim.sub','$uh',true);
+          select public.create_job_with_quote(prueba.job('a8000000-0000-4000-8000-000000000001', 7), prueba.quote()); commit;" >/dev/null
+  psql -X -q -v ON_ERROR_STOP=1 -d "$db" -c "begin; set local role authenticated; select set_config('request.jwt.claim.sub','$uh',true);
+          delete from public.jobs where local_id = 'a8000000-0000-4000-8000-000000000001'; select pg_sleep(1); commit;" >/dev/null & p1=$!
+  sleep 0.3
+  psql -X -q -v ON_ERROR_STOP=1 -d "$db" -c "begin; set local role authenticated; select set_config('request.jwt.claim.sub','$uh',true);
+          select public.create_job_with_quote(prueba.job('a8000000-0000-4000-8000-000000000002', 7), prueba.quote()); commit;" >/dev/null & p2=$!
+  f=0; wait $p1 || f=$((f + 1)); wait $p2 || f=$((f + 1))
+  read -r vivos emit7 dup interno < <(psql -X -Atq -F ' ' -d "$db" -c "
+    select count(*), count(*) filter (where issued_number = 7), count(*) - count(distinct number),
+           coalesce(max(number) filter (where local_id = 'a8000000-0000-4000-8000-000000000002'), -1)
+    from public.jobs where owner_id = '$uh'")
+  if [[ $f == 0 && $emit7 -ge 1 && $dup == 0 && $interno -gt 0 ]]; then
+    echo "OK X8 borrado e importación concurrentes del N° 7: 0 errores, sin duplicados; la importación quedó con el emitido 7 e interno $interno ($vivos trabajos vivos de H)"
+  else
+    echo "FALLA X8 errores=$f vivos=$vivos emitido7=$emit7 duplicados=$dup interno=$interno"; exit 1
+  fi
+
+  # Verificaciones de solo lectura (scripts/diseno/verificaciones-52) contra esta base desechable.
+  "$repo/scripts/diseno/verificaciones-52/probar.sh" "$db" > "$tmp/verificaciones.txt" 2>&1 || { cat "$tmp/verificaciones.txt"; echo "FALLA V: las verificaciones de solo lectura no corrieron"; exit 1; }
+  grep -E '^OK V0' "$tmp/verificaciones.txt"
+  if [[ -n "${VERIFICACIONES:-}" ]]; then cp "$tmp/verificaciones.txt" "$VERIFICACIONES"; fi
+fi
+
 # Borradores M3/M4 encima de la propuesta, con la T6c reescrita (t6c-52.sql).
 run -f "$repo/scripts/diseno/borradores/M3_job_cargo_items.sql" >/dev/null
 run -f "$repo/scripts/diseno/borradores/M4_guardado_v2.sql" >/dev/null
@@ -106,7 +139,7 @@ if [[ -n "${BMAS:-}" ]]; then
           revoke usage on schema private from authenticated;" >/dev/null
   echo "variante B+: create_job_with_quote_v2 como DEFINER y sin EXECUTE de authenticated sobre private.insert_cargo_items"
 fi
-run -c "drop schema prueba cascade; delete from auth.users;" >/dev/null
+run -c "set client_min_messages = warning; drop schema prueba cascade; delete from auth.users;" >/dev/null
 awk -v t6c="$dir/t6c-52.sql" '
   /^-- T6c ·/ { while ((getline l < t6c) > 0) print l; salto = 1; next }
   /^-- T15 ·/ { salto = 0 }
