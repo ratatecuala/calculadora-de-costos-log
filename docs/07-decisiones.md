@@ -1,6 +1,6 @@
 # 07 · Registro de decisiones — estado actualizado
 
-**Criterio:** lo aprobado por el propietario se distingue de alternativas propuestas. Este archivo se está actualizando en el **PR #34**, todavía sin fusionar. **Última sincronización: 20-11-2026**, hasta el commit `2f8e112` y la [auditoría final de I-1 + I-1b](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743) (sección final). Las secciones antiguas conservan su texto original; cuando su estado cambió, se indica con una nota de estado actual. Nombre comercial **PENDIENTE**; no reutilizar el nombre anterior como marca.
+**Criterio:** lo aprobado por el propietario se distingue de alternativas propuestas. Este archivo se está actualizando en el **PR #34**, todavía sin fusionar. **Última sincronización: 21-11-2026**, con A-69 (D-I8 parcial, implementada y en auditoría: [22 §15](22-diseno-integracion-cotizador.md)) y la [auditoría final de I-1 + I-1b](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743). Las secciones antiguas conservan su texto original; cuando su estado cambió, se indica con una nota de estado actual. Nombre comercial **PENDIENTE**; no reutilizar el nombre anterior como marca.
 
 ## Aprobado / dirección explícita del propietario
 
@@ -285,7 +285,7 @@ La [auditoría final de ChatGPT](https://github.com/ratatecuala/calculadora-de-c
 | Tema | Estado vigente |
 |---|---|
 | I-1 + I-1b (A-68) | **Implementadas y cerradas técnicamente** (0 P0, 0 P1). Flag `VITE_FF_INTEGRACION_CARGA` **apagada**; el costo no cambia |
-| **D-I8:** recuperar en el borrador los km y minutos escritos a mano ([22 §12](22-diseno-integracion-cotizador.md)) | *Estado actual:* **aprobada parcialmente el 21-11 (A-69, abajo)**: solo el modo manual |
+| **D-I8:** recuperar en el borrador los km y minutos escritos a mano ([22 §12](22-diseno-integracion-cotizador.md)) | *Estado actual:* **aprobada parcialmente el 21-11 (A-69, abajo)**: solo el modo manual. **Implementada** ([22 §15](22-diseno-integracion-cotizador.md)), en auditoría |
 | Encender la flag para transportistas reales | **NO AUTORIZADO.** Puertas que siguen cerradas y deben cumplirse antes de pedirlo: e2e con cuentas reales y la suite 59/59 en un staging autorizado; Safari en un iPhone real; lector de pantalla; decisión D-I8 |
 | [#52](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52) (`INSERT` directo en `jobs`) | Registrada como tarea independiente; **implementación no autorizada**. Debe resolverse antes de M3/M4 (puerta P3) |
 | I-2 (M3, M4 y copia de v2 con líneas a la cuenta) | **NO AUTORIZADO** |

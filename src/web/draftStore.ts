@@ -7,6 +7,7 @@
  *   guarda nada (llegará con I-2). Leer pide SIEMPRE un dueño, así que un borrador nunca se
  *   ofrece a otra identidad (C1).
  * - Se guarda solo lo que escribió el usuario (`DraftData`); nunca datos del proveedor de rutas.
+ *   D-I8 (A-69): incluye el recorrido MANUAL (km y minutos escritos a mano), nunca el precio.
  * - Lectura tolerante pero validada: un borrador ilegible se descarta con aviso, nunca se carga.
  */
 import { z } from 'zod';
@@ -42,6 +43,25 @@ const stopSchema = (role: 'A' | 'B') =>
     loadMinutes: z.number().finite().nullable(),
   });
 const numOrNull = num.nullable();
+
+/** Máximo de tramos de un recorrido: base → A → B → base. */
+export const MAX_MANUAL_LEGS = 3;
+const role = z.enum(['base', 'A', 'B']);
+/**
+ * D-I8 (A-69): recorrido manual del borrador. `strict`: un campo de más (p. ej. datos del proveedor
+ * como distanceM, durationS, source o retention) lo vuelve inválido. Si es inválido se IGNORA solo
+ * el recorrido (`catch`), sin perder el resto del borrador. Los borradores anteriores no lo tienen.
+ */
+const manualRouteSchema = z
+  .object({
+    key: z.string().min(1).max(2000),
+    legs: z.array(z.object({ from: role, to: role, km: numOrNull, minutes: numOrNull }).strict()).min(1).max(MAX_MANUAL_LEGS),
+  })
+  .strict()
+  .nullable()
+  .optional()
+  .catch(null)
+  .transform((v) => v ?? null);
 
 /** Forma mínima de un borrador (puede estar incompleto: los editores validan al emitir). */
 const draftDataSchema = z.object({
@@ -103,6 +123,7 @@ const draftDataSchema = z.object({
       .max(MAX_HELPERS),
     equipment: z.array(z.object({ key: z.string(), label: z.string(), amount: numOrNull })).max(MAX_EQUIPMENT),
   }),
+  manualRoute: manualRouteSchema,
 });
 
 const storedSchema = z.object({ format: z.literal(DRAFT_FORMAT), savedAt: z.string(), data: draftDataSchema });

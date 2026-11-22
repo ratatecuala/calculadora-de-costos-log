@@ -1,6 +1,6 @@
 # 05 · Pruebas, calibración y validación del lanzamiento gratuito
 
-**Estado vigente (20-11-2026, hasta `2f8e112`):** `npm test` **528/528** y casos dorados **64/64**; detalle por archivo en «Pruebas del cotizador ampliado» y cifras vigentes al final. Las metas numéricas de validación real se aprobarán en #12; **no** se han hecho viajes de validación con transportistas.
+**Estado vigente (21-11-2026, con D-I8 parcial):** `npm test` **553/553** y casos dorados **64/64**; detalle por archivo en «Pruebas del cotizador ampliado» y cifras vigentes al final. Las metas numéricas de validación real se aprobarán en #12; **no** se han hecho viajes de validación con transportistas.
 
 *Estado original (16-11-2026, histórico): estrategia de control propuesta, sin código ni viajes de validación ejecutados.*
 
@@ -86,9 +86,9 @@ Se ejecutan con `npm test` (Vitest), sin red ni servicios externos.
 | `tests/numbering.test.ts` | Numeración (A-47): el documento muestra siempre el número emitido; conversión de `issued_number`; al importar viajan el número emitido y el `local_id`; guardar en la nube usa el número que asigna la base |
 | `tests/staging.worker.test.ts` | Staging protegido (401 sin credenciales), encabezados de seguridad, estado administrativo, falla inyectada del contador, marcas del simulador, archivos incrustados y la regresión del *stub* del Durable Object (hallazgo en Cloudflare real) |
 
-### Pruebas del cotizador ampliado (20-11-2026)
+### Pruebas del cotizador ampliado (20 y 21-11-2026)
 
-Agregadas en la fase 0 (A-63), la fase 1 (A-66) y la integración I-1 + I-1b (A-68). Se ejecutan con `npm test`, sin red.
+Agregadas en la fase 0 (A-63), la fase 1 (A-66), la integración I-1 + I-1b (A-68) y D-I8 parcial (A-69). Se ejecutan con `npm test`, sin red.
 
 | Archivo | Pruebas | Qué demuestra |
 |---|---|---|
@@ -100,15 +100,16 @@ Agregadas en la fase 0 (A-63), la fase 1 (A-66) y la integración I-1 + I-1b (A-
 | `tests/modulos.estado.test.ts` | 17 | Interfaz plegable: estado de cada objeto, apertura al agregar, separación de datos de la carga (cliente) y recursos internos (transportista), filas inválidas |
 | `tests/modulos.flag.test.ts` | 7 | La flag `VITE_FF_CARGA_RECURSOS` está apagada por defecto; el mismo marcado sirve a teléfono y PC |
 | `tests/integracion.test.ts` | 63 | I-1 + I-1b: versión del snapshot según la flag y el repositorio, emisión v2, costo idéntico con editores vacíos o llenos (D-I1), «Servicio» e «Incluye» (D-I5), copia mixta v1/v2 con diferidas (C2), borrador aislado por dueño (C1), interfaz idéntica con la flag apagada y autoguardado con temporizadores controlados |
+| `tests/recorrido-manual.test.ts` | 25 | D-I8 parcial (A-69): recorrido manual de 1, 2 y 3 tramos recuperado con su aviso; invalidación al cambiar direcciones; nunca precio ni datos del proveedor (también con borradores manipulados); cotización emitida idéntica e historial intacto byte a byte |
 
-**Suma:** 249 (18-11) + 96 de la fase 0 (44 + 22 + 30) + 120 de la fase 1 (39 + 57 + 17 + 7) + 63 de la integración = **528**.
+**Suma:** 249 (18-11) + 96 de la fase 0 (44 + 22 + 30) + 120 de la fase 1 (39 + 57 + 17 + 7) + 63 de la integración + 25 de D-I8 = **553**.
 
 **Navegador local (Playwright; Pixel 7, iPhone 13 emulado, 1366 y 1440):**
 
-| Script | Resultado (20-11-2026, Claude) |
+| Script | Resultado (21-11-2026, Claude) |
 |---|---|
 | `scripts/e2e-modulos.mjs` (editores de la fase 1, con y sin flag) | **210/210** |
-| `scripts/e2e-integracion.mjs` (I-1 + I-1b con la flag) | **134/134**, dos corridas |
+| `scripts/e2e-integracion.mjs` (I-1 + I-1b y D-I8 con la flag) | **238/238** (134 + 104 de D-I8), dos corridas |
 | `scripts/e2e-integracion.mjs --sin-flag` | **24/24** |
 | `scripts/e2e-staging-anonimo.mjs` contra el servidor local | **54/59**: las 5 restantes son propias de staging (acceso privado 401 y `localhost` contado como dominio externo) |
 | Borradores M3/M4 en PostgreSQL local desechable (`scripts/diseno/`) | **18/18** y 3 controles negativos; C3 **27/27**; medición de 16 KB **10/10** ([21 §11](21-diseno-datos-cotizador.md)) |
@@ -160,15 +161,16 @@ Detalle en [13 · Staging](13-staging.md) §5. Se ejecutan con credenciales desd
 
 El flujo completo se verificó en navegador (móvil y escritorio) contra el servidor local, sin solicitudes externas.
 
-## Cifras vigentes (20-11-2026, commit `2f8e112`)
+## Cifras vigentes (21-11-2026, D-I8 parcial)
 
 | Verificación | Resultado | Quién |
 |---|---|---|
-| `npm test` | **528/528**, typecheck y builds sin errores | Claude (ejecutadas) |
+| `npm test` | **553/553**, typecheck y builds sin errores | Claude (ejecutadas) |
 | Casos dorados por recálculo independiente | **64/64** | Claude (ejecutadas) |
-| E2E locales del cotizador ampliado | 210/210, 134/134, 24/24 y 54/59 (tabla anterior) | Claude (ejecutadas) |
+| E2E locales del cotizador ampliado | 210/210, 238/238, 24/24 y 54/59 (tabla anterior) | Claude (ejecutadas) |
 | Staging real (versión del 18-11) | 59/59 sin cuenta, 41/41 con cuentas, RLS 40/40, numeración 17/17, Cloudflare 8/8 y 2/2 | Claude (ejecutadas el 18-11) |
 | Auditoría final de I-1 + I-1b | **0 P0 · 0 P1** ([22 §14](22-diseno-integracion-cotizador.md)) | ChatGPT, por inspección |
+| D-I8 parcial ([22 §15](22-diseno-integracion-cotizador.md)) | Implementada; 11 defectos reintroducidos, todos detectados. **Auditoría solicitada** | Claude (ejecutadas) |
 
 **No probado todavía (cotizador ampliado):** la flag encendida en staging (no autorizado ni desplegado), cuentas reales con el inventario, Safari en un iPhone real y un lector de pantalla real.
 

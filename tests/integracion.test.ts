@@ -526,9 +526,12 @@ describe('I-1b · borrador persistente y C1 (aislado por dueño)', () => {
     expect(nueva.getSnapshot().cargo).toEqual(s.getSnapshot().cargo);
     expect(nueva.getSnapshot().params).toEqual(s.getSnapshot().params);
     expect(nueva.getSnapshot().inputs).toEqual(s.getSnapshot().inputs);
-    // La ruta del proveedor y el precio NO se guardan: se recalcula y se confirma de nuevo.
+    // El precio NO se guarda: se confirma de nuevo. El recorrido MANUAL sí vuelve (D-I8, A-69), con
+    // el aviso de revisión; la ruta del proveedor nunca se guarda (tests/recorrido-manual.test.ts).
     expect(nueva.getSnapshot().chosenPrice).toBeNull();
-    expect(nueva.computation('habitual')).toBeNull();
+    expect(nueva.canQuote()).toBe(false);
+    expect(nueva.getSnapshot().habitual).toMatchObject({ status: 'manual', recovered: true });
+    expect(nueva.computation('habitual')?.km).toBe(25);
   });
 
   it('navegador lleno: aviso, sin tocar el historial emitido', () => {

@@ -66,6 +66,24 @@ export interface RouteState {
   overrides: Array<Partial<Pick<LegValue, 'km' | 'minutes'>>>;
   /** Tramos ingresados a mano en modo manual. */
   manualLegs: LegValue[];
+  /**
+   * D-I8 (A-69): los tramos manuales vienen de un borrador recuperado. Si las direcciones cambian,
+   * se descartan (no vuelven aunque se regrese a las mismas direcciones): hay que revisarlos de nuevo.
+   */
+  recovered?: true;
+}
+
+/** Aviso al recuperar un recorrido manual (D-I8, A-69). */
+export const RECOVERED_ROUTE_MESSAGE = 'Recorrido recuperado: revisa los kilómetros y minutos';
+
+/**
+ * Recorrido manual del borrador (D-I8, A-69): SOLO los km y minutos que escribió el usuario en modo
+ * manual, con la clave de las direcciones y los tramos con que se escribieron. Nunca datos del
+ * proveedor (ruta, retención, cuota, correcciones sobre una ruta automática) ni el precio.
+ */
+export interface ManualRouteDraft {
+  key: string;
+  legs: LegValue[];
 }
 
 export interface SessionState {
@@ -112,6 +130,8 @@ export interface DraftData {
   vehicle: AppliedVehicle | null;
   cargo: InventoryDraft;
   resources: ResourcesDraft;
+  /** D-I8 (A-69): recorrido manual vigente con al menos un valor escrito; si no, `null`. */
+  manualRoute?: ManualRouteDraft | null;
 }
 
 /** Motivos de modo manual que NO se reintentan al volver a presionar «Calcular ruta». */
@@ -210,6 +230,16 @@ export class QuoteSession {
       this.generation.evitarPeajes += 1;
     }
     // Si el usuario vuelve exactamente al recorrido ya calculado, se recupera sin consultar.
+    // D-I8 (A-69): un recorrido RECUPERADO de un borrador se invalida al cambiar las direcciones y
+    // no vuelve solo: se descartan sus tramos y hay que calcular la ruta o escribirlos de nuevo.
+    if (stale && h.recovered) {
+      this.set({
+        inputs,
+        habitual: { ...emptyRoute(), status: 'desactualizado', key: h.key },
+        comparison: emptyRoute(),
+      });
+      return;
+    }
     const restored: RouteState | null =
       !stale && h.status === 'desactualizado' && key !== null && key === h.key
         ? h.route
@@ -330,7 +360,21 @@ export class QuoteSession {
       vehicle: s.vehicle,
       cargo: s.cargo,
       resources: s.resources,
+      manualRoute: this.manualRouteDraft(),
     });
+  }
+
+  /**
+   * D-I8 (A-69): recorrido manual que se puede guardar en el borrador. Solo si la ruta habitual está
+   * en modo manual (todos sus tramos los escribió el usuario), corresponde a las direcciones ACTUALES
+   * y tiene al menos un km o minuto escrito. Una ruta del proveedor, con o sin correcciones, no se
+   * guarda (§12, punto 2, sin autorizar); tampoco un recorrido desactualizado.
+   */
+  private manualRouteDraft(): ManualRouteDraft | null {
+    const h = this.state.habitual;
+    if (h.status !== 'manual' || h.key === null || h.key !== this.requestKey(this.state.inputs, 'habitual')) return null;
+    if (!h.manualLegs.some((l) => l.km !== null || l.minutes !== null)) return null;
+    return { key: h.key, legs: h.manualLegs.map((l) => ({ from: l.from, to: l.to, km: l.km, minutes: l.minutes })) };
   }
 
   /**
@@ -365,14 +409,18 @@ export class QuoteSession {
   }
 
   /**
-   * Recupera un borrador guardado (I-1b), solo por decisión del usuario. Las direcciones quedan
-   * sin ruta calculada y sin precio: se recalcula y se confirma de nuevo.
+   * Recupera un borrador guardado (I-1b), solo por decisión del usuario. El precio NUNCA se recupera:
+   * se escribe y se confirma de nuevo. La ruta del proveedor tampoco: se vuelve a calcular.
+   * D-I8 (A-69): un recorrido manual vuelve en modo manual, con el aviso de revisión, solo si su
+   * clave y sus tramos coinciden con las direcciones recuperadas; si no, se descarta.
    */
   restoreDraft(d: DraftData): void {
     for (const k of Object.keys(this.generation) as RouteKind[]) this.generation[k] += 1;
+    const inputs = { ...d.inputs };
     this.set({
       ...initialState(),
-      inputs: { ...d.inputs },
+      habitual: this.recoveredRoute(inputs, d.manualRoute ?? null),
+      inputs,
       params: { ...d.params },
       margin: d.margin,
       surcharges: d.surcharges,
@@ -380,6 +428,28 @@ export class QuoteSession {
       cargo: structuredClone(d.cargo),
       resources: structuredClone(d.resources),
     });
+  }
+
+  /** Recorrido manual recuperado, o una ruta vacía si no coincide con las direcciones (D-I8). */
+  private recoveredRoute(inputs: AddressInputs, m: ManualRouteDraft | null): RouteState {
+    if (!m) return emptyRoute();
+    const key = this.requestKey(inputs, 'habitual');
+    const template = this.legTemplate(inputs);
+    const coincide =
+      key !== null &&
+      m.key === key &&
+      m.legs.length === template.length &&
+      m.legs.every((l, i) => l.from === template[i]!.from && l.to === template[i]!.to) &&
+      m.legs.some((l) => l.km !== null || l.minutes !== null);
+    if (!coincide) return emptyRoute();
+    return {
+      ...emptyRoute(),
+      status: 'manual',
+      key,
+      message: RECOVERED_ROUTE_MESSAGE,
+      manualLegs: m.legs.map((l) => ({ from: l.from, to: l.to, km: l.km, minutes: l.minutes })),
+      recovered: true,
+    };
   }
 
   setParams(partial: Partial<TripParams>): void {
@@ -577,8 +647,8 @@ export class QuoteSession {
     return input ? routeKey(input) : null;
   }
 
-  private legTemplate(): LegValue[] {
-    const input = this.requestInput('habitual');
+  private legTemplate(inputs: AddressInputs = this.state.inputs): LegValue[] {
+    const input = this.requestInput('habitual', inputs);
     const points = input
       ? buildWaypoints(input)
       : [

@@ -286,7 +286,8 @@ function RouteCard(props: { title: string; rs: RouteState; computation: RouteCom
         </p>
       ) : null}
       {rs.status === 'manual' && rs.message ? (
-        <p className="notice" role="status">
+        // D-I8 (A-69): un recorrido recuperado de un borrador se destaca para que se revise.
+        <p className={rs.recovered ? 'warn' : 'notice'} role="status" data-testid={rs.recovered ? 'ruta-recuperada' : undefined}>
           {rs.message}
         </p>
       ) : null}

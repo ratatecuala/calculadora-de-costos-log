@@ -1,6 +1,6 @@
 # 22 · Diseño de integración: inventario y recursos en el cotizador (puerta P2)
 
-**Versión 2 · 20-11-2026 · Estado:** D-I1 a D-I7 **APROBADAS** (A-67). **I-1 + I-1b IMPLEMENTADAS** (A-68), con C1 y C2, detrás de la flag **apagada** (§10), y **CERRADAS TÉCNICAMENTE** por la [auditoría final](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743) sobre `2f8e112`: **0 P0 · 0 P1** (§14). **D-I8** (§12) sigue **pendiente de tu decisión**. La flag sigue apagada; I-2, I-3, #52, migraciones y despliegues **no autorizados**.
+**Versión 2 · 20-11-2026 · Estado:** D-I1 a D-I7 **APROBADAS** (A-67). **I-1 + I-1b IMPLEMENTADAS** (A-68), con C1 y C2, detrás de la flag **apagada** (§10), y **CERRADAS TÉCNICAMENTE** por la [auditoría final](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743) sobre `2f8e112`: **0 P0 · 0 P1** (§14). **D-I8 parcial** (§12, punto 1: solo el recorrido manual) **aprobada (A-69) e implementada el 21-11** (§15), con auditoría solicitada; el punto 2 sigue sin autorizar. La flag sigue apagada; I-2, I-3, implementar #52, migraciones y despliegues **no autorizados**.
 
 **Cambios respecto de la versión 1:** resuelve la [auditoría del diseño](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7050466337) (2 P1 de diseño y 2 P2 de experiencia de usuario). La tabla del §8 resume cada uno.
 
@@ -423,3 +423,79 @@ Si el guardado **falla**, `emitted()` no se llama y el borrador se conserva. La 
 
 **Cifras vigentes (Claude, 20-11-2026, commit `2f8e112`):** `npm test` 528/528; casos dorados 64/64; `e2e-integracion.mjs` 134/134 con la flag (dos corridas) y 24/24 sin ella; `e2e-modulos.mjs` 210/210; `e2e-staging-anonimo.mjs` en local 54/59.
 
+
+## 15. D-I8 parcial: recuperar el recorrido manual (A-69, 21-11-2026)
+
+**Autorización:** [registro en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7071050495), A-69. Solo el **punto 1** de §12 (modo manual). El punto 2, las correcciones sobre rutas automáticas, **sigue sin autorizar** y no se implementó.
+
+**Límites que se mantienen:** flag `VITE_FF_INTEGRACION_CARGA` **apagada**; sin cambios en el motor (`src/engine`), `src/server`, `src/shared`, Supabase ni las migraciones; sin despliegue ni merge.
+
+### 15.1 Qué se implementó
+
+| Parte | Archivo | Comportamiento |
+|---|---|---|
+| Qué se guarda | `session.ts` (`draftData`, `manualRouteDraft`) | `manualRoute = { key, legs: [{ from, to, km, minutes }] }`, **solo** si la ruta habitual está en modo manual, su clave es la de las direcciones **actuales** y hay al menos un km o minuto escrito. Si no, `null`. Una ruta del proveedor (con o sin correcciones) o un recorrido desactualizado no se guardan |
+| Lectura del almacenamiento | `draftStore.ts` (`manualRouteSchema`) | Esquema `strict` (≤ 3 tramos, puntos `base`, `A` o `B`, valores numéricos o `null`). Un campo de más, como `distanceM`, `durationS`, `source` o `retention`, invalida **solo el recorrido** (`catch`): el resto del borrador se recupera. Los borradores anteriores a D-I8 se leen igual que antes |
+| Recuperar | `session.ts` (`restoreDraft`, `recoveredRoute`) | El recorrido vuelve en modo manual **solo** si su clave y sus tramos coinciden con las direcciones recuperadas, con el aviso **«Recorrido recuperado: revisa los kilómetros y minutos»** y la marca `recovered`. El costo se calcula con esos km y minutos igual que antes, y los valores `null` siguen siendo `null`, nunca 0 |
+| Precio | `session.ts` | **Nunca** se recupera: `chosenPrice` y `priceBasis` quedan en `null`, así que «Crear cotización» exige escribir y confirmar el precio de nuevo. Un borrador manipulado con esos campos los pierde al leerse, porque el esquema descarta las claves desconocidas |
+| Cambiar direcciones | `session.ts` (`setInputs`) | Un recorrido **recuperado** se invalida: queda «desactualizado», **sin** sus tramos, y no vuelve aunque se regrese a las mismas direcciones. Hay que calcular la ruta o escribir los km de nuevo. El recorrido manual **no recuperado** conserva la regla actual de la sesión |
+| Aviso | `Calculator.tsx` | Con la marca `recovered`, el aviso se muestra con estilo de advertencia (`data-testid="ruta-recuperada"`) |
+
+**Decisiones menores (revisables en la auditoría):**
+- Al recuperar, si el usuario presiona «Calcular ruta», la regla existente conserva los km escritos como correcciones sobre la ruta del proveedor. Esas correcciones **no** se guardan en el borrador (punto 2 sin autorizar), así que al recargar no vuelven.
+- Corregir un tramo recuperado no quita la marca `recovered`: si después cambian las direcciones, el recorrido se invalida igual.
+- **Observación previa a D-I8, sin corregir:** el desplegable «Base y regreso (opcional)» queda cerrado al recuperar un borrador con base. Los tramos «Base → A» lo muestran, pero no se ve la dirección de la base sin abrirlo. Proponer el cambio queda para tu decisión.
+
+### 15.2 Pruebas (ejecutadas por Claude, 21-11-2026)
+
+**Unitarias nuevas, `tests/recorrido-manual.test.ts` (25):**
+- 1, 2 y 3 tramos: vuelven los mismos km y minutos, con el aviso literal, el costo se calcula con ellos y el precio no vuelve; con el precio escrito de nuevo se puede cotizar;
+- tramos a medio escribir (los `null` se conservan); modo manual vacío (no se guarda); corregir después de recuperar;
+- invalidación: cambiar el destino, volver a la dirección original, activar «Vuelvo a la base», cambiar la base; un recorrido desactualizado no se guarda; un estado incoherente (clave distinta) tampoco; la regla anterior se conserva para lo no recuperado;
+- nunca precio ni datos del proveedor: ruta del proveedor con y sin corrección; inspección del texto guardado buscando marcas del proveedor y del precio; borrador manipulado con precio, confirmación o ruta; campos del proveedor en los tramos o en el recorrido; clave de otras direcciones; tramos que no coinciden; borrador anterior a D-I8; calcular la ruta después de recuperar;
+- motor y cotizaciones históricas: la cotización emitida tras recuperar es **idéntica** a la del recorrido escrito a mano (1 y 3 tramos), y la retención sigue «declarada»; guardar, recuperar, invalidar y borrar el borrador deja el historial emitido **idéntico byte a byte**.
+
+Además, se actualizó una aserción de `tests/integracion.test.ts` que fijaba el comportamiento anterior (el recorrido manual no volvía).
+
+**E2E, `scripts/e2e-integracion.mjs`, bloque 9 (26 verificaciones por tamaño, 104 en total):** en cada tamaño (Pixel 7, iPhone 13 emulado, 1366 y 1440) se escribe a mano un recorrido de 1 tramo y otro de 3 y se comprueba:
+- el borrador guarda esos tramos, sin el precio ni datos del proveedor;
+- al recargar y recuperar aparece el aviso y vuelven los mismos valores;
+- el total se calcula con ellos;
+- el precio está vacío y «Crear cotización» queda bloqueado hasta escribirlo;
+- cambiar el destino invalida el recorrido;
+- volver a la dirección original exige revisarlo de nuevo;
+- el recorrido invalidado sale del borrador.
+
+Además, una ruta del proveedor con una corrección no se guarda ni vuelve.
+
+| Prueba | Resultado |
+|---|---|
+| `npm test` | **553/553** (528 + 25) |
+| Casos dorados | **64/64** |
+| Typecheck y 3 builds (sin flags, con la integración y con la vista previa) | Sin errores |
+| `e2e-integracion.mjs` con la flag | **238/238** (134 + 104), dos corridas seguidas. Una tercera, lanzada justo después del ensayo de mutaciones, se interrumpió sin resultado mientras el servidor de desarrollo recargaba; al reiniciarlo, las dos corridas dieron 238/238 |
+| `e2e-integracion.mjs --sin-flag` | **24/24** (sin la flag no hay borrador ni recorrido recuperado) |
+| `e2e-modulos.mjs` | **210/210** |
+| `e2e-staging-anonimo.mjs` en local, sin y con flag | **54/59**: las mismas 5 fallas de entorno (401 y `localhost` como dominio externo), que solo se pueden verificar en staging |
+| `src/engine`, `src/server`, `src/shared`, `supabase/` | **Sin cambios** (`git diff` vacío) |
+
+**Defectos reintroducidos a propósito (todos detectados):**
+
+| Defecto | Unitarias que fallan | E2E |
+|---|---|---|
+| Recuperar ignora el recorrido (comportamiento anterior) | 13 | Falla la verificación del aviso y la prueba se detiene |
+| Sin el aviso de revisión | 3 | — |
+| Cambiar direcciones no invalida lo recuperado | 2 | 16 fallas |
+| Se aplica con la clave de otras direcciones | 1 | — |
+| Se aplica con tramos que no coinciden | 1 | — |
+| Se guarda un recorrido cuya clave no es la vigente | 1 (prueba defensiva añadida: la primera vez la mutación no se detectó porque la sesión nunca produce ese estado) | — |
+| Se guardan los km del proveedor y sus correcciones | 2 | 8 fallas |
+| El precio y su confirmación se recuperan | 5 | — |
+| El esquema acepta campos del proveedor (sin `strict`) | 1 | — |
+| Un recorrido inválido descarta todo el borrador (sin `catch`) | 2 | — |
+| Se guarda el modo manual sin valores | 1 | — |
+
+### 15.3 Lo que no se probó
+
+- Safari real, lector de pantalla y cuentas reales: siguen siendo puertas antes de encender la flag (§14).
+- Con cuenta no hay borrador (I-1), así que D-I8 solo actúa sin cuenta. C1 no cambia: al iniciar sesión, el borrador local, ahora con su recorrido manual, se guarda aislado.

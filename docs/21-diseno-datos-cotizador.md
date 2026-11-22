@@ -1,7 +1,7 @@
 # 21 · Diseño técnico de datos del cotizador ampliado (#45)
 
 **Versión 3 · 20-11-2026.**
-> **Estado vigente (sincronizado el 20-11-2026, hasta `2f8e112`):** diseño **aprobado** (A-61, A-62). **Fase 0 cerrada** (A-63, §16). **Fase 1 cerrada técnicamente** (A-66, §17.7). **Integración I-1 + I-1b implementada y cerrada técnicamente** detrás de la flag apagada (A-67, A-68; [22 §14](22-diseno-integracion-cotizador.md)). Pendientes de tu decisión: D-2b, D-5, D-7, D-10 y D-I8. **No autorizados:** encender las flags, la puerta P3 (M3/M4, después de #52), la P4 (I-3, recursos en el costo), despliegues, Google Routes, IVA y merge del PR #34.
+> **Estado vigente (sincronizado el 20-11-2026, hasta `2f8e112`):** diseño **aprobado** (A-61, A-62). **Fase 0 cerrada** (A-63, §16). **Fase 1 cerrada técnicamente** (A-66, §17.7). **Integración I-1 + I-1b implementada y cerrada técnicamente** detrás de la flag apagada (A-67, A-68; [22 §14](22-diseno-integracion-cotizador.md)). D-I8 parcial implementada el 21-11 (A-69, [22 §15](22-diseno-integracion-cotizador.md)). Pendientes de tu decisión: D-2b, D-5, D-7 y D-10. **No autorizados:** encender las flags, la puerta P3 (M3/M4, después de #52), la P4 (I-3, recursos en el costo), despliegues, Google Routes, IVA y merge del PR #34.
 >
 > *Estado al publicar la versión 3 (histórico): DISEÑO; pendiente de tus decisiones (§12) y de autorizar la fase 0.*
 

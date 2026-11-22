@@ -1,5 +1,6 @@
 /**
- * Prueba de navegador de la integración I-1 + I-1b (A-68, docs/22 v2) contra un servidor LOCAL
+ * Prueba de navegador de la integración I-1 + I-1b (A-68, docs/22 v2) y de D-I8 parcial (A-69)
+ * contra un servidor LOCAL
  * de Vite (rutas simuladas, sin staging, Supabase ni Google).
  *
  *   VITE_FF_INTEGRACION_CARGA=1 npx vite --port 5190 --strictPort      (otra terminal)
@@ -46,6 +47,89 @@ async function rutaYCostos(page) {
   await page.getByRole('button', { name: 'Cargar ejemplo ficticio' }).click();
   await page.getByRole('button', { name: /Calcular ruta/ }).click();
   await page.getByText('Datos simulados.').first().waitFor({ timeout: 15000 });
+}
+
+const num = (t) => Number(String(t).replace(/\./g, '').replace(',', '.'));
+const borrador = (page) => page.evaluate(() => localStorage.getItem('cotizador.borrador.v1'));
+const PROHIBIDO_EN_BORRADOR = /60000|chosenPrice|priceBasis|distanceM|durationS|retention|simulado|overrides/;
+
+async function empezarLimpio(page) {
+  await page.evaluate(() => localStorage.removeItem('cotizador.borrador.v1'));
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.getByLabel('Desde (A)').waitFor();
+}
+
+async function direcciones(page, tramos) {
+  await page.getByLabel('Desde (A)').fill('Calle Uno 123, Ñuñoa');
+  await page.getByLabel('Hasta (B)').fill('Avenida Dos 456, Las Condes');
+  if (tramos === 3) {
+    await page.getByText('Base y regreso (opcional)').click();
+    await page.getByLabel('Salgo desde mi base').check();
+    await page.getByLabel('Vuelvo a la base').check();
+    await page.getByLabel('Dirección de tu base').fill('Base Tres 789, La Florida');
+  }
+}
+
+async function recuperarAlRecargar(page) {
+  await page.reload({ waitUntil: 'networkidle' });
+  const oferta = page.getByTestId('oferta-borrador');
+  await oferta.waitFor({ timeout: 5000 });
+  await oferta.getByRole('button', { name: 'Recuperar' }).click();
+}
+
+/** D-I8 (A-69): recorrido MANUAL de 1 o 3 tramos que vuelve al recuperar; cambiar direcciones lo invalida. */
+async function recorridoManual(page, nombre, tramos) {
+  const valores = tramos === 1 ? [['25', '40']] : [['8,5', '15'], ['25', '40'], ['31', '47']];
+  await empezarLimpio(page);
+  await direcciones(page, tramos);
+  await page.getByRole('button', { name: 'Cargar ejemplo ficticio' }).click();
+  await page.getByRole('button', { name: 'Prefiero ingresar los km a mano' }).click();
+  for (const [i, [km, min]] of valores.entries()) {
+    await page.getByLabel(`Km tramo ${i + 1}`, { exact: true }).fill(km);
+    await page.getByLabel(`Minutos tramo ${i + 1}`, { exact: true }).fill(min);
+  }
+  await page.getByLabel('Precio que vas a cobrar').fill('60000');
+  await page.waitForTimeout(1500);
+  const raw = await borrador(page);
+  const mr = raw ? JSON.parse(raw).local?.data?.manualRoute : null;
+  check(`D-I8 ${tramos} tramo(s): se guardan los km y minutos escritos`, mr?.legs?.length === tramos && mr.legs.every((l, i) => l.km === num(valores[i][0]) && l.minutes === num(valores[i][1])), JSON.stringify(mr));
+  check(`D-I8 ${tramos} tramo(s): el borrador no guarda el precio ni datos del proveedor`, raw !== null && !PROHIBIDO_EN_BORRADOR.test(raw));
+
+  await recuperarAlRecargar(page);
+  const aviso = page.getByTestId('ruta-recuperada');
+  check(`D-I8 ${tramos} tramo(s): aviso «Recorrido recuperado»`, (await aviso.isVisible().catch(() => false)) && (await aviso.innerText()) === 'Recorrido recuperado: revisa los kilómetros y minutos');
+  const leidos = [];
+  for (let i = 0; i < tramos; i++) leidos.push([await page.getByLabel(`Km tramo ${i + 1}`, { exact: true }).inputValue(), await page.getByLabel(`Minutos tramo ${i + 1}`, { exact: true }).inputValue()]);
+  check(`D-I8 ${tramos} tramo(s): vuelven los mismos km y minutos`, leidos.every(([k, m], i) => num(k) === num(valores[i][0]) && num(m) === num(valores[i][1])), JSON.stringify(leidos));
+  check(`D-I8 ${tramos} tramo(s): el costo se calcula con ellos`, (await page.locator('p.total').first().innerText()).startsWith('Total:'));
+  check(`D-I8 ${tramos} tramo(s): el precio NO se recupera`, (await page.getByLabel('Precio que vas a cobrar').inputValue()) === '');
+  check(`D-I8 ${tramos} tramo(s): sin precio no se puede crear la cotización`, await page.getByRole('button', { name: 'Crear cotización' }).isDisabled());
+  await shot(page, nombre, `di8-recuperado-${tramos}`, { fullPage: true });
+  await page.getByLabel('Precio que vas a cobrar').fill('60000');
+  check(`D-I8 ${tramos} tramo(s): al escribir el precio de nuevo se habilita`, await page.getByRole('button', { name: 'Crear cotización' }).isEnabled());
+
+  // Cambiar las direcciones invalida el recorrido recuperado; volver a las mismas no lo trae de vuelta.
+  await page.getByLabel('Hasta (B)').fill('Avenida Dos 456, Las Condes Norte');
+  check(`D-I8 ${tramos} tramo(s): cambiar el destino invalida el recorrido`, (await page.getByText('Cambiaste el recorrido').count()) === 1 && (await page.getByTestId('ruta-recuperada').count()) === 0);
+  check(`D-I8 ${tramos} tramo(s): con el recorrido invalidado no se cotiza`, await page.getByRole('button', { name: 'Crear cotización' }).isDisabled());
+  await page.getByLabel('Hasta (B)').fill('Avenida Dos 456, Las Condes');
+  check(`D-I8 ${tramos} tramo(s): volver a la dirección original exige revisar de nuevo`, (await page.getByText('Cambiaste el recorrido').count()) === 1 && (await page.getByLabel('Km tramo 1', { exact: true }).count()) === 0);
+  await page.waitForTimeout(1500);
+  const tras = await borrador(page);
+  check(`D-I8 ${tramos} tramo(s): el recorrido invalidado sale del borrador`, tras !== null && JSON.parse(tras).local?.data?.manualRoute === null);
+}
+
+/** D-I8: una ruta del proveedor (con una corrección) NO se guarda ni se recupera (§12, punto 2, sin autorizar). */
+async function rutaProveedorNoSeGuarda(page) {
+  await empezarLimpio(page);
+  await rutaYCostos(page);
+  await page.getByLabel('Km tramo 1', { exact: true }).fill('23');
+  await page.getByLabel('Precio que vas a cobrar').fill('60000');
+  await page.waitForTimeout(1500);
+  const raw = await borrador(page);
+  check('D-I8: ruta del proveedor y su corrección no van al borrador', raw !== null && JSON.parse(raw).local?.data?.manualRoute === null && !PROHIBIDO_EN_BORRADOR.test(raw));
+  await recuperarAlRecargar(page);
+  check('D-I8: al recuperar no vuelve ninguna ruta del proveedor', (await page.getByTestId('ruta-recuperada').count()) === 0 && (await page.getByLabel('Km tramo 1', { exact: true }).count()) === 0);
 }
 
 /** Texto de las columnas de costo y precio: debe ser idéntico con y sin detalle de carga (D-I1). */
@@ -240,6 +324,11 @@ try {
       );
       check('controles táctiles ≥ 44 px en el detalle', pequeños === 0, String(pequeños));
     }
+
+    // 9. D-I8 (A-69): recorrido manual recuperado, con distintos números de tramos.
+    await recorridoManual(page, nombre, 1);
+    await recorridoManual(page, nombre, 3);
+    await rutaProveedorNoSeGuarda(page);
     check('sin errores en la consola', errores.length === 0, errores.join(' | '));
     await ctx.close();
   }
