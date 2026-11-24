@@ -448,3 +448,9 @@ Registrada literalmente en [#43](https://github.com/ratatecuala/calculadora-de-c
   - un CHECK no puede consultar `jobs` desde `client_quotes`.
 - **Ensayo** (`scripts/diseno/precio-entero/ensayar-precio.sh`): **15 OK**. Cubre los RPC v1 y v2 (sin escribir nada ni mover el contador), un documento descuadrado, las copias locales y su repetición, cambiar estado y pago de un histórico, la carga de un respaldo (modo `replica`), los privilegios, las invariantes, la idempotencia, la reversión y el control con CHECK. **4 mutaciones detectadas.**
 - **Regresión:** `ensayar-i2` 31 OK, `probar-i2` 49/49 y npm 686/686.
+
+**Estado del Frente B (25-11):** [`datos/catalogo-c1/`](../datos/catalogo-c1/notas.md) v3.
+- **Campos:** 62 VERIFICADOS. Cada uno tiene la URL oficial, el sha256 de la página descargada y una cita que contiene el valor; Claude repitió la comprobación por su cuenta (62/62).
+- **Versiones:** 6 parciales y 9 sin verificar. Las páginas de Ford, Kaufmann, Maxus y Peugeot respondieron 403, y la API de consumovehicular.cl no está permitida en la red.
+- **Condiciones de reutilización:** Toyota, Nissan, Chevrolet y Hyundai **prohíben reproducir** su contenido o sus compilaciones salvo para uso personal. Por eso no se publican los archivos de evidencia y **nada entra a la app**.
+- **Prueba de datos:** `tests/catalogo-candidatos.test.ts`, 6/6, exige evidencia por cada VERIFICADO. Detecta 4 mutaciones.

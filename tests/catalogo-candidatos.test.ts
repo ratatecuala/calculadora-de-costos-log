@@ -13,7 +13,7 @@ const raiz = join(__dirname, '..');
 const cat = JSON.parse(readFileSync(join(raiz, 'datos/catalogo-c1/candidatos.json'), 'utf8')) as {
   dataVersion: string;
   status: string;
-  versions: Array<Record<string, unknown> & { id: string; sources: Record<string, { url: string; retrievedAt: string; confidence: string; note?: string }> }>;
+  versions: Array<Record<string, unknown> & { id: string; verificacion?: string; sources: Record<string, { url: string; retrievedAt: string; confidence: string; note?: string; evidencia?: string; sha256?: string; cita?: string }> }>;
   excluded: Array<{ make: string; model: string; reason: string }>;
 };
 
@@ -54,10 +54,26 @@ describe('C-1 · catálogo de candidatos (revisión, no producción)', () => {
         expect(f, `${v.id}.${campo} sin fuente`).toBeDefined();
         expect(f!.url, `${v.id}.${campo}`).toMatch(/^https:\/\//);
         expect(f!.retrievedAt, `${v.id}.${campo}`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-        expect(['VERIFICADO', 'SECUNDARIO'], `${v.id}.${campo}`).toContain(f!.confidence);
-        if (f!.confidence === 'VERIFICADO') expect(f!.note ?? '', `${v.id}.${campo}`).not.toMatch(/no pudo abrirse|SOLO como fragmento/);
+        expect(['VERIFICADO', 'SECUNDARIO', 'SUPUESTO'], `${v.id}.${campo}`).toContain(f!.confidence);
+        if (f!.confidence === 'VERIFICADO') {
+          // A-83: un VERIFICADO exige evidencia descargada (archivo + sha256) y una cita que contiene el valor.
+          expect(f!.note ?? '', `${v.id}.${campo}`).not.toMatch(/no pudo abrirse|SOLO como fragmento/);
+          expect(f!.evidencia, `${v.id}.${campo} sin evidencia`).toMatch(/\S/);
+          expect(f!.sha256, `${v.id}.${campo} sin sha256`).toMatch(/^[0-9a-f]{64}$/);
+          const valor = v[campo];
+          const variantes = typeof valor === 'number'
+            ? [String(valor), String(valor).replace('.', ','), Number.isInteger(valor) ? valor.toLocaleString('de-DE') : String(valor)]
+            : [String(valor)];
+          // Las cifras deben aparecer literalmente en la cita; los rótulos de identidad (marca, versión) son nuestros.
+          const cita = (f!.cita ?? '').toLocaleLowerCase('es');
+          if (typeof valor === 'number') expect(variantes.some((x) => cita.includes(x)), `${v.id}.${campo}: la cita no contiene ${String(valor)}`).toBe(true);
+          else expect(cita.length, `${v.id}.${campo}: cita vacía`).toBeGreaterThan(0);
+        }
       }
-      for (const campo of Object.keys(v.sources)) expect(v[campo], `${v.id}: fuente de un campo nulo (${campo})`).not.toBeNull();
+      // Una fuente sobre un campo nulo solo puede registrar que el dato falta.
+      for (const [campo, f] of Object.entries(v.sources)) {
+        if (v[campo] === null) expect(f.confidence, `${v.id}: fuente de un campo nulo (${campo})`).toBe('DATO_FALTANTE');
+      }
     }
   });
 
@@ -71,6 +87,17 @@ describe('C-1 · catálogo de candidatos (revisión, no producción)', () => {
         expect(x as number, `${v.id}.${campo}`).toBeLessThanOrEqual(max);
       }
       if (typeof v.gvw_kg === 'number' && typeof v.payload_kg === 'number') expect(v.payload_kg, v.id).toBeLessThan(v.gvw_kg);
+    }
+  });
+
+  it('nivel de verificación coherente con notas.md: «completa» exige los 7 campos mínimos VERIFICADOS', () => {
+    const MINIMOS = ['make', 'model', 'version', 'fuel', 'km_per_l_ref', 'gvw_kg', 'payload_kg'];
+    for (const v of cat.versions) {
+      expect(['completa', 'parcial', 'sin_verificar'], v.id).toContain(v.verificacion);
+      const verificado = (c: string) => v[c] !== null && v.sources[c]?.confidence === 'VERIFICADO';
+      const alguno = Object.keys(v.sources).some((c) => v.sources[c]?.confidence === 'VERIFICADO');
+      const esperado = MINIMOS.every(verificado) ? 'completa' : alguno ? 'parcial' : 'sin_verificar';
+      expect(v.verificacion, v.id).toBe(esperado);
     }
   });
 
