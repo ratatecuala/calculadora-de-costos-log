@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { formatClp } from '../../engine/rounding';
-import { toClientQuote, whatsappUrl, type BusinessProfile, type ClientQuote, type JobRecord } from '../../shared/clientQuote';
+import { esPrecioLegado, formatPrecioCliente, PRECIO_LEGADO_AVISO, toClientQuote, whatsappUrl, type BusinessProfile, type ClientQuote, type JobRecord } from '../../shared/clientQuote';
 import { googleMapsDirectionsUrl } from '../../shared/mapsUrl';
 import { readSnapshot } from '../../shared/snapshot';
 import { CloudQuoteRepository, type QuoteShare } from '../cloud/quotes';
@@ -50,6 +49,11 @@ export function QuoteView({ job, repository, onBack }: Props) {
         <p className="notice no-print">
           En tu historial es la N° {String(job.number).padStart(4, '0')}. El documento conserva el número con que se emitió al cliente: N°{' '}
           {String(job.issuedNumber).padStart(4, '0')}.
+        </p>
+      ) : null}
+      {esPrecioLegado(job.netPrice) ? (
+        <p className="notice no-print" data-testid="precio-legado">
+          {PRECIO_LEGADO_AVISO}
         </p>
       ) : null}
       <InternalCargo job={job} />
@@ -115,21 +119,21 @@ export function QuoteDocument({ q }: { q: ClientQuote }) {
         {q.taxAmount === null ? (
           <div className="ln strong">
             <span>Precio total</span>
-            <span className="num">{formatClp(q.netPrice)}</span>
+            <span className="num">{formatPrecioCliente(q.netPrice)}</span>
           </div>
         ) : (
           <>
             <div className="ln">
               <span>Neto</span>
-              <span className="num">{formatClp(q.netPrice)}</span>
+              <span className="num">{formatPrecioCliente(q.netPrice)}</span>
             </div>
             <div className="ln">
               <span>IVA</span>
-              <span className="num">{formatClp(q.taxAmount)}</span>
+              <span className="num">{formatPrecioCliente(q.taxAmount)}</span>
             </div>
             <div className="ln strong">
               <span>Total</span>
-              <span className="num">{formatClp(q.total)}</span>
+              <span className="num">{formatPrecioCliente(q.total)}</span>
             </div>
           </>
         )}

@@ -112,6 +112,9 @@ export function buildJobRecord(
   // A-71: nunca se emite con un valor numérico fuera de rango (tampoco desde el último paso).
   // A-73: los errores de la comparación opcional sin peajes no bloquean la cotización principal.
   if (session.quoteBlockers().length > 0) return null;
+  // A-81 (H1), defensa en profundidad en el borde del documento: una cotización NUEVA nunca lleva un
+  // precio con decimales, aunque la validación del campo fallara. No se redondea: no se emite.
+  if (!Number.isInteger(s.chosenPrice)) return null;
   const keep = session.retainable('habitual');
   const m = computation.measures;
   const record: JobRecord & { internal: JobInternalV1 } = {

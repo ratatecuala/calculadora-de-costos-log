@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { formatClp } from '../../engine/rounding';
-import { isSnapshotV2, type JobRecord, type JobStatus } from '../../shared/clientQuote';
+import { esPrecioLegado, formatPrecioCliente, isSnapshotV2, type JobRecord, type JobStatus } from '../../shared/clientQuote';
 import { formatDate } from '../format';
 import type { JobPatch, QuoteRepository } from '../storage';
 
@@ -68,7 +67,7 @@ export function History({ repository, onOpen, banner }: Props) {
                 {job.issuedNumber !== undefined && job.issuedNumber !== job.number ? ` (emitida como N° ${String(job.issuedNumber).padStart(4, '0')})` : ''} ·{' '}
                 {formatDate(job.createdAt)}
               </span>
-              <strong className="num">{formatClp(job.netPrice)}</strong>
+              <strong className="num">{formatPrecioCliente(job.netPrice)}</strong>
             </div>
             <div className="ln">
               <span>
@@ -76,6 +75,12 @@ export function History({ repository, onOpen, banner }: Props) {
               </span>
             </div>
             {job.internal.costType !== 'estimado' ? <span className="tag tag-missing">Costo parcial</span> : null}
+            {/* A-81: precio histórico con decimales, visible solo para el dueño; el valor no se modificó. */}
+            {esPrecioLegado(job.netPrice) ? (
+              <span className="tag tag-warn" data-testid="precio-legado" title="Guardado antes de la regla de pesos enteros; se muestra tal como se guardó.">
+                Precio histórico con decimales
+              </span>
+            ) : null}
             {job.internal.routeSource === 'simulado' ? <span className="tag tag-warn">Calculada con datos simulados</span> : null}
             {/* Solo v2 (I-1): una cotización histórica v1 se ve exactamente igual que antes. */}
             {isSnapshotV2(job.internal) && job.internal.cargo ? <span className="tag tag-neutral">Con detalle de carga</span> : null}

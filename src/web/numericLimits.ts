@@ -34,6 +34,8 @@ export interface FieldLimit {
   integer?: boolean;
   /** Mínimo para valores POSITIVOS cuando 0 tiene otro significado (rendimiento: 0 = sin dato). */
   minPositive?: number;
+  /** Mensaje propio cuando `integer` y el valor tiene decimales (p. ej., el precio final, A-81). */
+  integerMessage?: string;
   unit: string;
 }
 
@@ -60,6 +62,13 @@ export const LEG_LIMITS = {
 } satisfies Record<'km' | 'minutes', FieldLimit>;
 
 export const MONEY_LIMIT: FieldLimit = { min: 0, max: MAX_CLP, unit: '$' };
+/**
+ * A-81 (H1): el precio final que ve el cliente se cobra en PESOS ENTEROS (el CLP no tiene unidades
+ * menores). Un precio con decimales se RECHAZA con este mensaje y no se puede cotizar; nunca se redondea
+ * solo. Los costos internos y los cálculos del motor siguen admitiendo decimales (MONEY_LIMIT, PARAM_LIMITS).
+ */
+export const PRICE_INTEGER_MESSAGE = 'El precio debe ser en pesos enteros, sin decimales';
+export const PRICE_LIMIT: FieldLimit = { ...MONEY_LIMIT, integer: true, integerMessage: PRICE_INTEGER_MESSAGE };
 /** Margen como fracción: la regla del motor (0 % a 80 %). */
 export const MARGIN_LIMIT: FieldLimit = { min: 0, max: 0.8, unit: '%' };
 
@@ -72,7 +81,7 @@ export function limitIssue(value: number | null, limit: FieldLimit): string | nu
   if (typeof value !== 'number' || !Number.isFinite(value)) return 'No es un número válido';
   if (value < limit.min) return `No puede ser menor que ${withUnit(limit.min, limit.unit)}`;
   if (value > limit.max) return `Revisa el valor: máximo ${withUnit(limit.max, limit.unit)}`;
-  if (limit.integer && !Number.isInteger(value)) return 'Debe ser un número entero';
+  if (limit.integer && !Number.isInteger(value)) return limit.integerMessage ?? 'Debe ser un número entero';
   if (limit.minPositive !== undefined && value > 0 && value < limit.minPositive)
     return `Usa 0 si no lo sabes, o un valor desde ${withUnit(limit.minPositive, limit.unit)}`;
   return null;
@@ -109,7 +118,7 @@ export function numericIssues(s: SessionState, opts: { includeText?: boolean } =
   }
   add('margin', s.margin, MARGIN_LIMIT);
   add('surcharges', s.surcharges, MONEY_LIMIT);
-  add('chosenPrice', s.chosenPrice, MONEY_LIMIT);
+  add('chosenPrice', s.chosenPrice, PRICE_LIMIT); // A-81: pesos enteros
   add('tollsComparison', s.tollsComparison, MONEY_LIMIT);
   // A-73: un texto que no es un número es INVÁLIDO (no faltante ni cero): pausa y bloquea igual.
   if (opts.includeText !== false) for (const key of Object.keys(s.textIssues ?? {})) out[key] = INVALID_NUMBER_MESSAGE;

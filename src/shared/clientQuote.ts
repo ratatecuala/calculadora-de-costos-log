@@ -151,7 +151,26 @@ export function toClientQuote(job: JobRecord, fallbackIssuer?: BusinessProfile):
   };
 }
 
-const clp = (n: number) => `$${new Intl.NumberFormat('es-CL').format(n)}`;
+/**
+ * Precio para el cliente (A-81, H1): EL MISMO texto en el documento/PDF, el enlace público, WhatsApp y el
+ * historial. Las cotizaciones nuevas tienen precio entero (`PRICE_LIMIT`) y se ven en pesos, sin decimales.
+ * Un registro HISTÓRICO con decimales (anterior a la regla) no se reescribe ni se redondea: se muestra tal
+ * como se guardó, con sus decimales, en todos los canales por igual (caso legado explícito; el dueño ve un
+ * aviso en sus vistas internas). Antes, el PDF lo redondeaba y WhatsApp no: el cliente veía dos precios.
+ */
+export function formatPrecioCliente(n: number): string {
+  const v = n === 0 ? 0 : n; // −0 → 0 (C-2)
+  return `$${new Intl.NumberFormat('es-CL', { maximumFractionDigits: Number.isInteger(v) ? 0 : 10 }).format(v)}`;
+}
+
+/** ¿Precio histórico con decimales, guardado antes de la regla de pesos enteros (A-81)? */
+export const esPrecioLegado = (n: number): boolean => !Number.isInteger(n);
+
+/** Aviso para el dueño (no para el cliente) de un precio histórico con decimales. */
+export const PRECIO_LEGADO_AVISO =
+  'Precio histórico con decimales, guardado antes de la regla de pesos enteros. Se muestra tal como se guardó, igual en el PDF, WhatsApp y el enlace; no se modificó.';
+
+const clp = formatPrecioCliente;
 
 /** Leyenda fija aprobada por el propietario (A-51): la cotización no es un documento tributario. */
 export const QUOTE_LEGAL_NOTICE = 'Esta cotización no es factura ni boleta.';
