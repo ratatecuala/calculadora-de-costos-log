@@ -80,8 +80,20 @@ jobs:
         run: npm test
 
       - name: Compilación
+        id: compilar
         if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: npm run build
+
+      - name: Cotización manual · teléfono y escritorio
+        if: ${{ !cancelled() && steps.compilar.outcome == 'success' }}
+        run: |
+          npm install --prefix "$RUNNER_TEMP/qa-navegador" --no-audit --no-fund --ignore-scripts playwright@1.56.1
+          "$RUNNER_TEMP/qa-navegador/node_modules/.bin/playwright" install chromium --only-shell
+          ./node_modules/.bin/vite preview --host 127.0.0.1 --port 5191 --strictPort > "$RUNNER_TEMP/vite-preview.log" 2>&1 &
+          servidor=$!
+          trap 'kill "$servidor" 2>/dev/null || true' EXIT
+          curl --fail --silent --show-error --retry 12 --retry-connrefused --retry-delay 1 http://127.0.0.1:5191/ -o /dev/null
+          NODE_PATH="$RUNNER_TEMP/qa-navegador/node_modules" node scripts/e2e-flujo-completo.mjs http://127.0.0.1:5191
 
       - name: Precio entero · ensayo original y ocho mutaciones
         if: ${{ !cancelled() && steps.pg.outcome == 'success' }}

@@ -83,7 +83,7 @@ async function recorridoManual(page, nombre, tramos) {
   await empezarLimpio(page);
   await direcciones(page, tramos);
   await page.getByRole('button', { name: 'Cargar ejemplo ficticio' }).click();
-  await page.getByRole('button', { name: 'Prefiero ingresar los km a mano' }).click();
+  await page.getByRole('button', { name: 'Ingresar km y minutos a mano' }).click();
   for (const [i, [km, min]] of valores.entries()) {
     await page.getByLabel(`Km tramo ${i + 1}`, { exact: true }).fill(km);
     await page.getByLabel(`Minutos tramo ${i + 1}`, { exact: true }).fill(min);
@@ -141,7 +141,7 @@ async function borradorDanado(page, nombre, errores) {
     await empezarLimpio(page);
     await direcciones(page, 1);
     await page.getByRole('button', { name: 'Cargar ejemplo ficticio' }).click();
-    await page.getByRole('button', { name: 'Prefiero ingresar los km a mano' }).click();
+    await page.getByRole('button', { name: 'Ingresar km y minutos a mano' }).click();
     await page.getByLabel('Km tramo 1', { exact: true }).fill('25');
     await page.getByLabel('Minutos tramo 1', { exact: true }).fill('40');
     await page.waitForTimeout(1500);
@@ -159,7 +159,7 @@ async function borradorDanado(page, nombre, errores) {
     check(`A-70 ${etiqueta}: recuperar no produce errores de página`, errores.length === antes, errores.slice(antes).join(' | '));
     check(`A-70 ${etiqueta}: el recorrido dañado no se aplica`, (await page.getByTestId('ruta-recuperada').count()) === 0 && (await page.getByLabel('Km tramo 1', { exact: true }).count()) === 0);
     check(`A-70 ${etiqueta}: el resto del borrador vuelve (direcciones y costos)`, (await page.getByLabel('Desde (A)').inputValue()) === 'Calle Uno 123, Ñuñoa' && (await page.getByLabel('Rendimiento').inputValue()) !== '');
-    check(`A-70 ${etiqueta}: la calculadora sigue usable (escribir los km a mano)`, await page.getByRole('button', { name: 'Prefiero ingresar los km a mano' }).isEnabled());
+    check(`A-70 ${etiqueta}: la calculadora sigue usable (escribir los km a mano)`, await page.getByRole('button', { name: 'Ingresar km y minutos a mano' }).isEnabled());
   }
   await shot(page, nombre, 'a70-borrador-danado', { fullPage: true });
 }

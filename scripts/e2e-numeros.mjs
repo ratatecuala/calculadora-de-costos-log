@@ -80,7 +80,7 @@ try {
       await page.getByLabel('Desde (A)').fill('Calle Uno 123, Ñuñoa');
       await page.getByLabel('Hasta (B)').fill('Avenida Dos 456, Las Condes');
       await page.getByRole('button', { name: 'Cargar ejemplo ficticio' }).click();
-      await page.getByRole('button', { name: 'Prefiero ingresar los km a mano' }).click();
+      await page.getByRole('button', { name: 'Ingresar km y minutos a mano' }).click();
       await campo(/^Km tramo 1$/).fill('25');
       await campo(/^Minutos tramo 1$/).fill('40');
       await page.getByText('Opciones avanzadas').click();

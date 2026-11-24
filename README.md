@@ -10,6 +10,8 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 
 ## Estado para retomar en otro chat
 
+- **Cotización manual (PR #34).** El ingreso de km y minutos es la acción principal. El precio final se escribe en pesos. La CI prueba el flujo hasta PDF y WhatsApp en teléfono emulado y escritorio con datos ficticios.
+
 **Actualizado: 24-11-2026.** Esta sección es el punto de continuidad: un chat o colaborador nuevo debe poder seguir desde aquí sin memorias privadas.
 
 | Dato | Valor |

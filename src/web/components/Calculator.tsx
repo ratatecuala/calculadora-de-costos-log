@@ -1,11 +1,11 @@
 import { useState, useSyncExternalStore } from 'react';
-import { displayAmount, displayThreshold, formatClp } from '../../engine/rounding';
+import { displayThreshold, formatClp } from '../../engine/rounding';
 import type { Comparison } from '../../engine/compare';
 import { googleMapsDirectionsUrl } from '../../shared/mapsUrl';
 import type { RouteKind } from '../../shared/route';
 import { VEHICLE_TYPE_LABEL, type VehicleProfile } from '../../shared/vehicle';
 import { buildWaypoints } from '../../shared/waypoints';
-import { boundedText, formatInputNumber, formatKm, formatMinutes, missingText, ROLE_LABEL, signedBoundedText, SOURCE_LABEL } from '../format';
+import { boundedText, formatKm, formatMinutes, missingText, ROLE_LABEL, signedBoundedText, SOURCE_LABEL } from '../format';
 import type { QuoteSession, RouteComputation, RouteState } from '../session';
 import { bloqueoEmision } from '../modules/integracion';
 import { blocksComputation, blocksQuote } from '../numericLimits';
@@ -83,15 +83,15 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles,
               <TextField label="Dirección de tu base" value={s.inputs.base} onChange={(v) => session.setInputs({ base: v })} placeholder="Calle y número, comuna" />
             ) : null}
           </Fold>
-          <button type="button" className="btn" disabled={loading} onClick={() => void session.calculateRoute()}>
+          <button type="button" className="btn" onClick={() => session.useManual('habitual')}>
+            Ingresar km y minutos a mano
+          </button>
+          <button type="button" className="link-btn" disabled={loading} onClick={() => void session.calculateRoute()}>
             {loading
               ? 'Calculando…'
               : s.habitual.status === 'manual' && (s.habitual.manualReason === 'error_proveedor' || s.habitual.manualReason === 'contador_no_disponible')
                 ? 'Reintentar cálculo automático'
                 : 'Calcular ruta'}
-          </button>
-          <button type="button" className="link-btn" onClick={() => session.useManual('habitual')}>
-            Prefiero ingresar los km a mano
           </button>
           {s.habitual.message && s.habitual.status !== 'manual' ? (
             <p className="notice" role="status">
@@ -190,7 +190,7 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles,
             Revisa el detalle de la carga antes de crear la cotización: {bloqueoCarga}
           </p>
         ) : null}
-        {!habitual && !numerosInvalidos ? <p className="sub">Calcula la ruta (o ingresa los km) para cotizar.</p> : null}
+        {!habitual && !numerosInvalidos ? <p className="sub">Completa los kilómetros y minutos de cada tramo para cotizar.</p> : null}
         {habitual && s.chosenPrice === null ? <p className="sub">Escribe el precio que vas a cobrar para crear la cotización.</p> : null}
         {session.priceNeedsConfirmation() ? <p className="sub">Confirma tu precio (en «Tu precio») para crear la cotización.</p> : null}
       </section>
@@ -430,11 +430,12 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
       <h2 className="sec">Tu precio</h2>
       <span className="field-label">Margen objetivo (% del precio de venta)</span>
       <p className="sub">Ejemplo: con 15 %, de cada $100 que cobras, $15 quedan como margen sobre tus costos.</p>
-      <div className="segs">
+      <div className="segs" role="group" aria-label="Margen objetivo">
         {[10, 15, 20].map((p) => (
           <button
             type="button"
             key={p}
+            aria-pressed={!showCustom && pct === p}
             className={!showCustom && pct === p ? 'seg seg-on' : 'seg'}
             onClick={() => {
               setCustom(false);
@@ -444,7 +445,7 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
             {p} %
           </button>
         ))}
-        <button type="button" className={showCustom ? 'seg seg-on' : 'seg'} onClick={() => setCustom(true)}>
+        <button type="button" aria-pressed={showCustom} className={showCustom ? 'seg seg-on' : 'seg'} onClick={() => setCustom(true)}>
           Otro
         </button>
       </div>
@@ -475,7 +476,8 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
         suffix="$"
         value={s.chosenPrice}
         onChange={(v) => session.setChosenPrice(v)}
-        placeholder={m ? formatInputNumber(displayAmount(m.suggested), 0) : 'Escribe tu precio'}
+        placeholder="Escribe tu precio en pesos"
+        hint="Este es el total que verá tu cliente."
         error={issues.chosenPrice}
         onInvalidText={(t) => session.setTextIssue('chosenPrice', t)}
         invalidText={s.textIssues.chosenPrice}

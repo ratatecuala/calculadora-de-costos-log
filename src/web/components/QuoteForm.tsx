@@ -169,8 +169,8 @@ export function QuoteForm({ session, repository, onSaved, onCancel, cargoEnabled
         <Fold key={businessLoaded ? 'cargado' : 'cargando'} summary="Tus datos (aparecen en la cotización)" defaultOpen={!businessLoaded?.hadName}>
           <div className="grid2">
             <Text label="Nombre comercial" value={business.name} onChange={(e) => setBusiness({ ...business, name: e.target.value })} />
-            <Text label="Teléfono" value={business.phone} onChange={(e) => setBusiness({ ...business, phone: e.target.value })} />
-            <Text label="Correo" value={business.email} onChange={(e) => setBusiness({ ...business, email: e.target.value })} />
+            <Text label="Teléfono" type="tel" value={business.phone} onChange={(e) => setBusiness({ ...business, phone: e.target.value })} />
+            <Text label="Correo" type="email" value={business.email} onChange={(e) => setBusiness({ ...business, email: e.target.value })} />
           </div>
         </Fold>
         {!repository.persistent ? <p className="warn">Este navegador no permite guardar: la cotización se perderá al cerrar la pestaña.</p> : null}

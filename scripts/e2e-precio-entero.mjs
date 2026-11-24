@@ -66,7 +66,7 @@ try {
     // Cotización lista con recorrido manual (sin red) y el ejemplo ficticio de costos.
     await page.getByLabel('Desde (A)').fill('Calle Ficticia 1, Ñuñoa');
     await page.getByLabel('Hasta (B)').fill('Pasaje Ficticio 2, Maipú');
-    await page.getByRole('button', { name: 'Prefiero ingresar los km a mano' }).click();
+    await page.getByRole('button', { name: 'Ingresar km y minutos a mano' }).click();
     await page.getByLabel('Km tramo 1', { exact: true }).fill('25');
     await page.getByLabel('Minutos tramo 1', { exact: true }).fill('40');
     await page.getByRole('button', { name: 'Cargar ejemplo ficticio' }).click();

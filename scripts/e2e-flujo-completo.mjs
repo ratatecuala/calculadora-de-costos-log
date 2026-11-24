@@ -89,7 +89,7 @@ try {
     await page.getByLabel('Salgo desde mi base').check();
     await page.getByLabel('Vuelvo a la base').check();
     await page.getByLabel('Dirección de tu base').fill('Base Ficticia 3, La Florida');
-    await page.getByRole('button', { name: 'Prefiero ingresar los km a mano' }).click();
+    await page.getByRole('button', { name: 'Ingresar km y minutos a mano' }).click();
     for (const [i, [km, min]] of [['8,5', '15'], ['25', '40'], ['31', '47']].entries()) {
       await page.getByLabel(`Km tramo ${i + 1}`, { exact: true }).fill(km);
       await page.getByLabel(`Minutos tramo ${i + 1}`, { exact: true }).fill(min);
@@ -104,20 +104,29 @@ try {
     check('3 el vehículo sigue sin ajustes (los costos no tocan su rendimiento)', (await page.getByRole('button', { name: 'Restaurar valores del vehículo' }).count()) === 0);
 
     // 4. Precio y emisión.
-    await page.getByLabel('Precio que vas a cobrar').fill(PRECIO);
-    await shot(page, nombre, '1-calculadora');
+    const precioFinal = page.getByLabel('Precio que vas a cobrar');
     const crear = page.getByRole('button', { name: 'Crear cotización' });
+    check('4 el precio sugerido se muestra y el precio final sigue vacío',
+      await page.locator('.suggest strong').isVisible() && await precioFinal.inputValue() === '' && await crear.isDisabled());
+    check('4 el campo vacío pide ingresar el precio en pesos', await precioFinal.getAttribute('placeholder') === 'Escribe tu precio en pesos');
+    await precioFinal.fill(PRECIO);
+    check('4 la calculadora cabe en el ancho de pantalla', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
+    await shot(page, nombre, '1-calculadora');
     check('4 «Crear cotización» habilitado con el flujo completo', await crear.isEnabled());
     await crear.click();
     await page.getByLabel('Cliente', { exact: true }).fill('Cliente Ficticio Ñandú');
     await page.getByLabel('Servicio', { exact: true }).fill('Traslado de un refrigerador');
     const nombreComercial = page.getByLabel('Nombre comercial');
-    if (await nombreComercial.count()) await nombreComercial.fill('Fletes Ficticios del Sur');
+    await nombreComercial.fill('Fletes Ficticios del Sur');
+    check('4 campos de contacto con teclado de teléfono y correo',
+      await page.getByLabel('Teléfono', { exact: true }).getAttribute('type') === 'tel' &&
+      await page.getByLabel('Correo', { exact: true }).getAttribute('type') === 'email');
     await page.getByRole('button', { name: 'Guardar cotización' }).click();
     await page.getByText('COTIZACIÓN').first().waitFor({ timeout: 10000 });
     await shot(page, nombre, '2-cotizacion');
 
     // 5. Documento: precio, cliente, leyenda; sin datos internos.
+    check('5 el documento cabe en el ancho de pantalla', await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
     const doc = await page.locator('article.doc').innerText();
     check('5 el documento muestra el precio elegido', doc.includes(PRECIO_CLP), doc);
     check('5 el documento muestra el cliente y la leyenda', doc.includes('Cliente Ficticio Ñandú') && doc.includes('Esta cotización no es factura ni boleta.'));
