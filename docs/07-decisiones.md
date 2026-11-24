@@ -388,4 +388,25 @@ Comunicada por el propietario por chat a Claude y **registrada literalmente** en
 
 **Pruebas:** con datos y credenciales ficticios, **60/60**, con 9 mutaciones detectadas ([25 §7](25-lista-staging-52.md)). El ensayo local de #52 sigue en 65 OK y `npm test` en 636/636.
 
-Reauditoría solicitada. Nada se ejecutó contra Supabase.
+Su [reauditoría independiente](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7119520646) dio 0 P0 · 1 P1 (TLS sin verificación de identidad del servidor) · 0 P2. Ese P1 lo corrige A-79. Nada se ejecutó contra Supabase.
+
+## Decisión del 24-11-2026: verificación TLS de la identidad del servidor (A-79)
+
+Comunicada por el propietario por chat a Claude y **registrada literalmente** en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7120135246) antes de trabajar. **APROBADA.** Base: [reauditoría independiente de A-78](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7119520646) (0 P0 · 1 P1 · 0 P2).
+
+| ID | Decisión | Alcance de la aprobación |
+|---|---|---|
+| A-79 | Corregir **únicamente** el P1 de verificación TLS antes de usar credenciales reales:<br>(1) exigir `sslmode=verify-full` en las conexiones remotas a staging;<br>(2) verificar el certificado raíz con `sslrootcert`, según la documentación oficial de Supabase y PostgreSQL;<br>(3) rechazar `disable`, `allow`, `prefer`, `require` y `verify-ca`, también si se editan los archivos a mano;<br>(4) actualizar el asistente y las comprobaciones;<br>(5) mantener las pruebas locales sin TLS solo con una excepción explícita, limitada a pruebas y a conexiones locales;<br>(6) controles negativos: certificado incorrecto, nombre de servidor diferente, archivo faltante y configuración insegura;<br>(7) explicar en docs/25, en lenguaje simple, cómo obtener el certificado en el panel y configurarlo en Windows 11 con WSL | Agentes permitidos si sus cambios son independientes. Pruebas locales, ensayo de #52, regresiones y mutaciones. **Límites:** sin credenciales reales ni conexión a Supabase; sin respaldos reales, consultas remotas, migraciones ni despliegues; sin cambios en el motor ni en las flags; sin merge del PR #34. Al terminar se solicita una nueva auditoría de ChatGPT |
+
+**Estado (24-11):** A-79 **implementada solo en herramientas locales y documentación**:
+- `scripts/conexion/sanear.py`: política TLS, analizador estricto y validación del certificado;
+- `scripts/conexion/conexion.sh`: rechazo de `PGSSL*`, `PGGSS*`, `PGREQUIRESSL` y `PGSYSCONFDIR`;
+- `scripts/conexion/configurar-conexion.py`: `verify-full`, `sslrootcert` y `gssencmode=disable`;
+- `scripts/conexion/probar-conexion.sh`: informa el TLS;
+- `scripts/simulacro/probar-simulacro.sh`: grupo T y mutaciones MT.
+
+**Pruebas:** **98/98**, con 30 controles TLS y 8 mutaciones TLS. El ensayo de #52 sigue en 65 OK y `npm test` en 636/636.
+
+**Pendiente:**
+- **POR CONFIRMAR** el menú del panel y que el certificado oficial valide el Session pooler.
+- Nueva auditoría solicitada.

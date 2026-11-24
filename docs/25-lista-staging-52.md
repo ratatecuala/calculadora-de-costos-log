@@ -1,8 +1,13 @@
 # 25 · Lista de comprobación: respaldo, simulacro de restauración y verificaciones previas en staging para #52
 
-> **Documento preparado; nada de esto se ha ejecutado contra Supabase ni staging.** Lo preparó Claude (A-76, A-77 y A-78; registros en #43: [A-77](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7078172931) y [A-78](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7118420787)) sin ninguna operación remota. Lo único ejecutado son **pruebas con datos y credenciales ficticios** en una base local (§7).
+> **Documento preparado; nada de esto se ha ejecutado contra Supabase ni staging.** Lo preparó Claude (A-76 a A-79; registros en #43: [A-77](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7078172931), [A-78](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7118420787) y [A-79](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7120135246)) sin ninguna operación remota. Lo único ejecutado son **pruebas con datos y credenciales ficticios** en una base local (§7).
 
-**Versión 3 · 24-11-2026.** Responde a la [reauditoría de A-77](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7118358999) (2 P1 y 1 P2):
+**Versión 4 · 24-11-2026.** Responde a la [reauditoría de A-78](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7119520646) (1 P1, A-79): la conexión cifraba, pero **no verificaba que el servidor fuera Supabase** (`sslmode=require` por defecto, y se aceptaba incluso `disable`). Ahora:
+- se exige `sslmode=verify-full` con el **certificado raíz de Supabase** (`sslrootcert`), descargado del panel (paso 1.3a);
+- se rechazan los demás modos, también si se editan a mano, junto con las claves repetidas, los parámetros extra, las variables `PGSSL…` y los certificados falsos, faltantes o modificables por otros;
+- las pruebas locales sin TLS usan una **excepción explícita** que solo vale para un servidor local.
+
+**Versión 3 · 24-11-2026 (historial).** Respondía a la [reauditoría de A-77](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7118358999) (2 P1 y 1 P2):
 
 | Hallazgo | Corrección (A-78) |
 |---|---|
@@ -31,6 +36,7 @@
 **Reglas para todo el documento:**
 - **Si algo no coincide: detente**, no lo arregles a mano y avisa en #52. Pega solo el mensaje, sin datos personales.
 - **Contraseñas y cadenas de conexión:** viven solo en archivos tuyos fuera del repositorio (`~/.config/cotizador/`) y en tu gestor de contraseñas. **Nunca** en un chat, un issue, un PR, el repositorio **ni en una línea de comandos**: el asistente del paso 1.3 la pide sin mostrarla.
+- **Nunca bajes la seguridad de la conexión** (`sslmode`) para que algo funcione: un error de certificado es motivo para detenerse.
 - **Nunca descifres un respaldo a mano.** El simulacro lo hace por ti en una carpeta privada que borra al terminar.
 - **Ningún hallazgo se repara automáticamente** (D-52-4b).
 
@@ -122,24 +128,44 @@ El respaldo y el simulacro usan herramientas de Linux. En Windows 11 se ejecutan
 
 - [ ] **1.3 Configurar la conexión segura** (solo cuando vayas a hacer el respaldo).
   - **Quién:** el propietario.
-  - **Antes:** en el panel de Supabase, botón **Connect** → **Session pooler** (puerto **5432**). Copia la cadena tal como aparece, con `[YOUR-PASSWORD]`. No uses el *transaction pooler* (6543): el asistente lo rechaza. El proyecto **no** debe estar pausado.
-  - **Qué hacer:** en Ubuntu, ejecuta el asistente:
+  - **Por qué hacen falta dos cosas** (A-78 y A-79):
+    - que la contraseña **no** quede a la vista (asistente, paso 1.3c);
+    - que tu computador compruebe que del otro lado está **de verdad** Supabase y no un impostor. Para eso se usa el **certificado raíz** de Supabase y la verificación más estricta de PostgreSQL, `sslmode=verify-full`, que verifica el certificado **y** el nombre del servidor. Si algo no coincide, la conexión se corta **antes** de enviar la contraseña.
+  - **1.3a Descargar el certificado raíz desde el panel de Supabase** (no se conecta a la base ni usa la contraseña):
+    1. En el navegador de Windows, entra al panel de tu proyecto de staging.
+    2. Abre la configuración de la base de datos (**Project Settings → Database**) y busca la sección **SSL Configuration**.
+    3. Pulsa **Download certificate**. Se guarda en tu carpeta **Descargas** con un nombre terminado en `.crt` (por ejemplo, `prod-ca-2021.crt`).
+
+    **POR CONFIRMAR:** los nombres exactos del menú, el botón y el archivo. Claude no pudo abrir el panel ni la documentación desde su entorno. Si no coinciden, busca «SSL» en la configuración de la base de datos y **avisa en #52** antes de seguir.
+  - **1.3b Copiar el certificado a tu carpeta privada de Ubuntu.** En Ubuntu, reemplaza `<tu-usuario-de-windows>` y el nombre del archivo:
+    ```bash
+    cp "/mnt/c/Users/<tu-usuario-de-windows>/Downloads/prod-ca-2021.crt" ~/.config/cotizador/supabase-ca.crt && chmod 644 ~/.config/cotizador/supabase-ca.crt
+    ```
+    Comprueba que es un certificado raíz válido y vigente:
+    ```bash
+    cd ~/calculadora && python3 -I scripts/conexion/sanear.py --certificado ~/.config/cotizador/supabase-ca.crt && echo "Certificado correcto"
+    ```
+    - **Bien si:** dice `Certificado correcto`.
+    - **Si no:** dice qué falla (no existe, no es un certificado, no es la CA raíz o está vencido). Vuelve a descargarlo. El certificado **no es secreto**, pero nadie más debe poder modificarlo.
+  - **1.3c Ejecutar el asistente.** Antes, en el panel de Supabase, botón **Connect** → **Session pooler** (puerto **5432**). Copia la cadena tal como aparece, con `[YOUR-PASSWORD]`. No uses el *transaction pooler* (6543): el asistente lo rechaza. El proyecto **no** debe estar pausado.
     ```bash
     cd ~/calculadora && python3 scripts/conexion/configurar-conexion.py
     ```
     1. Pega la cadena (clic derecho) y pulsa `Enter`. **No se verá nada mientras pegas:** es normal.
-    2. Escribe o pega la **contraseña de la base** y pulsa `Enter`. Tampoco se verá.
-  - **Qué hace:** guarda en `~/.config/cotizador`, con permisos `600`:
-    - `pg_service.conf`: servidor, puerto, base y usuario, **sin** contraseña;
+    2. El asistente comprueba el certificado del paso 1.3b. Si falta, se detiene **antes** de pedirte la contraseña.
+    3. Escribe o pega la **contraseña de la base** y pulsa `Enter`. Tampoco se verá.
+  - **Qué guarda:** en `~/.config/cotizador`, con permisos `600`:
+    - `pg_service.conf`: servidor, puerto, base, usuario y la seguridad de la conexión (`sslmode=verify-full`, la ruta del certificado y `gssencmode=disable`), **sin** contraseña;
     - `pgpass`: la contraseña, en un archivo que solo PostgreSQL lee.
 
-    Así la contraseña **nunca** queda en la línea de comandos, en el historial de la terminal ni en la lista de procesos.
-  - **Comprobar la conexión** (esto sí consulta Supabase: hazlo solo cuando vayas a respaldar):
+    Aunque la cadena de Supabase traiga otro `sslmode` (por ejemplo, `require`), el asistente guarda `verify-full`. Los scripts **rechazan** cualquier otro modo (`disable`, `allow`, `prefer`, `require`, `verify-ca`), también si alguien edita los archivos a mano, y rechazan las variables `PGSSL…`.
+  - **1.3d Comprobar la conexión** (esto sí consulta Supabase: hazlo solo cuando vayas a respaldar):
     ```bash
     scripts/conexion/probar-conexion.sh
     ```
-  - **Bien si:** dice `Conexión correcta: PostgreSQL 17.x`.
-  - **Si no:** el mensaje sale **saneado**, con `<usuario>` y `<servidor>` en vez de tus datos, así que puedes copiarlo en #52. Detente.
+    - **Bien si:** dice `Conexión correcta: PostgreSQL 17.x · TLS verificado (verify-full: certificado y nombre del servidor)`.
+    - **Si menciona el certificado** (`certificate verify failed`) **o el nombre del servidor** (`does not match host name`): **detente**. **No** cambies `sslmode` ni borres el certificado para «hacerlo funcionar», y avisa en #52. Puede ser un certificado equivocado o un servidor que no es Supabase. La contraseña **no** se envió.
+    - **Otros errores:** el mensaje sale **saneado**, con `<usuario>` y `<servidor>` en vez de tus datos, así que puedes copiarlo en #52. Detente.
   - **Si antes creaste `~/.config/cotizador/db-url`** (versión 2 de esta lista): bórralo con `rm ~/.config/cotizador/db-url`. Ya no se usa, y el respaldo se niega a usarlo porque ponía la contraseña en la línea de comandos.
   - **Si no recuerdas la contraseña:** se restablece en *Database → Settings*. Avisa antes, porque cambia la contraseña para todo lo que la use. Después repite el asistente.
 
@@ -292,7 +318,7 @@ El respaldo y el simulacro usan herramientas de Linux. En Windows 11 se ejecutan
 | Paso | Decisión del propietario | Estado al 24-11-2026 |
 |---|---|---|
 | 0 | Preparar Windows 11 (WSL, PostgreSQL 17, age, clave) | Pendiente |
-| 1.1–1.3 | Confirmar que nada se aplicó y que no hay integraciones automáticas; configurar la conexión segura (asistente) | Pendiente (la integración con GitHub del panel está **POR CONFIRMAR**) |
+| 1.1–1.3 | Confirmar que nada se aplicó y que no hay integraciones automáticas; descargar el certificado raíz de Supabase y configurar la conexión segura (asistente) | Pendiente (la integración con GitHub del panel está **POR CONFIRMAR**) |
 | 2.1–2.2 | Hacer el respaldo real y guardar la segunda copia | Pendiente (A-52: lo hace el propietario) |
 | 2.3 | Ejecutar el simulacro y publicar el resultado | Pendiente |
 | 3 | **Autorizar** las consultas de solo lectura en staging | **No autorizado todavía** |
@@ -324,7 +350,26 @@ Con PostgreSQL, age y python3; no como root.
   - registra los argumentos y el entorno de cada `psql` y `pg_dump`;
   - vigila **todos** los procesos en `/proc`, cada 2 ms.
 
-**Resultado: 60/60.**
+**Resultado (24-11, con A-79): 98/98** en dos corridas. A-78 dejó 60/60; A-79 agrega los 30 controles TLS (T1–T30) y 8 mutaciones (MT1–MT7b).
+
+**TLS (A-79).** El servidor de prueba usa TLS con un certificado firmado por una **CA de prueba** (solo `DNS:localhost`); también hay **otra CA** ajena. Las pruebas generales conectan con la **excepción explícita** de prueba local (`COTIZADOR_PRUEBA_LOCAL_SIN_TLS=solo-loopback-de-prueba`, que solo vale para loopback). El grupo T la quita:
+
+| Prueba TLS | Resultado |
+|---|---|
+| T1 · asistente sin certificado | Se detiene **antes** de pedir la contraseña y no escribe archivos |
+| T2 · asistente con la CA y una cadena con `sslmode=require` | Escribe `verify-full`, `sslrootcert` y `gssencmode=disable` |
+| T3–T4 · `verify-full` con la CA correcta | Conecta («TLS verificado»), y el **respaldo completo** funciona por TLS sin la contraseña en argumentos ni en `/proc` |
+| T5–T6 · certificado de **otra CA** | `certificate verify failed`. El registro del servidor confirma que **no hubo intento de autenticación**: la contraseña no se envió |
+| T7 · **nombre de servidor distinto** (127.0.0.1 en vez de localhost) | `does not match host name` |
+| T8 · certificado **faltante** | Rechazado antes de conectar |
+| T9–T14 · `disable`, `allow`, `prefer`, `require`, `verify-ca` y `sslmode` ausente, **editados a mano** | Rechazados |
+| T15 · `sslmode=disable` **antes** de `sslmode=verify-full` | Rechazado por clave repetida. **Hallazgo:** libpq usa la primera aparición; sin esta regla, la conexión iba **sin TLS** (MT2) |
+| T16–T22 · `sslrootcert=system`, sin `sslrootcert`, un archivo que no es un certificado, el certificado del servidor en vez de la CA, `gssencmode=prefer`, un parámetro extra (`requiressl`) y un certificado modificable por otros | Rechazados |
+| T23–T26 · variables `PGSSLMODE`, `PGSSLROOTCERT`, `PGGSSENCMODE` y `PGREQUIRESSL` | Rechazadas |
+| T27–T30 · excepción con un servidor remoto, con un valor inexacto, servidor local **sin** la excepción, y asistente con la excepción para un servidor remoto | Rechazados |
+| MT1–MT7b · mutaciones | Se quita cada regla y la configuración insegura pasa, o la conexión va sin TLS:<br>• **MT1:** `require` conecta;<br>• **MT2:** la clave repetida conecta **sin TLS**;<br>• **MT3:** la excepción sin límite de loopback escribe `disable` para un servidor remoto;<br>• **MT4:** pasa `gssencmode=prefer`;<br>• **MT5:** pasa un certificado que no es CA;<br>• **MT6:** pasa `PGSSLMODE=disable`;<br>• **MT7:** el asistente anterior escribía `require`; los scripts igual lo rechazan (MT7b).<br>Las pruebas correspondientes las detectan todas |
+
+**Resultado de A-78 (se mantiene): 60/60.**
 
 | Grupo | Qué se comprobó | Resultado |
 |---|---|---|
@@ -342,7 +387,8 @@ Con PostgreSQL, age y python3; no como root.
 - `npm test`: **636/636**.
 
 **Limitaciones (lo que estas pruebas NO cubren):**
-- **Windows/WSL:** Claude no tiene Windows. Los pasos de las fases 0 y 1.3 **no se ejecutaron**: **POR CONFIRMAR** en tu equipo, incluido pegar en el asistente sin que se vea.
+- **Windows/WSL:** Claude no tiene Windows. Los pasos de las fases 0 y 1.3 **no se ejecutaron**: **POR CONFIRMAR** en tu equipo, incluido pegar en el asistente sin que se vea y copiar el certificado desde `/mnt/c/Users/…/Downloads`.
+- **Certificado real de Supabase:** no se usó, porque las pruebas usan una CA propia. **POR CONFIRMAR** que el certificado del panel valide el **Session pooler** con `verify-full`. La reauditoría cita la documentación oficial de Supabase (actualizada el 16-11-2026) con ese procedimiento, pero Claude no pudo abrirla: su red no permite `supabase.com` ni `postgresql.org`. Si el paso 1.3d falla por el certificado, **no se baja la seguridad**: se avisa en #52.
 - **PostgreSQL 17 y Supabase real:** el contenedor solo tiene la 16, y el origen fue ficticio. Las columnas y los tipos de Auth de Supabase son los de la documentación pública, **sin confirmar**. Si tu respaldo trae un tipo que el simulacro no reconoce, se detendrá con un error explícito. La prueba definitiva es tu simulacro del paso 2.3.
 - **Supabase Auth funcional e inicio de sesión:** **no** se prueban. Lo mismo vale para una restauración en un proyecto Supabase nuevo (H9). Requieren un entorno Supabase compatible y una autorización aparte.
 - **Detector de `/proc`:** muestrea cada 2 ms. El registro de cada `psql`/`pg_dump` sí es completo. Ambos detectaron por separado la contraseña reintroducida (M2).
@@ -357,5 +403,6 @@ Con PostgreSQL, age y python3; no como root.
 - **POR CONFIRMAR:** si el proyecto de staging tiene activa la integración con GitHub o Branching de Supabase (solo se ve en el panel).
 - **POR CONFIRMAR:** el comportamiento del editor SQL real con `set transaction read only`. Por eso la verificación formal usa psql.
 - **POR CONFIRMAR:** los pasos de las fases 0 y 1.3 en tu Windows 11.
+- **POR CONFIRMAR:** el menú y el nombre exacto del certificado en el panel de Supabase, y que valide el Session pooler con `verify-full` (paso 1.3).
 - **POR CONFIRMAR:** que las columnas y los tipos de `auth.users` y `auth.identities` de tu proyecto sean reconocidos por el simulacro (si no, se detiene con un error explícito).
 - **DATO FALTANTE:** el segundo lugar donde guardarás los respaldos.

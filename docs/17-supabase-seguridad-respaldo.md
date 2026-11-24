@@ -111,6 +111,13 @@ Estos ajustes **no** se pueden leer con SQL. El propietario los revisa en el pan
   - `python3 scripts/conexion/configurar-conexion.py` la pide sin mostrarla;
   - escribe `pg_service.conf` (sin contraseña) y `pgpass`, con permisos `600`, en `~/.config/cotizador`;
   - los scripts usan `psql -w -d "service=cotizador-staging"` y muestran los errores saneados (`scripts/conexion/conexion.sh`).
+- **TLS con identidad verificada (A-79):** cifrar no basta. `sslmode=require` cifra, pero **no** comprueba que el servidor sea Supabase. Por eso:
+  - toda conexión remota exige `sslmode=verify-full` (certificado firmado por la CA **y** nombre del servidor) con `sslrootcert` = el certificado raíz descargado del panel (*Database → SSL Configuration*, **POR CONFIRMAR** los nombres exactos) y `gssencmode=disable`;
+  - `sanear.py --comprobar` rechaza `disable`, `allow`, `prefer`, `require` y `verify-ca`, un `sslmode` ausente, las claves repetidas (libpq usa la primera), los parámetros fuera de la lista, `sslrootcert=system` y certificados faltantes, inválidos, que no son CA, vencidos o modificables por otros;
+  - `conexion.sh` rechaza las variables `PGSSL*`, `PGGSS*`, `PGREQUIRESSL` y `PGSYSCONFDIR`;
+  - la única excepción es para pruebas: `COTIZADOR_PRUEBA_LOCAL_SIN_TLS=solo-loopback-de-prueba`, válida solo para un servidor local.
+
+  Pasos para Windows 11 en [25](25-lista-staging-52.md), paso 1.3.
 - **IPv6 vs pooler:** la conexión directa (`db.<project-ref>.supabase.co`) es solo IPv6 salvo que se pague el complemento IPv4. Usar el **Session pooler** (puerto **5432**, usuario `postgres.<project-ref>`, host del pooler de `<region>`), copiando la cadena exacta del botón **Connect** del panel. No usar el *transaction pooler* (6543) para `pg_dump`.
 - **Versión de `pg_dump`:** el proyecto usa **Postgres 17.11**, así que `pg_dump` y `psql` deben ser de la versión **17 o superior**: `pg_dump` se niega a volcar un servidor más nuevo. La CLI de Supabase evita el problema porque usa una imagen Docker de la misma versión. El contenedor de Claude solo tiene la 16: desde aquí no se puede respaldar el proyecto real, aunque se tuviera la contraseña.
 - **`\restrict` en los volcados:** los `pg_dump` recientes (16.10+ y 17.6+) agregan esa línea. Restaurar con un `psql` de la misma versión o una más nueva.
@@ -177,7 +184,7 @@ La ruta B reconstruye el esquema con las **migraciones del repositorio**, que re
    ```
 3. **Esquema desde el repositorio:**
    > **Estado actual (22-11, A-76):** el repositorio ya contiene la migración de #52 (`20261122120000_guardado_unico_y_contador.sql`), que **staging todavía no tiene**. Para restaurar un respaldo tomado **antes** de aplicarla, usa **solo las 3 migraciones anteriores** con la vía `psql` de abajo. `supabase db push` las aplicaría todas, y el `diff` de la verificación no daría cero sin que hubiera ningún problema real. El nombre exacto de cada migración, y cuáles aplicar según el estado del origen, están en la lista explícita de `scripts/simulacro/simulacro-restauracion.sh` (A-77). Ver [25 · Lista de comprobación](25-lista-staging-52.md), paso 2.3.
-   - antes, la conexión segura del proyecto nuevo: `python3 scripts/conexion/configurar-conexion.py --servicio cotizador-restaurado`;
+   - antes, la conexión segura del proyecto nuevo, con **su** certificado raíz: `python3 scripts/conexion/configurar-conexion.py --servicio cotizador-restaurado --certificado <ruta del certificado del proyecto nuevo>`;
    - por cada archivo de la lista que corresponda:
    ```bash
    psql -w -d "service=cotizador-restaurado" --single-transaction -v ON_ERROR_STOP=1 -f supabase/migrations/<archivo>.sql
