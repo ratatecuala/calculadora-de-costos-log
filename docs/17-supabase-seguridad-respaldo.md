@@ -107,7 +107,10 @@ Estos ajustes **no** se pueden leer con SQL. El propietario los revisa en el pan
 
 ### 5.2 Riesgos y requisitos
 
-- **Contraseña de la base (`<db-password>`):** solo la tiene el propietario (Database → Settings permite restablecerla). Guardarla en un gestor de contraseñas. No escribirla en la línea de comandos (queda en el historial y en la lista de procesos): usar un archivo `600` fuera del repositorio o `~/.pgpass`.
+- **Contraseña de la base (`<db-password>`):** solo la tiene el propietario (Database → Settings permite restablecerla). Guardarla en un gestor de contraseñas. **Nunca** en la línea de comandos, ni dentro de una cadena de conexión pasada como argumento: queda en el historial y en la lista de procesos. **Conexión segura (A-78):**
+  - `python3 scripts/conexion/configurar-conexion.py` la pide sin mostrarla;
+  - escribe `pg_service.conf` (sin contraseña) y `pgpass`, con permisos `600`, en `~/.config/cotizador`;
+  - los scripts usan `psql -w -d "service=cotizador-staging"` y muestran los errores saneados (`scripts/conexion/conexion.sh`).
 - **IPv6 vs pooler:** la conexión directa (`db.<project-ref>.supabase.co`) es solo IPv6 salvo que se pague el complemento IPv4. Usar el **Session pooler** (puerto **5432**, usuario `postgres.<project-ref>`, host del pooler de `<region>`), copiando la cadena exacta del botón **Connect** del panel. No usar el *transaction pooler* (6543) para `pg_dump`.
 - **Versión de `pg_dump`:** el proyecto usa **Postgres 17.11**, así que `pg_dump` y `psql` deben ser de la versión **17 o superior**: `pg_dump` se niega a volcar un servidor más nuevo. La CLI de Supabase evita el problema porque usa una imagen Docker de la misma versión. El contenedor de Claude solo tiene la 16: desde aquí no se puede respaldar el proyecto real, aunque se tuviera la contraseña.
 - **`\restrict` en los volcados:** los `pg_dump` recientes (16.10+ y 17.6+) agregan esa línea. Restaurar con un `psql` de la misma versión o una más nueva.
@@ -120,42 +123,33 @@ Estos ajustes **no** se pueden leer con SQL. El propietario los revisa en el pan
 
 **Preparación (una vez):**
 1. Instalar `age` y crear la clave: `age-keygen -o ~/.config/cotizador/clave-respaldo.txt`. Guardar ese archivo (clave **privada**) en el gestor de contraseñas o en un medio fuera de línea. La línea `Public key: age1...` es el destinatario, no es secreta.
-2. Elegir el modo:
-   - `cli` (recomendado, comandos oficiales): Supabase CLI + Docker Desktop.
-   - `pgdump`: cliente PostgreSQL **17** (`brew install postgresql@17`, o el instalador oficial).
-3. Guardar la cadena del Session pooler en un archivo fuera del repositorio:
+2. Modo: `pgdump`, con un cliente PostgreSQL **17**. En Windows 11, dentro de Ubuntu en WSL ([25](25-lista-staging-52.md), fase 0). El modo `cli` (`supabase db dump --db-url`) está **desactivado** desde A-78, porque exige la contraseña en la línea de comandos.
+3. Configurar la conexión segura (cadena del Session pooler y contraseña, sin mostrarlas):
    ```bash
-   mkdir -p ~/.config/cotizador && chmod 700 ~/.config/cotizador
-   printf '%s\n' 'postgresql://postgres.<project-ref>:<db-password>@<pooler-host>:5432/postgres' > ~/.config/cotizador/db-url
-   chmod 600 ~/.config/cotizador/db-url
+   python3 scripts/conexion/configurar-conexion.py
    ```
-   (Escribirla con un editor evita que la contraseña quede en el historial de la terminal.)
+   El método anterior (`~/.config/cotizador/db-url` y `SUPABASE_DB_URL_FILE`) ya no se usa: el script lo rechaza. Si existe ese archivo, se borra.
 4. Crear la carpeta de destino **fuera del repositorio**, de preferencia en un disco cifrado: `mkdir -p ~/respaldos-cotizador`.
 
 **Cada respaldo:**
 ```bash
-SUPABASE_DB_URL_FILE=~/.config/cotizador/db-url \
 BACKUP_DIR=~/respaldos-cotizador \
 BACKUP_AGE_RECIPIENT=age1... \
 BACKUP_CONSERVAR=16 \
-scripts/respaldo-supabase.sh cli        # o: pgdump
+scripts/respaldo-supabase.sh pgdump
 ```
 El script (`set -euo pipefail`, `umask 077`):
 - se niega a escribir dentro del repositorio y a respaldar sin cifrado;
-- genera `roles.sql`, `schema.sql` y `data.sql`;
-- ejecuta `scripts/verificar-restauracion.sql` contra el **origen** (`verificacion-origen.txt`);
-- escribe `manifiesto.txt` con las versiones y los SHA-256;
+- se conecta solo con `service=…` y archivos `600`; se niega a usar `SUPABASE_DB_URL(_FILE)`, `PGPASSWORD` o el modo `cli`;
+- genera `roles.sql`, `schema.sql`, `data.sql` y `auth-columnas.txt` (columnas y tipos de `auth.users` y `auth.identities`, sin datos);
+- ejecuta `scripts/verificar-restauracion.sql` contra el **origen** (`verificacion-origen.txt`), con un **instante de referencia** fijo;
+- escribe `manifiesto.txt` con las versiones, el `referencia_utc` y los SHA-256;
 - empaqueta y cifra todo en `respaldo-<fecha>.tar.age`;
 - borra los archivos en claro y, si algo falla a mitad, no deja copias parciales.
 
 Después: copiar el `.tar.age` a un **segundo lugar** del propietario (disco externo o nube propia; está cifrado). **Nunca** a GitHub ni a este repositorio.
 
-Equivalente manual del modo `cli` (documentación oficial «Backup and Restore using the CLI»):
-```bash
-supabase db dump --db-url "$DB_URL" -f roles.sql --role-only
-supabase db dump --db-url "$DB_URL" -f schema.sql
-supabase db dump --db-url "$DB_URL" -f data.sql --use-copy --data-only -x "storage.buckets_vectors" -x "storage.vector_indexes"
-```
+El modo `cli` de la documentación oficial («Backup and Restore using the CLI») pasa la cadena con la contraseña en `--db-url`, así que **no se usa** (A-78).
 
 ### 5.4 Frecuencia y retención (propuesta: DECISIÓN del propietario)
 
@@ -183,14 +177,14 @@ La ruta B reconstruye el esquema con las **migraciones del repositorio**, que re
    ```
 3. **Esquema desde el repositorio:**
    > **Estado actual (22-11, A-76):** el repositorio ya contiene la migración de #52 (`20261122120000_guardado_unico_y_contador.sql`), que **staging todavía no tiene**. Para restaurar un respaldo tomado **antes** de aplicarla, usa **solo las 3 migraciones anteriores** con la vía `psql` de abajo. `supabase db push` las aplicaría todas, y el `diff` de la verificación no daría cero sin que hubiera ningún problema real. El nombre exacto de cada migración, y cuáles aplicar según el estado del origen, están en la lista explícita de `scripts/simulacro/simulacro-restauracion.sh` (A-77). Ver [25 · Lista de comprobación](25-lista-staging-52.md), paso 2.3.
-   - con la CLI: `supabase link --project-ref <nuevo-project-ref>` y luego `supabase db push`;
-   - o, sin CLI, por cada archivo:
+   - antes, la conexión segura del proyecto nuevo: `python3 scripts/conexion/configurar-conexion.py --servicio cotizador-restaurado`;
+   - por cada archivo de la lista que corresponda:
    ```bash
-   psql "$NEW_DB_URL" --single-transaction -v ON_ERROR_STOP=1 -f supabase/migrations/<archivo>.sql
+   psql -w -d "service=cotizador-restaurado" --single-transaction -v ON_ERROR_STOP=1 -f supabase/migrations/<archivo>.sql
    ```
 4. **Datos:**
    ```bash
-   psql "$NEW_DB_URL" --single-transaction --variable ON_ERROR_STOP=1 \
+   psql -w -d "service=cotizador-restaurado" --single-transaction --variable ON_ERROR_STOP=1 \
      --command 'SET session_replication_role = replica' --file data.sql
    ```
    El modo `replica` desactiva los *triggers* y las claves foráneas durante la carga, así que el orden de las tablas no importa. Si `data.sql` (modo `cli`) trae `COPY` de tablas internas que el destino no tiene, se comentan esa línea y su `\.` (documentación oficial, *Troubleshooting*). El simulacro lo hace con `scripts/simulacro/procesar-respaldo.py filtrar`, que además omite los cambios de rol del volcado (`SET SESSION AUTHORIZATION`).
@@ -199,12 +193,12 @@ La ruta B reconstruye el esquema con las **migraciones del repositorio**, que re
    - nueva clave publicable y URL en `.env.staging.local`; recompilar y desplegar el Worker.
 6. **Verificar:**
    ```bash
-   psql "$NEW_DB_URL" -X -A -t -F ' | ' -f scripts/verificar-restauracion.sql > restaurado.txt
+   psql -w -d "service=cotizador-restaurado" -X -q -A -t -F ' | ' -v referencia=<referencia_utc del manifiesto> -f scripts/verificar-restauracion.sql > restaurado.txt
    ```
    ```bash
    diff verificacion-origen.txt restaurado.txt && echo "Restauración idéntica"
    ```
-   - Exigir **diferencia cero**: conteos, huellas md5 de identificadores, numeración (`inv.contador_menor_que_maximo` = 0, es decir, contador ≥ máximo) y privilegios (`inv.*`).
+   - Exigir **diferencia cero**: conteos, huellas md5 del **contenido completo** de las 8 tablas (`contenido.*`, A-78) y de identificadores, numeración (`inv.contador_menor_que_maximo` = 0, es decir, contador ≥ máximo) y privilegios (`inv.*`).
    - Después, contra el proyecto restaurado: `scripts/verificar-rls.mjs` (los usuarios de prueba conservan su contraseña) y, si se acepta que cree datos, `scripts/verificar-numeracion.mjs`.
 
 **Ruta A (oficial completa: `roles.sql` + `schema.sql` + `data.sql`):** sirve para recuperar exactamente lo que había, pero en un proyecto Supabase nuevo **deja privilegios de más** (H2). Si se usa, el `diff` de `inv.*` lo detecta; en ese caso, rehacer por la ruta B. No usar en producción una restauración con diferencias en `inv.*`.
@@ -213,13 +207,18 @@ La ruta B reconstruye el esquema con las **migraciones del repositorio**, que re
 
 - **Opción 1, sin Docker (A-77, automática):** `scripts/simulacro/simulacro-restauracion.sh`. Instrucciones para Windows 11 en [25 · Lista de comprobación](25-lista-staging-52.md), fases 0 y 2b.
   - **Por qué cambió:** el *stub* de §6 creaba `auth.users(id, email)`. Un respaldo real trae **todas** las columnas de Auth de Supabase, así que su `COPY` fallaba (`column "instance_id" … does not exist`). Además, ese *stub* nunca quedó en el repositorio. **El ensayo del 18-11 no valida la restauración de un respaldo real.**
-  - **Qué hace ahora:**
-    - crea `auth.users` y `auth.identities` con **las columnas que trae el propio respaldo**: `id` como `uuid` y las demás como texto, porque la estructura de Auth no viaja en el respaldo;
+  - **Qué hace ahora (A-78):**
+    - crea `auth.users` y `auth.identities` con las **columnas y los tipos del origen** (`auth-columnas.txt` del respaldo), columnas generadas incluidas. Un tipo propio de Supabase o una lista distinta de la del `COPY` es un **error explícito**;
     - aplica solo las migraciones que corresponden al estado del origen (antes o después de #52) y comprueba que la base quedó en ese estado;
-    - carga los datos filtrados;
-    - compara la verificación con la del origen;
+    - carga los datos filtrados. Cualquier formato o dato de la app que no sepa interpretar es un **error explícito**: `INSERT`, `COPY` binario, tabla desconocida, fila incompleta, codificación o sentencia desconocida;
+    - compara la verificación con la del origen, incluidas las huellas del **contenido completo**, usando el **mismo instante de referencia**;
     - borra siempre la carpeta temporal.
-  - **Probado con datos ficticios:** 15/15 ([25 §7](25-lista-staging-52.md)).
+  - **Qué demuestra y qué no:**
+    - **demuestra** la integridad de los datos: todas las columnas de las 6 tablas de la app y de `auth.users`/`auth.identities` coinciden con el origen;
+    - **no demuestra** una restauración funcional de Supabase Auth (inicio de sesión, funciones, *triggers*, otras tablas de `auth`) ni una restauración en un proyecto nuevo.
+
+    El mensaje de éxito es «DATOS VERIFICADOS» y lo dice expresamente.
+  - **Probado con datos y credenciales ficticios:** 60/60, con 9 mutaciones detectadas ([25 §7](25-lista-staging-52.md)).
 - **Opción 2, con Docker:** `supabase start` levanta una pila local con el esquema `auth` real (cadena local `postgresql://postgres:postgres@127.0.0.1:54322/postgres`). Luego, pasos 3, 4 y 6. No ensayada aquí: el contenedor de Claude no tiene Docker en funcionamiento.
 
 ## 6. Ensayo local de respaldo y restauración (18-11-2026)
@@ -247,7 +246,7 @@ La ruta B reconstruye el esquema con las **migraciones del repositorio**, que re
    - un trabajo borrado, para que el contador quede por encima del máximo.
 5. Respaldo:
    ```bash
-   SUPABASE_DB_URL_FILE=… BACKUP_DIR=… BACKUP_AGE_RECIPIENT=age1… scripts/respaldo-supabase.sh pgdump
+   SUPABASE_DB_URL_FILE=… BACKUP_DIR=… BACKUP_AGE_RECIPIENT=age1… scripts/respaldo-supabase.sh pgdump   # método de conexión anterior, reemplazado en A-78
    ```
    Resultado: `respaldo-20261118T043527Z.tar.age` (61,6 KB, permisos `600`). `age -d` lo descifró y los SHA-256 del manifiesto coincidieron (3/3 OK). Con la versión final del script se repitió todo de punta a punta (`respaldo-20261118T044448Z.tar.age` → descifrar → `shasum -c` 3/3 → ruta B → `diff verificacion-origen.txt restaurado.txt`): **«Restauración idéntica»**. El aviso de retención apareció como se esperaba, sin borrar nada.
 6. Controles del script (probados):
@@ -290,14 +289,14 @@ La ruta B reconstruye el esquema con las **migraciones del repositorio**, que re
 
 **Límites del ensayo:**
 - Postgres 16 y no 17.
-- *Stub* en vez de Supabase real: no están la estructura completa de `auth`, ni `storage`, ni Supavisor. **Corrección (A-77, 22-11-2026):** ese *stub* (`auth.users(id, email)`) **no puede** cargar los datos de Auth de un respaldo real. El ensayo solo valida respaldos de un origen con ese mismo *stub*. Lo reemplaza el simulacro de §5.6.
+- *Stub* en vez de Supabase real: no están la estructura completa de `auth`, ni `storage`, ni Supavisor. **Corrección (A-77, 22-11-2026):** ese *stub* (`auth.users(id, email)`) **no puede** cargar los datos de Auth de un respaldo real. El ensayo solo valida respaldos de un origen con ese mismo *stub*. Lo reemplaza el simulacro de §5.6. Además, sus huellas solo cubrían identificadores y algunos números (A-78).
 - No se ensayó el modo `cli` (sin Docker).
 - No se ensayó contra el proyecto real (requiere `<db-password>` y un cliente 17).
 
 El clúster se detuvo y se borró al terminar. El *stub* y los datos ficticios quedaron solo en el directorio temporal de la sesión, no en el repositorio.
 
 **Primer respaldo real (PENDIENTE, propietario):**
-1. Ejecutar `scripts/respaldo-supabase.sh` en modo `cli` o `pgdump` (cliente 17).
+1. Ejecutar `scripts/respaldo-supabase.sh pgdump` (cliente 17) con la conexión segura (A-78).
 2. Hacer el simulacro local automático (§5.6 y [25](25-lista-staging-52.md), paso 2.3).
 3. Registrar aquí la fecha y el resultado del `diff`.
 
@@ -396,7 +395,7 @@ Recomendación: **(a)** mientras sea staging privado (Basic Auth del Worker más
    3. *Exposed schemas* sin `private`;
    4. longitud mínima de contraseña.
 3. **Google OAuth:** §7.2 y §7.3, más la decisión §7.4.
-4. **Primer respaldo real**, con `scripts/respaldo-supabase.sh` (modo `cli`, o `pgdump` con cliente 17), cifrado con `age`, guardado fuera del repositorio y en un segundo lugar.
+4. **Primer respaldo real**, con `scripts/respaldo-supabase.sh pgdump` (cliente 17, conexión segura de A-78), cifrado con `age`, guardado fuera del repositorio y en un segundo lugar.
 5. **Simulacro de restauración local** (§5.5 ruta B y §5.6), guardando el `diff` junto al respaldo.
 6. **Rotar o revocar** el token de Cloudflare entregado a Claude (docs/13 §9).
 
@@ -415,7 +414,10 @@ Recomendación: **(a)** mientras sea staging privado (Basic Auth del Worker más
 
 ## 10. Archivos
 
-- [`scripts/respaldo-supabase.sh`](../scripts/respaldo-supabase.sh): respaldo cifrado. Modo `pgdump` ensayado; modo `cli` = comandos oficiales, no ensayados aquí.
+- [`scripts/respaldo-supabase.sh`](../scripts/respaldo-supabase.sh): respaldo cifrado. Modo `pgdump`, ensayado con credenciales ficticias; modo `cli` desactivado (A-78).
+- [`scripts/conexion/`](../scripts/conexion/): conexión segura (A-78): asistente `configurar-conexion.py`, `probar-conexion.sh`, la biblioteca `conexion.sh` y `sanear.py`.
+- [`scripts/verificar-solo-lectura.sh`](../scripts/verificar-solo-lectura.sh): V1–V17 de #52 con la conexión segura.
+- [`scripts/simulacro/`](../scripts/simulacro/): simulacro de restauración local y sus pruebas (`probar-simulacro.sh`).
 - [`scripts/verificar-restauracion.sql`](../scripts/verificar-restauracion.sql): una sola consulta `SELECT` con conteos, huellas e invariantes, sin datos personales. Ensayada localmente y ejecutada en staging (sin huellas).
 
 ## 11. Fuentes oficiales (consultadas el 18-11-2026)

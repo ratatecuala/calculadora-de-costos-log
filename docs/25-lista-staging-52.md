@@ -1,8 +1,16 @@
 # 25 · Lista de comprobación: respaldo, simulacro de restauración y verificaciones previas en staging para #52
 
-> **Documento preparado; nada de esto se ha ejecutado contra Supabase ni staging.** Lo preparó Claude (A-76 y A-77, [registros en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7078172931)) sin ninguna operación remota. Lo único ejecutado es el **simulacro con datos ficticios** en una base local (§7).
+> **Documento preparado; nada de esto se ha ejecutado contra Supabase ni staging.** Lo preparó Claude (A-76, A-77 y A-78; registros en #43: [A-77](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7078172931) y [A-78](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7118420787)) sin ninguna operación remota. Lo único ejecutado son **pruebas con datos y credenciales ficticios** en una base local (§7).
 
-**Versión 2 · 22-11-2026.** Responde a la [auditoría de la versión 1](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7078148568) (1 P1 y 2 P2):
+**Versión 3 · 24-11-2026.** Responde a la [reauditoría de A-77](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7118358999) (2 P1 y 1 P2):
+
+| Hallazgo | Corrección (A-78) |
+|---|---|
+| P1 · la contraseña viajaba en los argumentos de `psql` y `pg_dump` (visible en la lista de procesos) | **Conexión segura:** dos archivos privados (`pg_service.conf` y `pgpass`, permisos `600`) que crea un asistente sin mostrar la contraseña (paso 1.3). Los programas reciben solo `service=cotizador-staging`; los mensajes de error salen **saneados** (sin contraseña, usuario, servidor ni identificador del proyecto). Se rechazan el método anterior, `PGPASSWORD` y el modo `cli` |
+| P1 · «restauración idéntica» afirmaba más de lo comprobado | El simulacro compara el **contenido completo** (todas las columnas) de las 6 tablas de la app y de `auth.users`/`auth.identities`, estas con los **tipos del origen**. Alterar un cliente, un precio, el JSON interno, un vehículo, un correo o un hash de contraseña da `HAY DIFERENCIAS`. El mensaje ahora dice **«DATOS VERIFICADOS»** y aclara que **no** prueba que Supabase Auth funcione. Un formato o dato que no sepa interpretar es un **error explícito** |
+| P2 · un enlace que vence entre el respaldo y el simulacro daba una diferencia falsa | Los enlaces vigentes se cuentan en un **instante de referencia** fijo guardado en el manifiesto, no en «ahora» |
+
+**Versión 2 · 22-11-2026 (historial).** Respondía a la [auditoría de la versión 1](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7078148568) (1 P1 y 2 P2):
 
 | Hallazgo | Corrección |
 |---|---|
@@ -15,14 +23,14 @@
 
 **Para qué sirve:** antes de pedir la autorización individual **A-59** para aplicar la migración de #52 en staging, hacen falta tres cosas:
 1. un **respaldo real** cifrado;
-2. un **simulacro de restauración** que demuestre que ese respaldo se restaura idéntico;
+2. un **simulacro de restauración** que demuestre que los datos de ese respaldo se cargan completos y coinciden con el origen;
 3. las **verificaciones de solo lectura** en staging, revisadas.
 
 **Migración en cuestión:** `supabase/migrations/20261122120000_guardado_unico_y_contador.sql`. Está aprobada técnicamente (A-76). **No se aplica todavía.**
 
 **Reglas para todo el documento:**
 - **Si algo no coincide: detente**, no lo arregles a mano y avisa en #52. Pega solo el mensaje, sin datos personales.
-- **Contraseñas y cadenas de conexión:** viven solo en archivos tuyos fuera del repositorio (`~/.config/cotizador/`) y en tu gestor de contraseñas. **Nunca** en un chat, un issue, un PR ni en el repositorio.
+- **Contraseñas y cadenas de conexión:** viven solo en archivos tuyos fuera del repositorio (`~/.config/cotizador/`) y en tu gestor de contraseñas. **Nunca** en un chat, un issue, un PR, el repositorio **ni en una línea de comandos**: el asistente del paso 1.3 la pide sin mostrarla.
 - **Nunca descifres un respaldo a mano.** El simulacro lo hace por ti en una carpeta privada que borra al terminar.
 - **Ningún hallazgo se repara automáticamente** (D-52-4b).
 
@@ -112,17 +120,28 @@ El respaldo y el simulacro usan herramientas de Linux. En Windows 11 se ejecutan
     - nadie más tiene instrucciones de correr `supabase db push`.
   - **Si no:** si la integración está activa, detente y avisa.
 
-- [ ] **1.3 Guardar la cadena de conexión** (solo cuando vayas a hacer el respaldo).
+- [ ] **1.3 Configurar la conexión segura** (solo cuando vayas a hacer el respaldo).
   - **Quién:** el propietario.
-  - **Qué hacer:**
-    - en el panel de Supabase, botón **Connect** → **Session pooler** (puerto **5432**, usuario `postgres.<project-ref>`). No uses el *transaction pooler* (6543);
-    - el proyecto **no** debe estar pausado.
-  - **Dónde guardarla:** abre el editor con `nano ~/.config/cotizador/db-url`, pega la cadena y reemplaza `[YOUR-PASSWORD]` por la contraseña de la base. Para guardar, `Ctrl+O` y `Enter`; para salir, `Ctrl+X`. Después:
+  - **Antes:** en el panel de Supabase, botón **Connect** → **Session pooler** (puerto **5432**). Copia la cadena tal como aparece, con `[YOUR-PASSWORD]`. No uses el *transaction pooler* (6543): el asistente lo rechaza. El proyecto **no** debe estar pausado.
+  - **Qué hacer:** en Ubuntu, ejecuta el asistente:
     ```bash
-    chmod 600 ~/.config/cotizador/db-url
+    cd ~/calculadora && python3 scripts/conexion/configurar-conexion.py
     ```
-  - **Bien si:** `ls -l ~/.config/cotizador/db-url` muestra `-rw-------`. El archivo **no** está en `~/calculadora`.
-  - **Si no recuerdas la contraseña:** se restablece en *Database → Settings*. Avisa antes, porque cambia la contraseña para todo lo que la use.
+    1. Pega la cadena (clic derecho) y pulsa `Enter`. **No se verá nada mientras pegas:** es normal.
+    2. Escribe o pega la **contraseña de la base** y pulsa `Enter`. Tampoco se verá.
+  - **Qué hace:** guarda en `~/.config/cotizador`, con permisos `600`:
+    - `pg_service.conf`: servidor, puerto, base y usuario, **sin** contraseña;
+    - `pgpass`: la contraseña, en un archivo que solo PostgreSQL lee.
+
+    Así la contraseña **nunca** queda en la línea de comandos, en el historial de la terminal ni en la lista de procesos.
+  - **Comprobar la conexión** (esto sí consulta Supabase: hazlo solo cuando vayas a respaldar):
+    ```bash
+    scripts/conexion/probar-conexion.sh
+    ```
+  - **Bien si:** dice `Conexión correcta: PostgreSQL 17.x`.
+  - **Si no:** el mensaje sale **saneado**, con `<usuario>` y `<servidor>` en vez de tus datos, así que puedes copiarlo en #52. Detente.
+  - **Si antes creaste `~/.config/cotizador/db-url`** (versión 2 de esta lista): bórralo con `rm ~/.config/cotizador/db-url`. Ya no se usa, y el respaldo se niega a usarlo porque ponía la contraseña en la línea de comandos.
+  - **Si no recuerdas la contraseña:** se restablece en *Database → Settings*. Avisa antes, porque cambia la contraseña para todo lo que la use. Después repite el asistente.
 
 ---
 
@@ -133,15 +152,16 @@ El respaldo y el simulacro usan herramientas de Linux. En Windows 11 se ejecutan
   cd ~/calculadora
   ```
   ```bash
-  SUPABASE_DB_URL_FILE=~/.config/cotizador/db-url BACKUP_DIR=~/respaldos-cotizador BACKUP_AGE_RECIPIENT="$(grep -oE 'age1[0-9a-z]+' ~/.config/cotizador/clave-respaldo.txt)" scripts/respaldo-supabase.sh pgdump
+  BACKUP_DIR=~/respaldos-cotizador BACKUP_AGE_RECIPIENT="$(grep -oE 'age1[0-9a-z]+' ~/.config/cotizador/clave-respaldo.txt)" scripts/respaldo-supabase.sh pgdump
   ```
-  - **Qué hace** (modo `pgdump`, con PostgreSQL 17; el modo `cli` necesita Docker y no se usa aquí):
-    - respalda las tablas de la app (`public` y `private`) y los datos de `auth.users` y `auth.identities`;
-    - ejecuta la verificación del **origen**;
+  - **Qué hace** (modo `pgdump`, con PostgreSQL 17 y la conexión segura del paso 1.3; el modo `cli` está desactivado porque exigiría la contraseña en la línea de comandos):
+    - respalda las tablas de la app (`public` y `private`), los datos de `auth.users` y `auth.identities`, y la lista de columnas y tipos de esas dos tablas;
+    - ejecuta la verificación del **origen** y guarda en el manifiesto el **instante de referencia**;
     - cifra todo en `~/respaldos-cotizador/respaldo-<fecha>.tar.age`;
     - **borra los archivos sin cifrar**.
   - **Bien si:** termina con `Respaldo listo: …respaldo-<fecha>.tar.age` y muestra los conteos (solo números).
-  - **Si no:** copia el mensaje de error, **sin** la cadena de conexión, en #52 y detente.
+  - **Si no:** copia el mensaje de error en #52 y detente. Sale saneado, pero revísalo antes de pegarlo.
+  - **Mientras corre, no uses la app de staging.** Si alguien guarda algo justo en ese momento, el simulacro mostrará diferencias: repite el respaldo.
 
 - [ ] **2.2 Guardar una segunda copia** del archivo **cifrado**.
   - **Cómo:** en el Explorador de Windows, escribe `\\wsl$\Ubuntu-24.04\home\<tu-usuario-de-ubuntu>\respaldos-cotizador` en la barra de direcciones y copia el `.tar.age` a un disco externo o a tu nube.
@@ -164,20 +184,26 @@ El respaldo y el simulacro usan herramientas de Linux. En Windows 11 se ejecutan
     1. descifra el respaldo y comprueba sus sumas SHA-256;
     2. comprueba que tu PostgreSQL local sea de la versión del respaldo (17) o superior;
     3. **detecta si el origen tenía aplicada la migración de #52** (por la fila `inv.security_definer` de la verificación del origen). Hoy no la tiene, así que aplica **solo** las 3 migraciones anteriores, por nombre exacto, y comprueba que la de #52 no quedó aplicada;
-    4. crea una base local temporal, con las tablas de Auth **con las mismas columnas que trae tu respaldo**, y carga los datos;
-    5. ejecuta `scripts/verificar-restauracion.sql` y lo compara con la verificación del origen.
+    4. crea una base local temporal, con `auth.users` y `auth.identities` **con las columnas y los tipos del origen**, y carga los datos. Si encuentra un formato o un dato que no sabe interpretar, se detiene con un **error explícito**: nunca lo omite en silencio;
+    5. ejecuta `scripts/verificar-restauracion.sql` con el **mismo instante de referencia** del origen y lo compara con la verificación del origen.
   - **Bien si** las últimas líneas dicen:
     ```text
-    RESULTADO: restauración idéntica (30 controles: conteos, huellas, numeración y privilegios)
+    RESULTADO: DATOS VERIFICADOS. Los 39 controles coinciden con el origen: contenido completo de 8 tablas (las 6 de la app, auth.users y auth.identities), conteos, numeración y privilegios.
+       Alcance: integridad de los datos. NO prueba que Supabase Auth funcione (inicio de sesión) ni una restauración en un proyecto Supabase nuevo.
     Limpieza: se borraron los archivos descifrados y la base temporal.
     ```
-  - **Si no:** si dice `HAY DIFERENCIAS`, **no borres el respaldo**. Pega en #52 las líneas que muestra: son solo conteos, huellas e invariantes, sin datos personales. Detente.
+  - **Si no:**
+    - si dice `HAY DIFERENCIAS`, **no borres el respaldo**. Pega en #52 las líneas que muestra: son solo conteos, huellas md5 e invariantes, sin datos personales. Detente;
+    - si dice `ERROR:`, pega solo esa línea en #52 y detente.
   - **Qué demuestra:**
-    - el respaldo está completo y sin daños;
-    - se descifra con tu clave;
-    - los datos de la app se restauran **idénticos** (cuentas, perfiles, vehículos, cotizaciones, enlaces y contadores);
+    - el respaldo está completo y sin daños, y se descifra con tu clave;
+    - **todas las columnas de todas las filas** de perfiles, vehículos, trabajos, cotizaciones, enlaces, contadores, `auth.users` y `auth.identities` coinciden con el origen. Lo comprueban las huellas md5 «contenido.*»;
     - las migraciones del repositorio reconstruyen los mismos privilegios.
-  - **Qué NO demuestra:** la estructura interna de Auth de Supabase, que no viaja en el respaldo (docs/17 §5.1); en el simulacro sus columnas se guardan como texto. Tampoco demuestra una restauración en un proyecto Supabase nuevo (§7).
+  - **Qué NO demuestra:**
+    - que **Supabase Auth funcione** después de restaurar: el inicio de sesión, sus funciones, *triggers* y demás tablas internas no viajan en el respaldo (docs/17 §5.1);
+    - una restauración en un **proyecto Supabase nuevo**.
+
+    Las dos cosas exigen un entorno Supabase compatible y una autorización aparte (§7).
 
 ---
 
@@ -185,13 +211,14 @@ El respaldo y el simulacro usan herramientas de Linux. En Windows 11 se ejecutan
 
 **Requiere una autorización tuya aparte** para consultar staging. Hoy no está dada. Las consultas **solo leen**: devuelven conteos, máximos y configuración, **nunca** ids de cuentas ni correos.
 
-- [ ] **3.1 Vía oficial: psql desde Ubuntu.** Es la única que demuestra el modo de solo lectura (V17).
+- [ ] **3.1 Vía oficial: psql desde Ubuntu, con la conexión segura.** Es la única que demuestra el modo de solo lectura (V17).
   ```bash
   cd ~/calculadora
   ```
   ```bash
-  psql "$(head -n 1 ~/.config/cotizador/db-url)" -X -f scripts/diseno/verificaciones-52/solo-lectura.sql > ~/verificacion-52.txt
+  scripts/verificar-solo-lectura.sh
   ```
+  Ejecuta `scripts/diseno/verificaciones-52/solo-lectura.sql` con `service=cotizador-staging`, sin la contraseña en la línea de comandos. Escribe `~/verificacion-52.txt` con permisos `600` y termina con `Listo: … V17: on (solo lectura comprobada)`.
   Para ver el resultado en el Bloc de notas:
   ```bash
   notepad.exe "$(wslpath -w ~/verificacion-52.txt)"
@@ -262,10 +289,10 @@ El respaldo y el simulacro usan herramientas de Linux. En Windows 11 se ejecutan
 
 ## Fase 6 · Qué decide el propietario en cada paso
 
-| Paso | Decisión del propietario | Estado al 22-11-2026 |
+| Paso | Decisión del propietario | Estado al 24-11-2026 |
 |---|---|---|
 | 0 | Preparar Windows 11 (WSL, PostgreSQL 17, age, clave) | Pendiente |
-| 1.1–1.3 | Confirmar que nada se aplicó y que no hay integraciones automáticas; guardar la cadena de conexión | Pendiente (la integración con GitHub del panel está **POR CONFIRMAR**) |
+| 1.1–1.3 | Confirmar que nada se aplicó y que no hay integraciones automáticas; configurar la conexión segura (asistente) | Pendiente (la integración con GitHub del panel está **POR CONFIRMAR**) |
 | 2.1–2.2 | Hacer el respaldo real y guardar la segunda copia | Pendiente (A-52: lo hace el propietario) |
 | 2.3 | Ejecutar el simulacro y publicar el resultado | Pendiente |
 | 3 | **Autorizar** las consultas de solo lectura en staging | **No autorizado todavía** |
@@ -275,47 +302,53 @@ El respaldo y el simulacro usan herramientas de Linux. En Windows 11 se ejecutan
 
 ---
 
-## 7. Pruebas del simulacro (Claude, 22-11-2026, solo datos ficticios y PostgreSQL local)
+## 7. Pruebas (Claude, 24-11-2026; solo datos y credenciales ficticios, PostgreSQL local)
 
-**Herramienta:** `scripts/simulacro/probar-simulacro.sh`.
-- Crea orígenes **falsos** con un esquema Auth **representativo** del de Supabase (`fixtures/auth-representativo.sql`): 35 columnas en `auth.users`, columnas generadas, `jsonb` con comillas, barras y eñes, y tablas internas como `auth.sessions`, `auth.refresh_tokens` y `storage.buckets`.
-- Los llena con datos ficticios (`fixtures/datos-ficticios.sql`).
-- Respalda con el **script real** (`scripts/respaldo-supabase.sh pgdump`, cifrado con age).
-- Ejecuta el simulacro y los controles.
+**Cómo se ejecutan:**
+```bash
+scripts/simulacro/probar-simulacro.sh
+```
+Con PostgreSQL, age y python3; no como root.
 
-| Prueba | Resultado |
-|---|---|
-| E1 · origen **antes** de #52, respaldo real cifrado | **Restauración idéntica** (30 controles). Aplicó **solo** las 3 migraciones anteriores; `auth.users` se creó con las 34 columnas del respaldo (la generada `confirmed_at` no viaja) |
-| E2 · origen **después** de #52 (importación alta con N1) | **Idéntica**; detectó el estado y aplicó las 4 migraciones |
-| E3 · volcado de **todos** los esquemas (estilo `cli`, con comillas y tablas internas) | **Idéntica**. Omitió `auth.sessions`, `auth.refresh_tokens`, `storage.buckets`, su `setval` y los cambios de rol, solo con nombre y cantidad de filas, sin su contenido |
-| C1 · **control:** el stub anterior, con `auth.users(id, email)` | **Falla** al cargar: `column "instance_id" of relation "users" does not exist`. Es el defecto que señaló la auditoría |
-| C2 · respaldo con una cotización menos y sumas coherentes | **HAY DIFERENCIAS** (código 2), con el conteo de `jobs` distinto |
-| C3 · `data.sql` alterado sin actualizar el manifiesto | Se detiene: «las sumas SHA-256 no coinciden» |
-| C4 · respaldo de una versión de PostgreSQL más nueva que la local | Se niega: «instala PostgreSQL 99» |
-| C5 · clave de age equivocada | «no se pudo descifrar» |
-| C6 · **mutación:** el simulacro aplica también la de #52 a un origen anterior | Se detiene: «la base local no quedó en el estado del origen» |
-| C7 · limpieza | Sin carpetas temporales residuales, también tras las corridas fallidas |
-| **Total** | **15/15**, tres corridas (la última, sobre la versión final de los archivos) |
+**Qué hace la prueba:**
+- Crea y borra **su propio servidor** PostgreSQL temporal, que:
+  - exige contraseña (`scram-sha-256`) por red;
+  - usa la zona horaria `America/Santiago`, para comprobar que las huellas no dependen de ella.
+- Crea orígenes **falsos** con un Auth **representativo** del de Supabase (`fixtures/auth-representativo.sql`):
+  - 35 columnas en `auth.users`, columnas generadas y `jsonb` con comillas, barras y eñes;
+  - tablas internas como `auth.sessions`.
 
-**Defectos reintroducidos en la herramienta: 6, todos detectados.**
+  Los llena con datos ficticios (`fixtures/datos-ficticios.sql`).
+- Crea una **contraseña ficticia aleatoria** con `:` `\` `@` `%` `/`, la configura con el asistente del paso 1.3 y respalda con el **script real**.
+- Mientras corre, un **detector**:
+  - registra los argumentos y el entorno de cada `psql` y `pg_dump`;
+  - vigila **todos** los procesos en `/proc`, cada 2 ms.
 
-| Defecto | Prueba que falla |
-|---|---|
-| Auth con solo `id` y `email` | E1 |
-| Filtro que conserva todas las tablas | E3 |
-| Sin comprobar las sumas SHA-256 | C3 |
-| Sin borrar la carpeta temporal | C7 |
-| Estado de #52 siempre «antes» | E2 |
-| Filtro que descarta `auth.users` | E1 |
+**Resultado: 60/60.**
 
-**Hallazgo durante las pruebas:** un volcado puede incluir `SET SESSION AUTHORIZATION` con un rol del origen que no existe en la base local, y eso hacía fallar la carga. El filtro ahora omite esos cambios de rol, que no son datos.
+| Grupo | Qué se comprobó | Resultado |
+|---|---|---|
+| A · credenciales (17) | El asistente crea `pg_service.conf` (sin contraseña) y `pgpass`, con permisos `600` y carpeta `700`. `probar-conexion.sh`, el respaldo y `verificar-solo-lectura.sh` (V1–V17, V17 = `on`) conectan solo con `service=…`. La contraseña **no** aparece en argumentos, en el entorno (sin `PGPASSWORD`), en `/proc`, en la salida, en el respaldo descifrado, en el resultado de solo lectura ni en el repositorio. Se rechazan el método anterior (`SUPABASE_DB_URL_FILE`), `PGPASSWORD`, el modo `cli`, un `pgpass` con permisos `644`, una contraseña dentro de `pg_service.conf`, una configuración dentro del repositorio y el puerto 6543. Con una contraseña equivocada falla con el mensaje saneado: `… failed for user "<usuario>"`, sin usuario, IP ni contraseña | Todo OK |
+| E · simulacro (8) | **E1:** antes de #52, solo 3 migraciones, Auth con los tipos del origen (35 columnas, 1 generada): **DATOS VERIFICADOS** (39 controles, contenido completo de 8 tablas). **E2:** después de #52, 4 migraciones: verificado. **E3:** volcado de **todos** los esquemas, con comillas y cambios de rol: verificado. Las tablas internas se omiten informando solo nombre y cantidad de filas | Todo OK |
+| B · contenido (7) | Con las sumas SHA-256 **coherentes**, se alteró **una** columna. Cada caso da `HAY DIFERENCIAS` en `contenido.<tabla>`:<br>• el cliente de un trabajo;<br>• el precio de un trabajo;<br>• el JSON interno de costos;<br>• el rendimiento de un vehículo;<br>• el correo en Auth;<br>• el hash de contraseña en Auth.<br>En los 6 casos **ninguna huella anterior** (ids, números y conteos) cambió: sin las nuevas, esas alteraciones pasaban | Todo OK |
+| B · formatos (11) | Error explícito, nunca «DATOS VERIFICADOS», ante:<br>• `INSERT`;<br>• una tabla de la app desconocida;<br>• una fila con columnas de menos;<br>• `COPY` binario;<br>• una sentencia desconocida;<br>• una codificación que no es UTF-8;<br>• un tipo propio en Auth;<br>• columnas de Auth que no coinciden;<br>• una tabla que falta;<br>• un respaldo antiguo sin `auth-columnas.txt`;<br>• un manifiesto sin instante de referencia | Todo OK |
+| C · tiempo (2, más E1) | Un enlace que **vence 3 segundos después** de crearse se respalda vigente (cuenta 2 en la referencia). El simulacro corre **después** de que venció y da **DATOS VERIFICADOS**. `verificar-restauracion.sql` sin `-v referencia` da un error explícito | Todo OK |
+| Controles de A-77 (5) | El *stub* `auth.users(id, email)` no carga un respaldo real; falta una cotización → `HAY DIFERENCIAS`; sumas alteradas, versión 99 y clave equivocada → se detiene | Todo OK |
+| Mutaciones (9) | Se reintroduce cada defecto y la prueba correspondiente lo detecta:<br>• **M1:** #52 aplicada a un origen anterior → se detiene;<br>• **M2:** la contraseña en la cadena de conexión → la detectan **por separado** el registro de llamadas y la vigilancia de `/proc`;<br>• **M3:** errores sin sanear → aparece el usuario;<br>• **M4:** solo las huellas anteriores → alterar un cliente **no** se detecta;<br>• **M5:** contar con `now()` → **diferencia falsa** por el enlace vencido;<br>• **M6:** omitir sentencias desconocidas → «verificado» en silencio;<br>• **M7:** sin fijar la zona horaria → difieren las huellas;<br>• **M8:** Auth sin columnas generadas → difiere `contenido.auth` | Todas detectadas |
+| Limpieza (1) | **C7:** sin carpetas temporales residuales, también tras las corridas fallidas | OK |
+
+**Además:**
+- `scripts/diseno/ensayo-52/ensayar.sh` (#52 en local) sigue en **65 OK**. Su verificación antes y después de la migración usa la versión nueva de `verificar-restauracion.sql`.
+- `npm test`: **636/636**.
 
 **Limitaciones (lo que estas pruebas NO cubren):**
-- **Windows/WSL:** Claude no tiene un Windows. Los pasos de la fase 0 son los estándar de Microsoft y de PostgreSQL, pero **no se ejecutaron**: **POR CONFIRMAR** en tu equipo.
-- **PostgreSQL 17:** el contenedor de Claude solo tiene la 16, así que las pruebas usaron 16 en origen y destino. Con un respaldo real (17), el script exige 17 en local (C4).
-- **Respaldo real:** el origen fue ficticio, con un Auth **representativo**, no el de Supabase. Por eso la prueba definitiva es tu simulacro del paso 2.3 con el respaldo real.
-- **Modo `cli`** (CLI de Supabase y Docker): no se ensayó; el procedimiento usa `pgdump`.
-- **Restauración en un proyecto Supabase nuevo** (ruta B completa de docs/17 §5.5): no se ensayó, porque exige otro proyecto (H9).
+- **Windows/WSL:** Claude no tiene Windows. Los pasos de las fases 0 y 1.3 **no se ejecutaron**: **POR CONFIRMAR** en tu equipo, incluido pegar en el asistente sin que se vea.
+- **PostgreSQL 17 y Supabase real:** el contenedor solo tiene la 16, y el origen fue ficticio. Las columnas y los tipos de Auth de Supabase son los de la documentación pública, **sin confirmar**. Si tu respaldo trae un tipo que el simulacro no reconoce, se detendrá con un error explícito. La prueba definitiva es tu simulacro del paso 2.3.
+- **Supabase Auth funcional e inicio de sesión:** **no** se prueban. Lo mismo vale para una restauración en un proyecto Supabase nuevo (H9). Requieren un entorno Supabase compatible y una autorización aparte.
+- **Detector de `/proc`:** muestrea cada 2 ms. El registro de cada `psql`/`pg_dump` sí es completo. Ambos detectaron por separado la contraseña reintroducida (M2).
+- **Cambios durante el respaldo:** si alguien usa la app mientras corre, la verificación del origen puede no coincidir con el volcado. Se ve como `HAY DIFERENCIAS`; se repite el respaldo.
+
+**Historial:** la versión 2 (A-77, 22-11) tenía 15/15 pruebas. Su mensaje «restauración idéntica» comparaba solo identificadores y conteos, y el respaldo pasaba la contraseña en los argumentos. Ambos defectos están corregidos aquí.
 
 ---
 
@@ -323,5 +356,6 @@ El respaldo y el simulacro usan herramientas de Linux. En Windows 11 se ejecutan
 
 - **POR CONFIRMAR:** si el proyecto de staging tiene activa la integración con GitHub o Branching de Supabase (solo se ve en el panel).
 - **POR CONFIRMAR:** el comportamiento del editor SQL real con `set transaction read only`. Por eso la verificación formal usa psql.
-- **POR CONFIRMAR:** los pasos de la fase 0 en tu Windows 11.
+- **POR CONFIRMAR:** los pasos de las fases 0 y 1.3 en tu Windows 11.
+- **POR CONFIRMAR:** que las columnas y los tipos de `auth.users` y `auth.identities` de tu proyecto sean reconocidos por el simulacro (si no, se detiene con un error explícito).
 - **DATO FALTANTE:** el segundo lugar donde guardarás los respaldos.

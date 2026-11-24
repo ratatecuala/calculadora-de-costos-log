@@ -368,4 +368,24 @@ Comunicada por el propietario por chat a Claude y **registrada literalmente** en
 |---|---|---|
 | A-77 | Corregir **exclusivamente la documentación y las herramientas locales** para que el procedimiento de respaldo y restauración de docs/25 sea realmente reproducible:<br>(1) corregir el nombre de la migración;<br>(2) resolver la incompatibilidad entre el *stub* mínimo de Auth y los datos de un respaldo real, sin presentar como validado un simulacro que no pueda restaurarlos;<br>(3) preparar y probar una restauración local compatible con el estado anterior a #52, sin aplicar por accidente la migración nueva;<br>(4) corregir la contradicción del modo de solo lectura en el editor SQL;<br>(5) adaptar las instrucciones a Windows 11 para un propietario sin conocimientos técnicos, con requisitos previos, comandos exactos y protección de los archivos descifrados;<br>(6) probar con datos ficticios y documentar resultados reales, limitaciones y pendientes | Se permite trabajar en paralelo en worktrees separados si no comparten archivos. **No** se accede a Supabase, **no** se piden credenciales, **no** se ejecutan respaldos reales ni migraciones remotas. **No** se cambian el motor, I-2/I-3, las flags, los despliegues ni el PR #34. Se entregan commits y se pide una **última reauditoría del procedimiento** antes de solicitar autorizaciones para trabajar en staging |
 
-**Estado (22-11):** A-77 **implementada solo en documentación y herramientas locales**: [25 · Lista de comprobación v2](25-lista-staging-52.md) y `scripts/simulacro/`. Probada con datos ficticios en PostgreSQL local (15/15; 6 mutaciones detectadas). Reauditoría solicitada. Nada ejecutado contra Supabase.
+**Estado (24-11):** A-77 **implementada solo en documentación y herramientas locales**; su [reauditoría](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7118358999) dio 0 P0 · 2 P1 · 1 P2, corregidos por A-78. Detalle original:: [25 · Lista de comprobación v2](25-lista-staging-52.md) y `scripts/simulacro/`. Probada con datos ficticios en PostgreSQL local (15/15; 6 mutaciones detectadas). Reauditoría solicitada. Nada ejecutado contra Supabase.
+
+## Decisión del 24-11-2026: credenciales, integridad y tiempo en el respaldo y el simulacro (A-78)
+
+Comunicada por el propietario por chat a Claude y **registrada literalmente** en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7118420787) antes de trabajar. **APROBADA.** Base: [reauditoría de A-77](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7118358999) (0 P0 · 2 P1 · 1 P2).
+
+| ID | Decisión | Alcance de la aprobación |
+|---|---|---|
+| A-78 | Corregir los 2 P1 y el P2, **exclusivamente** en las herramientas locales de respaldo, verificación, simulacro y documentación:<br>**Frente A, credenciales:** ninguna contraseña en argumentos de procesos, comandos, registros ni resultados; conexión PostgreSQL con archivos privados, sin contraseña en la línea de comandos; verificar `psql`, `pg_dump`, el respaldo y las comprobaciones de solo lectura; pruebas automáticas con credenciales ficticias.<br>**Frente B, integridad:** comprobar el contenido completo de las tablas de negocio críticas; que alterar un cliente, un costo, el JSON interno o un vehículo provoque una falla; distinguir el simulacro de datos de una restauración funcional completa de Supabase Auth; corregir los mensajes que exageran; errores explícitos ante formatos o datos relevantes no reconocidos.<br>**Frente C, tiempo:** corregir el falso error por enlaces que vencen entre el respaldo y la restauración, y probarlo con datos ficticios | Se permiten agentes y worktrees paralelos si no comparten archivos; las modificaciones comunes se integran en secuencia y las pruebas se ejecutan en conjunto. Windows 11 sigue siendo la plataforma del propietario. Se actualizan docs/17, docs/25, el README y #52 solo según lo comprobado. **No** se modifican la migración de #52, Supabase, el motor económico ni las funciones del cotizador. **Prohibido:** acceder a staging, usar credenciales reales, ejecutar respaldos reales, aplicar migraciones, desplegar, habilitar flags o fusionar el PR #34. Se entregan commits, pruebas, controles negativos y una solicitud de reauditoría independiente |
+
+**Estado (24-11):** A-78 **implementada solo en herramientas locales y documentación**:
+- `scripts/conexion/` (nuevo);
+- `scripts/verificar-solo-lectura.sh` (nuevo);
+- `scripts/respaldo-supabase.sh`;
+- `scripts/verificar-restauracion.sql`;
+- `scripts/simulacro/`;
+- `scripts/diseno/ensayo-52/probar-restauracion.sh`, solo para pasar el instante de referencia.
+
+**Pruebas:** con datos y credenciales ficticios, **60/60**, con 9 mutaciones detectadas ([25 §7](25-lista-staging-52.md)). El ensayo local de #52 sigue en 65 OK y `npm test` en 636/636.
+
+Reauditoría solicitada. Nada se ejecutó contra Supabase.
