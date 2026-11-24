@@ -45,12 +45,13 @@ describe('registro de pruebas de campo', () => {
   it('solo con distancia y tiempo deja el combustible desconocido y el costo como cota', () => {
     const [r] = resultados(evaluarRegistro(viaje({ km: '5', min_marcha: '10' })));
     expect(r).toMatchObject({ estado: 'estimacion_parcial', tipo_costo: 'cotaInferior', combustible_estimado_clp: '', precio_sugerido_clp: '' });
-    expect(r!.faltan.split('|')).toContain('combustible');
+    expect(r?.faltan?.split('|')).toContain('combustible');
   });
 
   it('rechaza números ilegibles, fuentes ausentes y supuestos comerciales en circulación', () => {
-    for (const cambios of [{ km: '1.000,5' }, { clp_l: '1200' }, { trabajo_clp_h: '5000' }]) {
-      expect(() => evaluarRegistro(viaje(cambios as Record<string, string>))).toThrow(/Fila 2/);
+    const casos: Record<string, string>[] = [{ km: '1.000,5' }, { clp_l: '1200' }, { trabajo_clp_h: '5000' }];
+    for (const cambios of casos) {
+      expect(() => evaluarRegistro(viaje(cambios))).toThrow(/Fila 2/);
     }
   });
 
