@@ -431,3 +431,20 @@ Comunicada por el propietario por chat a Claude y **registrada literalmente** en
 | ID | Decisión | Alcance de la aprobación |
 |---|---|---|
 | A-81 | **Frente A, H1:** el precio final de las cotizaciones **nuevas** se expresa en pesos chilenos enteros. Un precio con decimales se rechaza con un error claro y nunca se redondea en silencio. Los costos internos y los cálculos conservan sus decimales. El PDF, WhatsApp, el historial y los documentos públicos muestran el mismo precio. Los registros históricos con decimales se conservan.<br>**Frente B, I-2:** **solo el paso 1** de [22 §17.5](22-diseno-integracion-cotizador.md): M3′ y M4′ con las correcciones de seguridad y permisos, y la integración cliente-servidor detrás de `VITE_FF_CARGA_NUBE` **apagada**, con `VITE_FF_INTEGRACION_CARGA` también apagada. Pruebas de guardado y lectura v1/v2, inventario, recursos, duplicados y aislamiento. Ensayo solo en PostgreSQL local desechable, sin modificar la migración #52.<br>**Frente C, C-1:** verificar el catálogo con fuentes oficiales primarias. Categorías comerciales para los camiones; los umbrales de `camionMediano` quedan pendientes. Ninguna versión entra a la app sin especificaciones verificadas y sin revisar las condiciones de reutilización | Pruebas unitarias, E2E y mutaciones. Agentes y *worktrees* en paralelo cuando no compartan archivos. **Prohibido:** acceder a Supabase, aplicar migraciones remotas, desplegar, activar flags, modificar fórmulas o IVA, implementar I-3 y fusionar el PR #34 |
+
+## Decisión del 25-11-2026: precio entero en la base y verificación de C-1 (A-83)
+
+Registrada literalmente en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7142526865). **APROBADA.**
+
+| ID | Decisión | Alcance |
+|---|---|---|
+| A-83 | **Frente A:** proteger la base contra precios finales **nuevos** con decimales en `jobs` y `client_quotes`. Se conservan los históricos y se permite cambiar su estado y pago. Antes de elegir, comparar CHECK, trigger u otras opciones.<br>**Frente B:** volver a verificar C-1 con fuentes oficiales, con evidencia y condiciones de reutilización por campo | **Solo local:** sin migraciones en Supabase, sin datos en la app sin verificación suficiente, con flags apagadas, sin despliegues ni merge |
+
+**Estado del Frente A (25-11), solo local:** `supabase/migrations/20261125130000_precio_entero.sql`.
+- **Qué protege:** triggers en INSERT y en `UPDATE OF net_price` (y de `total`/`tax_amount` en `client_quotes`). El error es `23514` y nada se guarda.
+- **Excepción:** una copia de una cotización **local** histórica (`local_id`) conserva sus decimales.
+- **Por qué no un CHECK:**
+  - un CHECK, incluso `NOT VALID`, se vuelve a evaluar en cualquier UPDATE, así que cambiar el estado de un histórico fallaría (control demostrado);
+  - un CHECK no puede consultar `jobs` desde `client_quotes`.
+- **Ensayo** (`scripts/diseno/precio-entero/ensayar-precio.sh`): **15 OK**. Cubre los RPC v1 y v2 (sin escribir nada ni mover el contador), un documento descuadrado, las copias locales y su repetición, cambiar estado y pago de un histórico, la carga de un respaldo (modo `replica`), los privilegios, las invariantes, la idempotencia, la reversión y el control con CHECK. **4 mutaciones detectadas.**
+- **Regresión:** `ensayar-i2` 31 OK, `probar-i2` 49/49 y npm 686/686.
