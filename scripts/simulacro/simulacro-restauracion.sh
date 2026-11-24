@@ -56,7 +56,9 @@ mayor_local="$("$pgbin/postgres" --version | grep -oE '[0-9]+' | head -n 1)"
 # Las 3 migraciones anteriores a #52 y la de #52, por nombre EXACTO.
 anteriores_52=(20261118000315_esquema_inicial.sql 20261118000924_guardar_cotizacion_atomica.sql 20261118022422_numeracion_atomica.sql)
 migracion_52=20261122120000_guardado_unico_y_contador.sql
-for m in "${anteriores_52[@]}" "$migracion_52"; do [[ -f "$repo/supabase/migrations/$m" ]] || fallar "falta la migración $m en el repositorio"; done
+# I-2 (A-81): solo si el origen ya las tenía (fila conteo.public.job_cargo_items en su verificación).
+migraciones_i2=(20261125120000_lineas_de_carga.sql 20261125120100_guardado_v2.sql)
+for m in "${anteriores_52[@]}" "$migracion_52" "${migraciones_i2[@]}"; do [[ -f "$repo/supabase/migrations/$m" ]] || fallar "falta la migración $m en el repositorio"; done
 
 trabajo="$(mktemp -d "${TMPDIR:-/tmp}/simulacro-XXXXXX")"
 cluster="$trabajo/pg"
@@ -106,13 +108,17 @@ echo "3) Estado de #52 en el origen"
 fila="$(grep -E '^inv\.security_definer \| ' "$carpeta/verificacion-origen.txt" || true)"
 [[ -n "$fila" ]] || fallar "verificacion-origen.txt no trae la fila inv.security_definer: no se puede saber el estado de #52"
 valor="$(cut -d'|' -f2 <<<"$fila")"
-if grep -q 'public\.create_job_with_quote' <<<"$valor"; then
+if grep -q '^conteo\.public\.job_cargo_items | ' "$carpeta/verificacion-origen.txt"; then
+  estado="i2"; migraciones=("${anteriores_52[@]}" "$migracion_52" "${migraciones_i2[@]}")
+elif grep -q 'public\.create_job_with_quote' <<<"$valor"; then
   estado="posterior"; migraciones=("${anteriores_52[@]}" "$migracion_52")
 else
   estado="anterior"; migraciones=("${anteriores_52[@]}")
 fi
 if [[ "$estado" == anterior ]]; then
   echo "   el origen está ANTES de #52: se aplican solo las 3 migraciones anteriores (nunca la de #52)"
+elif [[ "$estado" == i2 ]]; then
+  echo "   el origen tiene #52 e I-2 (líneas de carga): se aplican las 6 migraciones"
 else
   echo "   el origen está DESPUÉS de #52: se aplican las 3 anteriores y la de #52"
 fi
@@ -131,8 +137,10 @@ for m in "${migraciones[@]}"; do
   echo "   migración aplicada: $m"
 done
 definer="$(psql_l -A -t -c "select coalesce((select p.prosecdef from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'create_job_with_quote'), false)")"
-if [[ "$estado" == anterior && "$definer" != f ]] || [[ "$estado" == posterior && "$definer" != t ]]; then
-  fallar "la base local no quedó en el estado del origen ($estado a #52): no se continúa"
+lineas="$(psql_l -A -t -c "select to_regclass('public.job_cargo_items') is not null")"
+if [[ "$estado" == anterior && ( "$definer" != f || "$lineas" != f ) ]] || [[ "$estado" == posterior && ( "$definer" != t || "$lineas" != f ) ]] \
+   || [[ "$estado" == i2 && ( "$definer" != t || "$lineas" != t ) ]]; then
+  fallar "la base local no quedó en el estado del origen ($estado): no se continúa"
 fi
 
 echo "5) Cargar los datos"
@@ -145,7 +153,7 @@ psql_l -A -t -F ' | ' -v referencia="$referencia" -f "$repo/scripts/verificar-re
 controles="$(grep -c ' | ' "$trabajo/restaurado.txt" || true)"
 contenido="$(grep -c '^contenido\.' "$trabajo/restaurado.txt" || true)"
 if diff -u "$carpeta/verificacion-origen.txt" "$trabajo/restaurado.txt" > "$trabajo/diferencias.txt"; then
-  echo "RESULTADO: DATOS VERIFICADOS. Los $controles controles coinciden con el origen: contenido completo de $contenido tablas (las 6 de la app, auth.users y auth.identities), conteos, numeración y privilegios."
+  echo "RESULTADO: DATOS VERIFICADOS. Los $controles controles coinciden con el origen: contenido completo de $contenido tablas (las de la app, auth.users y auth.identities), conteos, numeración y privilegios."
   echo "   Alcance: integridad de los datos. NO prueba que Supabase Auth funcione (inicio de sesión) ni una restauración en un proyecto Supabase nuevo."
 else
   echo "RESULTADO: HAY DIFERENCIAS. Líneas distintas (solo conteos, huellas o invariantes; sin datos personales):"

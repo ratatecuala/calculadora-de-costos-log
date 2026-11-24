@@ -577,6 +577,8 @@ Por eso no bastaba con exigir `≥ 0`.
 
 ## 17. Preparación de I-2: estado real, prueba de integración y propuesta (A-80, 24-11-2026)
 
+> **Actualización (A-81, 24-11): el paso 1 de §17.5 está IMPLEMENTADO EN LOCAL** (§17.6). Las flags siguen apagadas y nada se aplicó en Supabase. El texto que sigue es la propuesta original de A-80.
+
 **PROPUESTA, no implementada.** No cambia las migraciones aprobadas, los borradores M3/M4 ni `src/`. Todo se ensayó en un PostgreSQL **local y desechable**, sin Supabase.
 
 ### 17.1 Estado real comprobado
@@ -644,3 +646,45 @@ Arma 7 cotizaciones con el **código real del cliente** (`QuoteSession` → `bui
 | 5 | Build de staging con las dos flags encendidas; e2e con cuentas A y B (guardar, ver, copiar desde el navegador, enlaces) | **Supabase + despliegue** | Encender flags en staging y desplegar |
 
 **Qué NO incluye:** I-3 (recursos en el costo), el catálogo (#46), cambios de fórmulas, IVA o márgenes, ni encender flags fuera de las pruebas.
+
+### 17.6 Paso 1 implementado en local (A-81, 24-11-2026)
+
+**Servidor** (archivos de migración que **no se aplicaron** en Supabase; #52 sin cambios):
+
+| Archivo | Contenido |
+|---|---|
+| `supabase/migrations/20261125120000_lineas_de_carga.sql` (M3′) | `job_cargo_items` y `private.insert_cargo_items`, ambos `SECURITY DEFINER` con `search_path` vacío. **Sin** `EXECUTE` para `authenticated` (D-52-3). La tabla tiene RLS, `authenticated` solo `SELECT` con la política del dueño, y `anon` y `service_role` sin privilegios. Se conservan las capas internas: marca de transacción, trabajo creado en esta transacción, sin líneas previas y máximo 200. Idempotente |
+| `supabase/migrations/20261125120100_guardado_v2.sql` (M4′) | `create_job_with_quote_v2` **SECURITY DEFINER**, con `search_path` vacío y `EXECUTE` solo para `authenticated`. Reutiliza la v1 de #52. Idempotente |
+| `scripts/diseno/i2/reversion-i2.sql` | Reversión, fuera de las migraciones. **Borra las líneas guardadas**, así que exige respaldo previo |
+
+**Cliente** (todo detrás de `VITE_FF_CARGA_NUBE`, apagada, y de `VITE_FF_INTEGRACION_CARGA`, también apagada):
+- `saveQuote.snapshotVersionFor`: con cuenta, v2 solo con las dos flags.
+- `cloud/quotes.ts`:
+  - `create`: una v2 pasa por `toCloudPayload` → `create_job_with_quote_v2` con `p_cargo_items`; si el resumen no es válido, no se envía nada;
+  - `get`: reconstruye la lista desde `job_cargo_items` y da error si no cuadra con el resumen;
+  - getter `ownerId`.
+- `cloud/mappers.ts`: `cargoItemFromRow`, que convierte `numeric` y valida con Zod.
+- `cloud/migration.ts`: con `cargaNube`, las `v2-con-lineas` son elegibles y se copian con la v2, sin duplicar.
+- `App.tsx` y `draftStore.ts`:
+  - editores y borrador también con cuenta;
+  - cada dueño tiene su propia entrada;
+  - **el borrador de la cuenta se borra al cerrar sesión o cambiar de cuenta**, para no dejarlo en un equipo compartido;
+  - se borra el borrador del dueño que **emitió** (C1).
+
+**Pruebas ejecutadas por Claude (24-11, PostgreSQL 16.15 local):**
+
+| Prueba | Resultado |
+|---|---|
+| `scripts/diseno/i2/ensayar-i2.sh`: migraciones reales con los privilegios por defecto de Supabase simulados | **31 OK**:<br>• P1–P5 de privilegios;<br>• idempotencia;<br>• T1–T15 (inalterables, aislamiento A/B, `anon`, importación repetida, 200/201 líneas, atomicidad);<br>• C3 27/27;<br>• 20 guardados simultáneos;<br>• `verificar-restauracion.sql` en el estado «con I-2»;<br>• reversión y reaplicación |
+| `scripts/diseno/i2/probar-i2.sh`: ida y vuelta con el código real del cliente | **49/49**. Control: M4′ como INVOKER → `permission denied for schema private` |
+| `tests/i2-nube.test.ts` | **14/14**. 9 mutaciones del cliente, todas detectadas; entre ellas, borrar el borrador del dueño actual en vez del que emitió, que también detecta `integracion.test.ts` (C1) |
+| `scripts/simulacro/probar-simulacro.sh` | **100/100**. Incluye E4: respaldo de un origen con I-2 → las 6 migraciones y el contenido de `job_cargo_items`; alterar una línea → `HAY DIFERENCIAS` |
+| Ensayo de #52 y borradores, fijados a las migraciones hasta #52 | 65 OK y 24 OK |
+| `e2e-integracion` con y sin flag; `e2e-flujo-completo` | 278/278, 24/24 y 84/84: sin cambios con `cargaNube` apagada |
+
+**Herramientas ajustadas a la existencia de migraciones posteriores a #52:**
+- `ensayar.sh`, `probar-restauracion.sh` y `probar-borradores.sh` aplican solo hasta #52;
+- `verificar-restauracion.sql` detecta I-2;
+- el simulacro reconoce un origen con I-2.
+
+**No probado (requiere Supabase, pasos 3–5):** PostgREST real, Auth real, e2e con cuentas A y B, y el borrador de la cuenta en el navegador con las dos flags encendidas.

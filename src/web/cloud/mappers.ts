@@ -2,6 +2,7 @@
  * Conversión entre los registros de la app y las filas de Supabase (funciones puras).
  * La fila de `client_quotes` se arma SOLO desde `toClientQuote()` (lista blanca).
  */
+import { cargoItemSchema, type CargoItem } from '../../shared/cargo';
 import { toClientQuote, type ClientQuote, type JobRecord } from '../../shared/clientQuote';
 import type { VehicleInput, VehicleProfile } from '../../shared/vehicle';
 
@@ -156,6 +157,43 @@ export function clientQuoteFromRow(r: ClientQuoteRow): ClientQuote {
     taxAmount: r.tax_amount === null ? null : Number(r.tax_amount),
     total: Number(r.total),
   };
+}
+
+/** Fila de `job_cargo_items` (I-2, migración 20261125120000). `numeric` puede llegar como texto. */
+export interface CargoItemRow {
+  position: number;
+  kind: string;
+  description: string;
+  qty: number;
+  unit_weight_kg: number | string | null;
+  dim_l_cm: number | null;
+  dim_w_cm: number | null;
+  dim_h_cm: number | null;
+  volume_m3: number | string | null;
+  volume_source: CargoItem['volumeSource'];
+  fragile: boolean;
+  handling: CargoItem['handling'];
+}
+
+const numOrNull = (v: number | string | null) => (v === null ? null : Number(v));
+
+/**
+ * Fila → línea del inventario (I-2). Se valida con el mismo esquema que el navegador: una fila que no
+ * lo cumpla es un error (nunca se «arregla» en silencio). Probado contra la base local en
+ * scripts/diseno/i2/verificar-lectura.ts.
+ */
+export function cargoItemFromRow(r: CargoItemRow): CargoItem {
+  return cargoItemSchema.parse({
+    kind: r.kind,
+    description: r.description,
+    qty: Number(r.qty),
+    unitWeightKg: numOrNull(r.unit_weight_kg),
+    dimsCm: r.dim_l_cm === null ? null : { l: Number(r.dim_l_cm), w: Number(r.dim_w_cm), h: Number(r.dim_h_cm) },
+    volumeM3: numOrNull(r.volume_m3),
+    volumeSource: r.volume_source,
+    fragile: r.fragile,
+    handling: r.handling,
+  });
 }
 
 /** Par (trabajo, cotización) listo para `create_job_with_quote`. */

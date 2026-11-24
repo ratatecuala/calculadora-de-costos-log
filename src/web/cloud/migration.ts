@@ -12,6 +12,8 @@
  * - Copia MIXTA v1/v2 (I-1, docs/22 §2.5, P1-2 y C2): ANTES de llamar a la base se clasifica cada
  *   cotización. Solo las elegibles (v1 y v2 sin líneas) se copian; las v2 con detalle de carga y
  *   las ilegibles quedan DIFERIDAS en el navegador, con su motivo, y nunca se marcan como copiadas.
+ *   I-2 (A-81): con `cargaNube`, las v2 con detalle de carga también son elegibles y se copian con
+ *   `create_job_with_quote_v2` (resumen sin líneas + líneas aparte, en una transacción).
  *   Para una v2 se envía únicamente el `internal` preparado y validado por `toCloudPayload` (sin
  *   `cargo.items`, medido en bytes), nunca el registro original.
  */
@@ -50,6 +52,11 @@ export interface Clasificada {
 
 export const MOTIVO_DETALLE_CARGA = 'Tiene detalle de carga: la cuenta aún no puede guardarlo (llegará con I-2)';
 
+/** Opciones de la copia. `cargaNube` (I-2, A-81): la cuenta ya guarda las líneas con la v2. */
+export interface OpcionesCopia {
+  cargaNube?: boolean;
+}
+
 /**
  * Clasificación previa de una cotización local (docs/22 §2.5). No modifica el registro.
  * - TODAS se validan con `toCloudPayload` (auditoría I-1, P1-2), también las v1: una ilegible
@@ -59,18 +66,23 @@ export const MOTIVO_DETALLE_CARGA = 'Tiene detalle de carga: la cuenta aún no p
  * - v2 sin líneas: elegible con el `internal` validado y medido en bytes (C2).
  * - v2 con líneas: diferida hasta I-2.
  */
-export function clasificarParaCopia(job: JobRecord): Clasificada {
+export function clasificarParaCopia(job: JobRecord, opciones: OpcionesCopia = {}): Clasificada {
   const internal = job.internal as unknown;
   const p = toCloudPayload(internal);
   if (!p.ok) return { job, clase: 'ilegible', motivo: p.reason };
   if (typeof internal !== 'object' || internal === null || !('schemaVersion' in internal)) {
     return { job, clase: 'v1', envio: job };
   }
-  if (p.cargoItems.length > 0) return { job, clase: 'v2-con-lineas', motivo: MOTIVO_DETALLE_CARGA };
+  if (p.cargoItems.length > 0) {
+    // I-2: con `cargaNube` se copia con la v2, con TODAS sus líneas (el registro local completo).
+    if (opciones.cargaNube) return { job, clase: 'v2-con-lineas', envio: job };
+    return { job, clase: 'v2-con-lineas', motivo: MOTIVO_DETALLE_CARGA };
+  }
   return { job, clase: 'v2-resumen', envio: { ...job, internal: p.internal as JobRecord['internal'] } };
 }
 
-const esElegible = (c: Clasificada) => c.clase === 'v1' || c.clase === 'v2-resumen';
+/** Elegible = tiene `envio` (v1, v2 sin líneas y, con `cargaNube`, v2 con líneas). */
+const esElegible = (c: Clasificada) => c.envio !== undefined;
 const union = (a: readonly string[], b: readonly string[]) => [...new Set([...a, ...b])];
 
 function readLog(store: KeyValueStore): MigrationLog {
@@ -95,9 +107,10 @@ export async function pendingLocalData(
   localVehicles: VehicleRepository,
   store: KeyValueStore,
   userId: string,
+  opciones: OpcionesCopia = {},
 ): Promise<PendingLocalData> {
   const done = readLog(store)[userId];
-  const clasif = (await localQuotes.list()).filter((j) => UUID.test(j.id) && !done?.jobs.includes(j.id)).map(clasificarParaCopia);
+  const clasif = (await localQuotes.list()).filter((j) => UUID.test(j.id) && !done?.jobs.includes(j.id)).map((j) => clasificarParaCopia(j, opciones));
   const vehicles = (await localVehicles.list()).filter((v) => UUID.test(v.id) && !done?.vehicles.includes(v.id));
   return { jobs: clasif.filter(esElegible).length, vehicles: vehicles.length, deferred: clasif.filter((c) => !esElegible(c)).map(diferida) };
 }
@@ -141,8 +154,11 @@ export async function migrateLocalToCloud(args: {
   store: KeyValueStore;
   /** ¿La app sigue con la sesión de `userId`? Se consulta antes de cada paso. */
   isCurrentUser: () => boolean;
+  /** I-2 (A-81): copiar también las v2 con detalle de carga, con `create_job_with_quote_v2`. */
+  cargaNube?: boolean;
 }): Promise<MigrationResult> {
   const { supabase, userId, localQuotes, localVehicles, store, isCurrentUser } = args;
+  const opciones: OpcionesCopia = { cargaNube: args.cargaNube ?? false };
   const ensureSameUser = () => {
     if (!isCurrentUser()) {
       throw new CloudError('La sesión cambió durante la copia y se detuvo. Lo copiado quedó en la cuenta que la inició; no se borró nada.');
@@ -150,7 +166,7 @@ export async function migrateLocalToCloud(args: {
   };
   ensureSameUser();
   // Clasificación ANTES de cualquier llamada a la base (docs/22 §2.5, paso 1).
-  const clasif = (await localQuotes.list()).filter((j) => UUID.test(j.id)).map(clasificarParaCopia);
+  const clasif = (await localQuotes.list()).filter((j) => UUID.test(j.id)).map((j) => clasificarParaCopia(j, opciones));
   const elegibles = clasif.filter(esElegible);
   const deferred = clasif.filter((c) => !esElegible(c)).map(diferida);
   const vehicles = (await localVehicles.list()).filter((v) => UUID.test(v.id));
@@ -203,7 +219,19 @@ export async function migrateLocalToCloud(args: {
     ensureSameUser();
     // C2: para una v2 se envía el registro con el `internal` preparado, nunca el original.
     const envio = c.envio!;
-    const { data, error } = await supabase.rpc('create_job_with_quote', jobWithQuotePayload(envio, envio.id));
+    let data: unknown;
+    let error: unknown;
+    if (c.clase === 'v2-con-lineas') {
+      // I-2: `internal` sin líneas + las líneas aparte, en una transacción. Ya validado al clasificar.
+      const p = toCloudPayload(envio.internal);
+      if (!p.ok) throw new CloudError(`No se pudo preparar la cotización N° ${envio.issuedNumber ?? envio.number}. No se borró nada.`);
+      ({ data, error } = await supabase.rpc('create_job_with_quote_v2', {
+        ...jobWithQuotePayload({ ...envio, internal: p.internal as JobRecord['internal'] }, envio.id),
+        p_cargo_items: p.cargoItems,
+      }));
+    } else {
+      ({ data, error } = await supabase.rpc('create_job_with_quote', jobWithQuotePayload(envio, envio.id)));
+    }
     if (error) throw new CloudError(`Se copiaron ${jobsCopied} cotizaciones y luego falló la conexión. Puedes reintentar: no se duplicarán. No se borró nada.`, error);
     if (data) jobsCopied += 1;
     else jobsAlreadyThere += 1;

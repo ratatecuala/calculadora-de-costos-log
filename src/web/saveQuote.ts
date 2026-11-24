@@ -6,7 +6,7 @@
  *
  * Versión del snapshot (I-1, docs/22 §2.1, P1-1): se decide con ESE MISMO repositorio fijado.
  * v2 solo con la flag de integración encendida Y el repositorio del navegador; en la cuenta, v1
- * idéntico a hoy, aunque la flag esté encendida (hasta I-2).
+ * idéntico a hoy, salvo que también esté encendida `cargaNube` (I-2, A-81).
  */
 import type { BusinessProfile, JobRecord } from '../shared/clientQuote';
 import type { QuoteRepository } from './storage';
@@ -15,19 +15,23 @@ export type SnapshotVersion = 1 | 2;
 
 export type SaveQuoteResult = { status: 'guardada'; job: JobRecord; version: SnapshotVersion; kind: QuoteRepository['kind'] } | { status: 'no_vigente' };
 
-/** Tabla de decisión (V5): v2 solo con flag y repositorio local. */
-export function snapshotVersionFor(cargoFlag: boolean, kind: QuoteRepository['kind']): SnapshotVersion {
-  return cargoFlag && kind === 'local' ? 2 : 1;
+/**
+ * Tabla de decisión (V5; I-2, A-81): v2 con la flag de integración y el repositorio local; con cuenta,
+ * v2 solo si además está encendida `cargaNube` (la cuenta ya puede guardar las líneas).
+ */
+export function snapshotVersionFor(cargoFlag: boolean, kind: QuoteRepository['kind'], cargaNube = false): SnapshotVersion {
+  if (!cargoFlag) return 1;
+  return kind === 'local' || cargaNube ? 2 : 1;
 }
 
 export async function saveQuote(
   repository: QuoteRepository,
   build: (number: number, version: SnapshotVersion) => JobRecord | null,
   business: BusinessProfile,
-  opts: { cargoFlag?: boolean } = {},
+  opts: { cargoFlag?: boolean; cargaNube?: boolean } = {},
 ): Promise<SaveQuoteResult> {
   const repo = await repository.forWrite();
-  const version = snapshotVersionFor(opts.cargoFlag ?? false, repo.kind);
+  const version = snapshotVersionFor(opts.cargoFlag ?? false, repo.kind, opts.cargaNube ?? false);
   const job = build(await repo.nextNumber(), version);
   if (!job) return { status: 'no_vigente' };
   await repo.saveBusiness(business);

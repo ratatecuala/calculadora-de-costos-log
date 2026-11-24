@@ -76,7 +76,9 @@ function MainApp() {
   const store = useMemo(() => browserStore(), []);
   // I-1b (A-68): borrador persistente del modo sin cuenta, separado del historial emitido.
   const cargoOn = FEATURE_FLAGS.integracionCarga;
-  const draftStore = useMemo(() => new DraftStore(store), [store]);
+  // I-2 (A-81): con `cargaNube`, también la cuenta tiene editores, guardado v2 y su propio borrador.
+  const cuentaConCarga = cargoOn && FEATURE_FLAGS.cargaNube;
+  const draftStore = useMemo(() => new DraftStore(store, { cuentas: cuentaConCarga }), [store, cuentaConCarga]);
   const [draftOffer, setDraftOffer] = useState<StoredDraft | null>(null);
   const [draftNotice, setDraftNotice] = useState<string | null>(null);
   /** Mientras se ofrece recuperar, el autoguardado NO pisa el borrador guardado. */
@@ -145,6 +147,11 @@ function MainApp() {
       current.setCargo(emptyInventoryDraft());
       current.setResources(emptyResourcesDraft());
     }
+    // I-2: al cerrar sesión (o cambiar de cuenta) se BORRA el borrador de la cuenta anterior en este
+    // navegador: en un equipo compartido no queda nada de esa cuenta. El borrador «local» no se toca.
+    if (cuentaConCarga && previousUser.current && previousUser.current !== userId) {
+      draftStore.clear(previousUser.current);
+    }
     if (shouldResetDraft(previousUser.current, userId)) {
       const fresh = new QuoteSession(httpRouteClient);
       sessionRef.current = fresh;
@@ -157,22 +164,24 @@ function MainApp() {
   }, [userId]);
 
   // I-1b: al estar SIN cuenta (al abrir o al cerrar sesión), ofrecer el borrador local guardado.
-  // Nunca se ofrece a una cuenta (C1): solo se lee el dueño «local».
+  // Nunca se ofrece a una cuenta el borrador de otro dueño (C1). Con I-2 (`cuentaConCarga`), la cuenta
+  // recibe SOLO el suyo.
   useEffect(() => {
-    if (!cargoOn || userId !== null) {
+    if (!cargoOn || (userId !== null && !cuentaConCarga)) {
       setDraftOffer(null);
       offerPending.current = false;
       return;
     }
-    const r = draftStore.read('local');
+    const dueno = ownerOf(userId);
+    const r = draftStore.read(dueno);
     if (r.status === 'ilegible') {
-      draftStore.clear('local');
+      draftStore.clear(dueno);
       setDraftNotice('No se pudo recuperar el borrador guardado: estaba dañado y se descartó.');
     } else if (r.status === 'ok' && !draft.session.hasDraftContent()) {
       offerPending.current = true;
       setDraftOffer(r.draft);
     }
-  }, [cargoOn, userId, draftStore, draft.session]);
+  }, [cargoOn, cuentaConCarga, userId, draftStore, draft.session]);
 
   // I-1b: autoguardado 1 s después del último cambio, solo sin cuenta y sin una oferta pendiente.
   const currentOwnerRef = useRef(currentOwner);
@@ -211,11 +220,11 @@ function MainApp() {
       return;
     }
     try {
-      setPending(await pendingLocalData(localQuotes, localVehicles, store, userId));
+      setPending(await pendingLocalData(localQuotes, localVehicles, store, userId, { cargaNube: cuentaConCarga }));
     } catch {
       setPending(null);
     }
-  }, [userId, localQuotes, localVehicles, store]);
+  }, [userId, localQuotes, localVehicles, store, cuentaConCarga]);
   useEffect(() => {
     void refreshPending();
   }, [refreshPending]);
@@ -237,6 +246,7 @@ function MainApp() {
         localVehicles,
         store,
         isCurrentUser: () => auth.getSnapshot().user?.id === userId,
+        cargaNube: cuentaConCarga,
       });
       // Nunca un éxito global si quedan cotizaciones en el navegador (docs/22 §2.5).
       setMigration({ busy: false, message: mensajeCopia(r) });
@@ -304,7 +314,7 @@ function MainApp() {
       ) : null}
       {migration.message ? <p className="notice migration no-print">{migration.message}</p> : null}
       {loadFailure ? <p className="warn migration no-print">{loadFailure}</p> : null}
-      {draftOffer && currentOwner === 'local' ? (
+      {draftOffer && (currentOwner === 'local' || cuentaConCarga) ? (
         <DraftBanner
           draft={draftOffer}
           reemplaza={session.hasDraftContent()}
@@ -314,7 +324,7 @@ function MainApp() {
             setDraftOffer(null);
           }}
           onDiscard={() => {
-            draftStore.clear('local');
+            draftStore.clear(currentOwner);
             offerPending.current = false;
             setDraftOffer(null);
           }}
@@ -333,21 +343,23 @@ function MainApp() {
             vehicles={vehicles}
             onManageVehicles={() => setView({ name: 'vehiculos' })}
             onCreateQuote={() => setView({ name: 'nueva', owner: currentOwner })}
-            cargoEnabled={cargoOn && currentOwner === 'local'}
+            cargoEnabled={cargoOn && (currentOwner === 'local' || cuentaConCarga)}
           />
         ) : null}
         {view.name === 'nueva' && showDraft && view.owner === currentOwner ? (
           <QuoteForm
             session={session}
             repository={quoteRepository}
-            cargoEnabled={cargoOn && currentOwner === 'local'}
+            cargoEnabled={cargoOn && (currentOwner === 'local' || cuentaConCarga)}
             onSaved={(job, savedWith) => {
               // I-1b: emitir en el navegador borra el borrador y CANCELA todo autoguardado pendiente
               // (reauditoría de 230ad6e, P1). Solo tras un guardado exitoso: un error no llega aquí.
-              if (cargoOn && savedWith.kind === 'local') {
+              if (cargoOn && (savedWith.kind === 'local' || cuentaConCarga)) {
+                // El dueño del repositorio con que se EMITIÓ (C1), no la identidad actual.
+                const dueno = savedWith instanceof CloudQuoteRepository ? savedWith.ownerId : 'local';
                 const a = autosaverRef.current;
-                if (a && a.session === session) a.saver.emitted();
-                else draftStore.clear('local');
+                if (a && a.session === session) a.saver.emitted(dueno);
+                else draftStore.clear(dueno);
               }
               // Un guardado iniciado con otra cuenta no abre su cotización en la cuenta actual.
               if (savedWith !== quoteRepoRef.current) return;

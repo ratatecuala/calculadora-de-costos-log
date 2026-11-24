@@ -15,4 +15,12 @@ export const FEATURE_FLAGS = {
    * **Apagada** salvo `VITE_FF_INTEGRACION_CARGA=1` en pruebas locales.
    */
   integracionCarga: import.meta.env.VITE_FF_INTEGRACION_CARGA === '1',
+  /**
+   * I-2 (A-81, docs/22 §17): inventario y recursos también CON CUENTA. La cuenta guarda el snapshot v2
+   * y las líneas con `create_job_with_quote_v2`, las lee de vuelta y copia las cotizaciones locales con
+   * detalle de carga. Solo actúa junto con `integracionCarga`. **Apagada** salvo
+   * `VITE_FF_CARGA_NUBE=1` en pruebas locales: encenderla en staging exige antes las migraciones
+   * 20261125120000 y 20261125120100 aplicadas allí (con su propia autorización).
+   */
+  cargaNube: import.meta.env.VITE_FF_CARGA_NUBE === '1',
 } as const;

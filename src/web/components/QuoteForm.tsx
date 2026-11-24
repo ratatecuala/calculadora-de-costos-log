@@ -94,7 +94,7 @@ export function QuoteForm({ session, repository, onSaved, onCancel, cargoEnabled
           buildJobRecord(session, form, business, { id: crypto.randomUUID(), number, createdAt: new Date().toISOString().slice(0, 10) }, { version }),
         business,
         // La versión del snapshot la decide saveQuote con el repositorio fijado (docs/22 §2.1).
-        { cargoFlag: FEATURE_FLAGS.integracionCarga },
+        { cargoFlag: FEATURE_FLAGS.integracionCarga, cargaNube: FEATURE_FLAGS.cargaNube },
       );
       if (result.status === 'no_vigente') {
         // La ruta dejó de estar vigente o el costo cambió y el precio no se confirmó.

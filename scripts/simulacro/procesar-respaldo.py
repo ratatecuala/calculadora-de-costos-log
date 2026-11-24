@@ -31,6 +31,8 @@ KEEP_AUTH = {'users', 'identities'}
 # origen tendría datos que las migraciones del repositorio no saben recibir.
 ESPERADAS = {('public', t) for t in ('profiles', 'vehicles', 'jobs', 'client_quotes', 'quote_shares', 'quote_counters')} \
     | {('auth', 'users'), ('auth', 'identities')}
+# Tablas que solo existen en algunos estados del origen: job_cargo_items, con las migraciones de I-2 (A-81).
+OPCIONALES = {('public', 'job_cargo_items')}
 TIPO_OK = re.compile(r'^(uuid|text|boolean|smallint|integer|bigint|numeric(\(\d+(,\d+)?\))?|real|double precision|jsonb|json|bytea|'
                      r'character varying(\(\d+\))?|character(\(\d+\))?|timestamp(\(\d\))? with(out)? time zone|date|'
                      r'time(\(\d\))? with(out)? time zone|interval|inet|text\[\]|uuid\[\]|character varying\[\])$')
@@ -146,7 +148,7 @@ def filtrar(path, dest):
                 if keep:
                     if m.group(5).strip() != ';':
                         raise ErrorRespaldo(f'línea {n}: COPY de {schema}.{table} con opciones no reconocidas (solo se admite texto)')
-                    if (schema, table) not in ESPERADAS:
+                    if (schema, table) not in ESPERADAS | OPCIONALES:
                         raise ErrorRespaldo(f'línea {n}: tabla {schema}.{table} no reconocida (las migraciones no la crean)')
                     if (schema, table) in vistas:
                         raise ErrorRespaldo(f'línea {n}: {schema}.{table} aparece dos veces')

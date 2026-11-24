@@ -18,8 +18,17 @@ import type { KeyValueStore } from './vehicleRepository';
 
 export const DRAFT_KEY = 'cotizador.borrador.v1';
 export const DRAFT_FORMAT = 1;
-/** En I-1 solo el modo sin cuenta tiene borrador persistente. */
+/** En I-1 solo el modo sin cuenta tiene borrador persistente. I-2 (A-81) agrega la cuenta (ver `cuentas`). */
 export const DRAFT_OWNERS = ['local'] as const;
+const UUID_DUENO = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * ¿Este dueño puede tener borrador? Siempre «local»; una cuenta (su id) solo con `cuentas` (I-2,
+ * flags `integracionCarga` + `cargaNube`). Cada dueño tiene su propia entrada: nunca se mezclan.
+ */
+export function duenoConBorrador(owner: string, cuentas = false): boolean {
+  return (DRAFT_OWNERS as readonly string[]).includes(owner) || (cuentas && UUID_DUENO.test(owner));
+}
 
 export interface StoredDraft {
   format: typeof DRAFT_FORMAT;
@@ -146,7 +155,16 @@ const storedSchema = z.object({ format: z.literal(DRAFT_FORMAT), savedAt: z.stri
 type DraftMap = Record<string, unknown>;
 
 export class DraftStore {
-  constructor(private readonly store: KeyValueStore) {}
+  constructor(
+    private readonly store: KeyValueStore,
+    /** `cuentas` (I-2): también guarda el borrador de una cuenta, en su propia entrada. */
+    private readonly opciones: { cuentas?: boolean } = {},
+  ) {}
+
+  /** ¿Guarda también borradores de cuentas? (I-2, flags `integracionCarga` + `cargaNube`). */
+  get cuentas(): boolean {
+    return this.opciones.cuentas ?? false;
+  }
 
   private readMap(): DraftMap | null {
     try {
@@ -178,7 +196,7 @@ export class DraftStore {
   }
 
   write(owner: string, data: DraftData, now: Date = new Date()): DraftWrite {
-    if (!(DRAFT_OWNERS as readonly string[]).includes(owner)) return { ok: false, reason: 'Con cuenta, el borrador aún no se guarda (llegará con I-2).' };
+    if (!duenoConBorrador(owner, this.opciones.cuentas)) return { ok: false, reason: 'Con cuenta, el borrador aún no se guarda (llegará con I-2).' };
     const map = this.readMap() ?? {};
     map[owner] = { format: DRAFT_FORMAT, savedAt: now.toISOString(), data } satisfies StoredDraft;
     return this.writeMap(map);
@@ -206,8 +224,8 @@ export type AccionBorrador = 'escribir' | 'borrar' | 'nada';
  * - si el usuario dejó todo como al inicio (borró lo que había escrito): se BORRA el borrador
  *   guardado, para que lo eliminado no reaparezca al recargar.
  */
-export function decidirAutoguardado(owner: string, ofertaPendiente: boolean, hayContenido: boolean): AccionBorrador {
-  if (owner !== 'local' || ofertaPendiente) return 'nada';
+export function decidirAutoguardado(owner: string, ofertaPendiente: boolean, hayContenido: boolean, cuentas = false): AccionBorrador {
+  if (!duenoConBorrador(owner, cuentas) || ofertaPendiente) return 'nada';
   return hayContenido ? 'escribir' : 'borrar';
 }
 
@@ -278,10 +296,12 @@ export class DraftAutosaver {
   }
 
   private run(): void {
-    const accion = decidirAutoguardado(this.ctx.owner(), this.ctx.ofertaPendiente(), this.session.hasDraftContent());
-    if (accion === 'borrar') this.store.clear('local');
+    // I-2: el borrador va a la entrada del dueño ACTUAL (local, o la cuenta si el almacén lo permite).
+    const owner = this.ctx.owner();
+    const accion = decidirAutoguardado(owner, this.ctx.ofertaPendiente(), this.session.hasDraftContent(), this.store.cuentas);
+    if (accion === 'borrar') this.store.clear(owner);
     if (accion !== 'escribir') return;
-    const w = this.store.write('local', this.session.draftData());
+    const w = this.store.write(owner, this.session.draftData());
     this.ctx.onWrite(w.ok ? null : w.reason);
   }
 
@@ -299,11 +319,12 @@ export class DraftAutosaver {
    * Emisión EXITOSA en el navegador: cancela e invalida lo pendiente, fija la nueva línea base y
    * borra el borrador guardado. Llamar SOLO tras un guardado exitoso.
    */
-  emitted(): void {
+  emitted(dueno = 'local'): void {
+    // C1: se borra el borrador del dueño que EMITIÓ (no el de la identidad actual, que pudo cambiar).
     this.cancel();
     this.generation += 1;
     this.session.markEmitted();
-    this.store.clear('local');
+    this.store.clear(dueno);
   }
 }
 

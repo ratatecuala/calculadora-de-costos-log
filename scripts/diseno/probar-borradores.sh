@@ -26,8 +26,14 @@ run() { psql -q -X -v ON_ERROR_STOP=1 -d "$db" "$@"; }
 
 echo "PostgreSQL: $(psql -X -Atq -d "$db" -c 'show server_version')  ·  base desechable: $db"
 run -f "$dir/stub-supabase.sql" >/dev/null
-for m in "$repo"/supabase/migrations/*.sql; do run -f "$m" >/dev/null; done
-echo "OK migraciones reales aplicadas: $(ls "$repo"/supabase/migrations/*.sql | wc -l) (incluida la de #52)"
+# Hasta #52 inclusive: los BORRADORES M3/M4 son el antecedente histórico de las migraciones reales de
+# I-2 (20261125120000 y 20261125120100), que se ensayan en scripts/diseno/i2/ensayar-i2.sh.
+n=0
+for m in "$repo"/supabase/migrations/*.sql; do
+  [[ "$(basename "$m")" > "20261122120000_guardado_unico_y_contador.sql" ]] && continue
+  run -f "$m" >/dev/null; n=$((n + 1))
+done
+echo "OK migraciones reales aplicadas: $n (hasta la de #52 inclusive)"
 run -f "$dir/borradores/M3_job_cargo_items.sql" >/dev/null
 run -f "$dir/borradores/M4_guardado_v2.sql" >/dev/null
 # D-52-3 (criterio futuro para M4, docs/23 §4.5): con la migración de #52, authenticated ya no tiene

@@ -95,8 +95,9 @@ echo "PostgreSQL: $(psql -X -Atq -d "$db" -c 'show server_version')  ·  base de
 
 # ---- 1. Estado ANTERIOR a #52 -------------------------------------------------------------------
 run -f "$repo/scripts/diseno/stub-supabase.sql" >/dev/null
+# Solo las migraciones ANTERIORES a #52 (las de I-2, posteriores, no forman parte de este ensayo).
 for m in "$repo"/supabase/migrations/*.sql; do
-  [[ "$m" == "$mig" ]] && continue
+  [[ "$(basename "$m")" < "$(basename "$mig")" ]] || continue
   run -f "$m" >/dev/null
 done
 # Privilegios por defecto de Supabase (simulados): al crear una función, Supabase suele dar EXECUTE a
@@ -218,7 +219,7 @@ psql -X -q -d postgres -c "create database $dbr" >/dev/null
 creadas+=("$dbr")
 runr() { psql -q -X -v ON_ERROR_STOP=1 -d "$dbr" "$@"; }
 runr -f "$repo/scripts/diseno/stub-supabase.sql" >/dev/null
-for m in "$repo"/supabase/migrations/*.sql; do runr -f "$m" >/dev/null; done
+for m in "$repo"/supabase/migrations/*.sql; do [[ "$(basename "$m")" > "$(basename "$mig")" ]] || runr -f "$m" >/dev/null; done
 runr -f "$dir/reversion-r.sql" -v reversion="$dir/reversion-52.sql" -v migracion="$mig" 2>&1 | filtro
 # verificar-restauracion.sql antes y después de la migración (sus invariantes dependen de ella).
 if [[ -z "${CONTROL:-}${MUTACION:-}${CONTADOR:-}" ]]; then "$dir/probar-restauracion.sh"; fi

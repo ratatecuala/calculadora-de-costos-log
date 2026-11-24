@@ -136,8 +136,24 @@ origen() {
   for m in 20261118000315_esquema_inicial.sql 20261118000924_guardar_cotizacion_atomica.sql 20261118022422_numeracion_atomica.sql; do
     "${run[@]}" --single-transaction -f "$repo/supabase/migrations/$m" >/dev/null
   done
-  if [[ "$con52" == 1 ]]; then "${run[@]}" --single-transaction -f "$repo/supabase/migrations/20261122120000_guardado_unico_y_contador.sql" >/dev/null; fi
+  if [[ "$con52" -ge 1 ]]; then "${run[@]}" --single-transaction -f "$repo/supabase/migrations/20261122120000_guardado_unico_y_contador.sql" >/dev/null; fi
+  # con52=2: también las migraciones de I-2 (A-81), y luego una cotización v2 con 2 líneas (abajo).
+  if [[ "$con52" == 2 ]]; then
+    for m in 20261125120000_lineas_de_carga.sql 20261125120100_guardado_v2.sql; do "${run[@]}" --single-transaction -f "$repo/supabase/migrations/$m" >/dev/null; done
+  fi
   "${run[@]}" -f "$dir/fixtures/datos-ficticios.sql" >/dev/null
+  if [[ "$con52" == 2 ]]; then "${run[@]}" >/dev/null <<'SQL'
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a0000000-0000-4000-8000-00000000000a', true);
+select public.create_job_with_quote_v2(
+  '{"quote_date":"2026-11-25","client_name":"Cliente con carga","net_price":90000,"internal":{"schemaVersion":2,"engineVersion":"x"}}'::jsonb,
+  '{"issued_at":"2026-11-25","client_name":"Cliente con carga","net_price":90000,"total":90000}'::jsonb,
+  '[{"kind":"mueble","description":"Sofá ñandú «3 cuerpos»","qty":1,"unitWeightKg":45.5,"dimsCm":{"l":200,"w":90,"h":85},"volumeM3":1.53,"volumeSource":"calculado","fragile":false,"handling":"voluminoso"},
+    {"kind":"cajas","description":"Cajas de loza","qty":12,"unitWeightKg":8,"volumeM3":0.25,"volumeSource":"declarado","fragile":true,"handling":"normal"}]'::jsonb);
+commit;
+SQL
+  fi
   # La cadena «como la muestra Supabase» (con [YOUR-PASSWORD]) y la contraseña en otra línea, por stdin.
   { printf 'postgresql://%s:[YOUR-PASSWORD]@127.0.0.1:%s/%s?sslmode=disable\n' "$usuario" "$puerto" "$db"; cat "$t/secreto"; printf '\n'; } \
     | COTIZADOR_CONFIG_DIR="$t/conf" python3 -I "$repo/scripts/conexion/configurar-conexion.py" --servicio "o-$db" > "$t/conf-$db.log"
@@ -251,6 +267,16 @@ if PG_SERVICIO="o-pre_$sello" BACKUP_DIR="$t/respaldos" BACKUP_AGE_RECIPIENT="$d
 cp "$t/pgpass.bueno" "$PGPASSFILE"
 check "A14 contraseña equivocada: falla con un mensaje SANEADO (<usuario>, <servidor>; sin usuario, IP ni contraseña)" '[[ $x == 1 ]] && grep -q "<usuario>" "$t/log-mala.txt" && ! grep -q "$usuario" "$t/log-mala.txt" && ! grep -q "127.0.0.1" "$t/log-mala.txt" && ! grep -qF "INCORRECTA" "$t/log-mala.txt" && sin_secreto "$t/log-mala.txt"'
 sed -n '/ERROR\|FATAL\|failed/p' "$t/log-mala.txt" | head -n 2 | sed 's/^/   /'
+
+echo "== E4 · origen con #52 e I-2 (job_cargo_items con 2 líneas): el simulacro aplica las 6 migraciones"
+origen "i2_$sello" 2
+r4i="$(respaldar "i2_$sello")" || r4i=""
+if simular "$r4i"; then e4=0; else e4=$?; fi
+check "E4 DATOS VERIFICADOS con I-2: 6 migraciones y contenido de 9 tablas (incluida job_cargo_items)" '[[ $e4 == 0 ]] && grep -q "se aplican las 6 migraciones" "$t/ult.log" && grep -q "contenido completo de 9 tablas" "$t/ult.log"'
+d4i="$(descifrar "$r4i" e4)"
+cb="$(copia "$d4i" e4b)"; alterar "$cb/data.sql" public.job_cargo_items description "Sofá alterado"; resellar "$cb"
+if simular_carpeta "$cb"; then x=0; else x=$?; fi
+check "E4b alterar la descripción de una línea de carga → HAY DIFERENCIAS en contenido.public.job_cargo_items" '[[ $x == 2 ]] && grep -q "^[-+]contenido.public.job_cargo_items " "$t/ult.log"'
 
 echo "== T · TLS: verify-full con certificado raíz; todo lo demás se rechaza (sin la excepción de prueba)"
 sin_exc() { env -u COTIZADOR_PRUEBA_LOCAL_SIN_TLS "$@"; }

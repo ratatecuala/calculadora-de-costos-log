@@ -2,12 +2,18 @@
  * Historial en Supabase: `jobs` (costos internos) + `client_quotes` (lo que ve el cliente),
  * guardados juntos con `create_job_with_quote` (una transacción). Enlaces públicos con
  * token aleatorio de 256 bits, revocables (`quote_shares`).
+ *
+ * I-2 (A-81, docs/22 §17): un registro con snapshot v2 se guarda con `create_job_with_quote_v2`: el
+ * `internal` preparado por `toCloudPayload` (sin `cargo.items`, medido en bytes) y las líneas en
+ * `job_cargo_items`, en la misma transacción. Un v1 sigue exactamente igual. Solo llega aquí un v2 si
+ * `saveQuote` lo pidió (flags `integracionCarga` y `cargaNube`).
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createBoundClient } from './client';
-import type { BusinessProfile, ClientQuote, JobRecord } from '../../shared/clientQuote';
+import { isSnapshotV2, type BusinessProfile, type ClientQuote, type JobRecord } from '../../shared/clientQuote';
+import { snapshotV2Schema, toCloudPayload } from '../../shared/snapshot';
 import type { JobPatch, QuoteRepository } from '../storage';
-import { clientQuoteFromRow, jobFromRow, jobWithQuotePayload, type ClientQuoteRow, type JobRow } from './mappers';
+import { cargoItemFromRow, clientQuoteFromRow, jobFromRow, jobWithQuotePayload, type CargoItemRow, type ClientQuoteRow, type JobRow } from './mappers';
 import { CloudError } from './vehicles';
 
 const SAVE_FAILED = 'No se pudo guardar en tu cuenta. Revisa tu conexión e inténtalo de nuevo; la cotización no quedó guardada.';
@@ -33,6 +39,11 @@ export interface QuoteShare {
 export class CloudQuoteRepository implements QuoteRepository {
   readonly kind = 'nube' as const;
   readonly persistent = true;
+
+  /** Dueño de este repositorio (para borrar SU borrador al emitir, I-2). */
+  get ownerId(): string {
+    return this.userId;
+  }
 
   constructor(
     private readonly supabase: SupabaseClient,
@@ -70,12 +81,52 @@ export class CloudQuoteRepository implements QuoteRepository {
   async get(id: string): Promise<JobRecord | null> {
     const { data, error } = await this.supabase.from('jobs').select('*').eq('id', id).maybeSingle();
     if (error) throw new CloudError(LOAD_FAILED, error);
-    return data ? jobFromRow(data as JobRow) : null;
+    if (!data) return null;
+    const job = jobFromRow(data as JobRow);
+    return isSnapshotV2(job.internal) && job.internal.cargo !== null ? this.withCargoItems(job) : job;
+  }
+
+  /**
+   * I-2: el detalle de una v2 con carga reconstruye la lista completa desde `job_cargo_items`, igual a
+   * la del navegador (`items` en orden de `position`). Si las líneas no cuadran con el resumen guardado,
+   * es un error: nunca se muestra un inventario incompleto como si fuera el original.
+   */
+  private async withCargoItems(job: JobRecord): Promise<JobRecord> {
+    const { data, error } = await this.supabase
+      .from('job_cargo_items')
+      .select('position, kind, description, qty, unit_weight_kg, dim_l_cm, dim_w_cm, dim_h_cm, volume_m3, volume_source, fragile, handling')
+      .eq('job_id', job.id)
+      .order('position', { ascending: true });
+    if (error) throw new CloudError(LOAD_FAILED, error);
+    const internal = job.internal as Extract<JobRecord['internal'], { schemaVersion: 2 }>;
+    let items;
+    try {
+      items = ((data ?? []) as CargoItemRow[]).map(cargoItemFromRow);
+    } catch {
+      throw new CloudError('El detalle de carga guardado en tu cuenta no se pudo leer.');
+    }
+    const parsed = snapshotV2Schema.safeParse({ ...internal, cargo: { ...internal.cargo!, items } });
+    if (!parsed.success || toCloudPayload(parsed.data).ok === false) {
+      throw new CloudError('El detalle de carga guardado en tu cuenta no coincide con su resumen.');
+    }
+    return { ...job, internal: parsed.data };
   }
 
   async create(job: JobRecord): Promise<JobRecord> {
     this.ensureCurrent();
-    const { data, error } = await this.supabase.rpc('create_job_with_quote', jobWithQuotePayload(job, null));
+    let data: unknown;
+    let error: unknown;
+    if (isSnapshotV2(job.internal)) {
+      // I-2: el `internal` validado y sin líneas; las líneas, aparte. Si no es válido, no se guarda nada.
+      const p = toCloudPayload(job.internal);
+      if (!p.ok) throw new CloudError(`No se guardó en tu cuenta: ${p.reason}.`);
+      ({ data, error } = await this.supabase.rpc('create_job_with_quote_v2', {
+        ...jobWithQuotePayload({ ...job, internal: p.internal as JobRecord['internal'] }, null),
+        p_cargo_items: p.cargoItems,
+      }));
+    } else {
+      ({ data, error } = await this.supabase.rpc('create_job_with_quote', jobWithQuotePayload(job, null)));
+    }
     if (error || !data) throw new CloudError(SAVE_FAILED, error);
     // El número lo asigna la base, de forma atómica (A-47): se usa el que devuelve.
     const saved = data as { id: string; number: number; issued_number: number };

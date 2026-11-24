@@ -38,9 +38,13 @@ set datestyle = 'ISO, YMD';
 set intervalstyle = 'postgres';
 set extra_float_digits = 1;
 set bytea_output = 'hex';
+-- I-2 (A-81): con las migraciones 20261125120000/20261125120100 existe public.job_cargo_items. Se detecta
+-- aquí (psql) para incluir su conteo y su huella de contenido, y ajustar las invariantes esperadas.
+select to_regclass('public.job_cargo_items') is not null as hay_i2 \gset
 
 with
 ref as (select :'referencia'::timestamptz as instante),
+i2 as (select :'hay_i2'::boolean as aplicada),
 m52 as (
   select coalesce((select p.prosecdef from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                     where n.nspname = 'public' and p.proname = 'create_job_with_quote'
@@ -57,6 +61,9 @@ cnt as (
   union all select 'conteo.public.quote_shares_vigentes_en_referencia', count(*)::text, '' from public.quote_shares
     where revoked_at is null and (expires_at is null or expires_at > (select instante from ref))
   union all select 'conteo.public.quote_counters', count(*)::text, '' from public.quote_counters
+\if :hay_i2
+  union all select 'conteo.public.job_cargo_items', count(*)::text, '' from public.job_cargo_items
+\endif
 ),
 huella as (
   -- Huellas de identificadores y números (no revelan contenido): detectan filas cambiadas o perdidas.
@@ -75,6 +82,9 @@ huella as (
   union all select 'contenido.public.client_quotes', md5(coalesce(string_agg(md5(t::text), ',' order by t.id), '')), '' from public.client_quotes t
   union all select 'contenido.public.quote_shares', md5(coalesce(string_agg(md5(t::text), ',' order by t.id), '')), '' from public.quote_shares t
   union all select 'contenido.public.quote_counters', md5(coalesce(string_agg(md5(t::text), ',' order by t.owner_id), '')), '' from public.quote_counters t
+\if :hay_i2
+  union all select 'contenido.public.job_cargo_items', md5(coalesce(string_agg(md5(t::text), ',' order by t.id), '')), '' from public.job_cargo_items t
+\endif
 ),
 inv as (
   -- Numeración (A-47): toda cuenta con trabajos tiene contador. Antes de #52, además, el contador es
@@ -106,11 +116,11 @@ inv as (
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and c.relkind in ('r', 'p') and not c.relrowsecurity
   union all
-  select 'inv.tablas_public_con_rls', count(*)::text, '6'
+  select 'inv.tablas_public_con_rls', count(*)::text, case when (select aplicada from i2) then '7' else '6' end
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and c.relkind in ('r', 'p') and c.relrowsecurity
   union all
-  select 'inv.politicas_public', count(*)::text, case when (select aplicada from m52) then '13' else '17' end from pg_policies where schemaname = 'public'
+  select 'inv.politicas_public', count(*)::text, case when (select aplicada from i2) then '14' when (select aplicada from m52) then '13' else '17' end from pg_policies where schemaname = 'public'
   union all
   select 'inv.privilegios_tabla_anon', count(*)::text, '0'
     from information_schema.role_table_grants
@@ -119,7 +129,8 @@ inv as (
   select 'inv.privilegios_tabla_authenticated',
          coalesce(string_agg(table_name || ':' || privs, ' ' order by table_name), ''),
          case when (select aplicada from m52)
-              then 'client_quotes:SELECT jobs:DELETE,SELECT profiles:DELETE,INSERT,SELECT,UPDATE vehicles:DELETE,INSERT,SELECT,UPDATE'
+              then 'client_quotes:SELECT ' || case when (select aplicada from i2) then 'job_cargo_items:SELECT ' else '' end
+                   || 'jobs:DELETE,SELECT profiles:DELETE,INSERT,SELECT,UPDATE vehicles:DELETE,INSERT,SELECT,UPDATE'
               else 'client_quotes:DELETE,INSERT,SELECT jobs:DELETE,INSERT,SELECT profiles:DELETE,INSERT,SELECT,UPDATE vehicles:DELETE,INSERT,SELECT,UPDATE' end
     from (select table_name, string_agg(privilege_type, ',' order by privilege_type) privs
             from information_schema.role_table_grants
@@ -142,7 +153,9 @@ inv as (
   select 'inv.security_definer',
          coalesce(string_agg(n.nspname || '.' || p.proname, ' ' order by n.nspname, p.proname), ''),
          case when (select aplicada from m52)
-              then 'private.allocate_quote_number public.create_job_with_quote public.create_quote_share public.get_public_quote public.revoke_quote_share'
+              then case when (select aplicada from i2)
+                        then 'private.allocate_quote_number private.insert_cargo_items public.create_job_with_quote public.create_job_with_quote_v2 public.create_quote_share public.get_public_quote public.revoke_quote_share'
+                        else 'private.allocate_quote_number public.create_job_with_quote public.create_quote_share public.get_public_quote public.revoke_quote_share' end
               else 'private.allocate_quote_number public.create_quote_share public.get_public_quote public.revoke_quote_share' end
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname in ('public', 'private') and p.prosecdef

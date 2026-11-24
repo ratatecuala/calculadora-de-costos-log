@@ -22,6 +22,8 @@ for estado in antes despues; do
   # El stub no trae auth.identities; verificar-restauracion.sql la cuenta.
   psql -q -X -v ON_ERROR_STOP=1 -d "$db" -c "create table if not exists auth.identities (id uuid primary key, user_id uuid)" >/dev/null
   for m in "$repo"/supabase/migrations/*.sql; do
+    # Hasta #52 inclusive: las migraciones de I-2 (posteriores) se prueban en scripts/diseno/i2.
+    [[ "$(basename "$m")" > "$(basename "$mig")" ]] && continue
     [[ "$estado" == antes && "$m" == "$mig" ]] && continue
     psql -q -X -v ON_ERROR_STOP=1 -d "$db" -f "$m" >/dev/null
   done

@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # PREPARACIÓN DE I-2 (A-80): prueba de integración cliente ↔ servidor en un PostgreSQL LOCAL desechable.
-# Nunca se conecta a Supabase. No implementa I-2: usa el código ACTUAL del cliente y los BORRADORES M3/M4
-# (sin modificarlos) sobre las 4 migraciones reales, incluida la de #52, con D-52-3 simulado (la v2 como
-# SECURITY DEFINER), igual que probar-borradores.sh.
+# Nunca se conecta a Supabase. Usa el código del cliente y las migraciones REALES del repositorio: las 4
+# anteriores (incluida #52, sin cambios) y las de I-2, M3′ (20261125120000) y M4′ (20261125120100), A-81.
 #   1. generar-casos.ts arma 7 cotizaciones con QuoteSession → buildJobRecord → toCloudPayload;
 #   2. las guarda con create_job_with_quote_v2 como `authenticated` (cada una en su transacción);
 #   3. exporta lo guardado y verificar-lectura.ts lo lee con el código del cliente (jobFromRow,
@@ -25,23 +24,16 @@ trap fin EXIT
 echo "1) Casos armados con el código real del cliente"
 (cd "$repo" && npx vite-node "$dir/generar-casos.ts" "$t")
 
-echo "2) Base local: stub + migraciones reales + borradores M3/M4 (+ D-52-3 simulado)"
+echo "2) Base local: stub + TODAS las migraciones reales (#52 sin cambios, M3′ y M4′)"
 psql -X -q -d postgres -c "create database $db" >/dev/null; creada=1
 run() { psql -q -X -v ON_ERROR_STOP=1 -d "$db" "$@"; }
 run -f "$repo/scripts/diseno/stub-supabase.sql" >/dev/null
-for m in "$repo"/supabase/migrations/*.sql; do run -f "$m" >/dev/null; done
-run -f "$repo/scripts/diseno/borradores/M3_job_cargo_items.sql" >/dev/null
-run -f "$repo/scripts/diseno/borradores/M4_guardado_v2.sql" >/dev/null
-# CONTROL_SIN_D523=1: deja M4 tal como está el borrador (SECURITY INVOKER). Con #52, authenticated ya no
-# tiene USAGE en private (D-52-2), así que el guardado v2 debe fallar: demuestra que M4 se ajusta a #52.
-if [[ "${CONTROL_SIN_D523:-}" != 1 ]]; then
-run -c "alter function public.create_job_with_quote_v2(jsonb, jsonb, jsonb) security definer;
-        revoke all on function public.create_job_with_quote_v2(jsonb, jsonb, jsonb) from public, anon, service_role;
-        grant execute on function public.create_job_with_quote_v2(jsonb, jsonb, jsonb) to authenticated;
-        revoke execute on function private.insert_cargo_items(uuid, jsonb) from authenticated;" >/dev/null
-fi
+for m in "$repo"/supabase/migrations/*.sql; do PGOPTIONS='-c client_min_messages=warning' run -f "$m" >/dev/null; done
+# CONTROL_M4_INVOKER=1: M4′ como estaba el borrador (SECURITY INVOKER). Con #52, authenticated no tiene
+# USAGE en private (D-52-2): el guardado v2 debe fallar. Demuestra por qué M4′ es SECURITY DEFINER.
+if [[ "${CONTROL_M4_INVOKER:-}" == 1 ]]; then run -c "alter function public.create_job_with_quote_v2(jsonb, jsonb, jsonb) security invoker" >/dev/null; fi
 run -c "insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000a', 'a@prueba.invalid'), ('00000000-0000-0000-0000-00000000000b', 'b@prueba.invalid')" >/dev/null
-echo "   $(ls "$repo"/supabase/migrations/*.sql | wc -l) migraciones reales; M3 y M4 desde scripts/diseno/borradores (sin cambios)"
+echo "   $(ls "$repo"/supabase/migrations/*.sql | wc -l) migraciones reales aplicadas"
 
 echo "3) Guardado como authenticated (create_job_with_quote_v2)"
 if ! run -f "$t/casos.sql" > "$t/guardado.log" 2>&1; then

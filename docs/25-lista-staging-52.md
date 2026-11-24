@@ -214,7 +214,7 @@ El respaldo y el simulacro usan herramientas de Linux. En Windows 11 se ejecutan
     5. ejecuta `scripts/verificar-restauracion.sql` con el **mismo instante de referencia** del origen y lo compara con la verificación del origen.
   - **Bien si** las últimas líneas dicen:
     ```text
-    RESULTADO: DATOS VERIFICADOS. Los 39 controles coinciden con el origen: contenido completo de 8 tablas (las 6 de la app, auth.users y auth.identities), conteos, numeración y privilegios.
+    RESULTADO: DATOS VERIFICADOS. Los 39 controles coinciden con el origen: contenido completo de 8 tablas (las de la app, auth.users y auth.identities), conteos, numeración y privilegios.
        Alcance: integridad de los datos. NO prueba que Supabase Auth funcione (inicio de sesión) ni una restauración en un proyecto Supabase nuevo.
     Limpieza: se borraron los archivos descifrados y la base temporal.
     ```
