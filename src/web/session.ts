@@ -101,11 +101,17 @@ export interface ManualRouteDraft {
   legs: LegValue[];
 }
 
+// Estos dos costos parten en cero. El ejemplo solo debe proteger ese cero si alguien lo declaró.
+export const ZERO_DEFAULT_COSTS = ['helpers', 'loadMinutes'] as const;
+type ZeroDefaultCost = (typeof ZERO_DEFAULT_COSTS)[number];
+type CostEdits = Omit<Partial<TripParams>, ZeroDefaultCost> & Partial<Record<ZeroDefaultCost, number | null>>;
+
 export interface SessionState {
   inputs: AddressInputs;
   habitual: RouteState;
   comparison: RouteState;
   params: TripParams;
+  declaredZeros: ZeroDefaultCost[];
   tollsComparison: number | null;
   /** Margen adicional como fracción (0,15 = 15 %). */
   margin: number;
@@ -145,6 +151,7 @@ export interface SessionState {
 export interface DraftData {
   inputs: AddressInputs;
   params: TripParams;
+  declaredZeros?: ZeroDefaultCost[];
   margin: number;
   surcharges: number;
   vehicle: AppliedVehicle | null;
@@ -201,6 +208,7 @@ export function initialState(): SessionState {
     habitual: emptyRoute(),
     comparison: emptyRoute(),
     params: { ...EMPTY_PARAMS },
+    declaredZeros: [],
     tollsComparison: null,
     margin: 0.15,
     surcharges: 0,
@@ -440,6 +448,7 @@ export class QuoteSession {
     return structuredClone({
       inputs: s.inputs,
       params: s.params,
+      declaredZeros: s.declaredZeros,
       margin: s.margin,
       surcharges: s.surcharges,
       vehicle: s.vehicle,
@@ -508,6 +517,8 @@ export class QuoteSession {
       habitual: this.recoveredRoute(inputs, d.manualRoute ?? null),
       inputs,
       params: { ...d.params },
+      // Los borradores antiguos no distinguían el cero declarado del inicial. Ante la duda, protegerlo.
+      declaredZeros: ZERO_DEFAULT_COSTS.filter((key) => d.params[key] === 0 && (d.declaredZeros?.includes(key) ?? true)),
       margin: d.margin,
       surcharges: d.surcharges,
       vehicle: d.vehicle ? { ...d.vehicle } : null,
@@ -585,12 +596,27 @@ export class QuoteSession {
    * campos conservan su error. Un texto inválido nunca pasa por estos métodos (NumberField no llama a
    * onChange con él), así que no se pierde nada escrito.
    */
-  setParams(partial: Partial<TripParams>): void {
+  setParams(partial: CostEdits): void {
+    const { helpers = this.state.params.helpers, loadMinutes = this.state.params.loadMinutes } = partial;
+    const declaredZeros = ZERO_DEFAULT_COSTS.filter((key) =>
+      key in partial ? partial[key] === 0 : this.state.declaredZeros.includes(key),
+    );
     this.set({
-      params: { ...this.state.params, ...partial },
+      params: { ...this.state.params, ...partial, helpers: helpers ?? 0, loadMinutes: loadMinutes ?? 0 },
+      declaredZeros,
       textIssues: this.textIssuesWithout(Object.keys(partial).map((k) => `params.${k}`)),
     });
   }
+  /** Solo considera los campos que la acción sustituirá, incluido un texto que aún no se pudo interpretar. */
+  wouldReplaceCosts(next: Partial<TripParams>): boolean {
+    const { params, textIssues, declaredZeros } = this.state;
+    return (Object.keys(next) as Array<keyof TripParams>).some((key) => {
+      if (`params.${key}` in textIssues) return true;
+      if (params[key] === next[key]) return false;
+      return params[key] !== EMPTY_PARAMS[key] || declaredZeros.some((zeroKey) => zeroKey === key);
+    });
+  }
+
   setTollsComparison(value: number | null): void {
     this.set({ tollsComparison: value, textIssues: this.textIssuesWithout(['tollsComparison']) });
   }

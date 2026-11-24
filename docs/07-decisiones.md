@@ -456,3 +456,7 @@ Registrada literalmente en [#43](https://github.com/ratatecuala/calculadora-de-c
 - **Prueba de datos:** `tests/catalogo-candidatos.test.ts`, 6/6, exige evidencia por cada VERIFICADO. Detecta 4 mutaciones.
 
 **Corrección local P1/P2 de A-83.** El propietario autorizó corregir los dos hallazgos de [la revisión de #53](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7143037115). [Autorización registrada en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7143060565). Esta decisión sustituye la excepción de importación del Frente A descrita arriba. Toda escritura nueva de precio por las vías ordinarias exige pesos enteros. Las cotizaciones fraccionarias ya presentes en la base conservan su precio y admiten cambios de estado y pago. Las del navegador se conservan allí con aviso de copia pendiente. El ensayo debe verificar los datos y detectar fallos de restauración, reversión y reaplicación. Resultados y validación pendiente en el [README](../README.md#pruebas).
+
+## Cotización manual · confirmación de costos y elección del precio
+
+El propietario [autorizó estas dos mejoras en el PR #34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-7146430428), sobre `93a7b9c`. El ejemplo pide permiso si sustituye costos ingresados. Con un cálculo completo puede copiarse el precio sugerido mostrado al campo final, con confirmación si reemplaza otro valor. Cancelar conserva la cotización. Se mantienen las reglas A-81/A-83.

@@ -119,3 +119,36 @@ describe('Prueba 7 (navegador) — al agotarse el cupo se activa el modo manual'
     expect(s.getSnapshot().habitual).toMatchObject({ status: 'manual', manualReason: 'error_proveedor' });
   });
 });
+
+describe('protección de los costos antes de cargar el ejemplo', () => {
+  it('distingue un costo igual, uno por sustituir y el texto pendiente de corrección', () => {
+    const s = new QuoteSession(handlerClient().client);
+    const ejemplo = { tolls: 4200, helpers: 1 };
+    s.setChosenPrice(87500);
+    s.setSurcharges(5000);
+    expect(s.wouldReplaceCosts(ejemplo)).toBe(false);
+    s.setParams({ tolls: 0 });
+    expect(s.wouldReplaceCosts(ejemplo)).toBe(true);
+    s.setParams(ejemplo);
+    expect(s.wouldReplaceCosts(ejemplo)).toBe(false);
+    s.setTextIssue('params.tolls', 'por confirmar');
+    expect(s.wouldReplaceCosts(ejemplo)).toBe(true);
+    expect(s.wouldReplaceCosts({ helpers: 1 })).toBe(false);
+  });
+
+  it.each(['helpers', 'loadMinutes'] as const)('protege el cero declarado de %s incluso tras recuperar el borrador', (key) => {
+    const s = new QuoteSession(handlerClient().client);
+    const ejemplo = { [key]: 1 };
+    const recuperada = new QuoteSession(handlerClient().client);
+    s.setParams({ [key]: 0 });
+    recuperada.restoreDraft(s.draftData());
+    expect(recuperada.wouldReplaceCosts(ejemplo)).toBe(true);
+    s.setParams({ [key]: null });
+    recuperada.restoreDraft(s.draftData());
+    expect(recuperada.wouldReplaceCosts(ejemplo)).toBe(false);
+    const antiguo = s.draftData();
+    delete antiguo.declaredZeros;
+    recuperada.restoreDraft(antiguo);
+    expect(recuperada.wouldReplaceCosts(ejemplo)).toBe(true);
+  });
+});

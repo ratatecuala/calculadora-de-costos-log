@@ -12,7 +12,7 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 
 - **Catálogo C-1.** [Seguimiento de las versiones y sus límites de uso](datos/catalogo-c1/notas.md#seguimiento-de-versiones-desde-el-notebook).
 
-- **Cotización manual (PR #34).** El ingreso de km y minutos es la acción principal. El precio final se escribe en pesos. La CI prueba el flujo hasta PDF y WhatsApp en teléfono emulado y escritorio con datos ficticios.
+- **Cotización manual (PR #34).** El ingreso de km y minutos es la acción principal. El ejemplo pide confirmación si sustituye costos. El precio final se escribe en pesos o se copia con «Usar precio sugerido» cuando el cálculo está completo. La CI prueba el flujo hasta PDF y WhatsApp en teléfono emulado y escritorio con datos ficticios.
 
 **Actualizado: 24-11-2026.** Esta sección es el punto de continuidad: un chat o colaborador nuevo debe poder seguir desde aquí sin memorias privadas.
 

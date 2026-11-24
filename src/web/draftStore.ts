@@ -13,7 +13,7 @@
 import { z } from 'zod';
 import { CARGO_HANDLING, MAX_CARGO_ITEMS } from '../shared/cargo';
 import { HELPER_SEGMENTS, MAX_EQUIPMENT, MAX_HELPERS } from '../shared/resources';
-import { MAX_MANUAL_LEG_KM, MAX_MANUAL_LEG_MINUTES, type DraftData } from './session';
+import { MAX_MANUAL_LEG_KM, MAX_MANUAL_LEG_MINUTES, ZERO_DEFAULT_COSTS, type DraftData } from './session';
 import type { KeyValueStore } from './vehicleRepository';
 
 export const DRAFT_KEY = 'cotizador.borrador.v1';
@@ -101,6 +101,7 @@ const draftDataSchema = z.object({
     tolls: numOrNull,
     otherCosts: num,
   }),
+  declaredZeros: z.array(z.enum(ZERO_DEFAULT_COSTS)).max(ZERO_DEFAULT_COSTS.length).optional().catch(undefined),
   margin: num,
   surcharges: num,
   vehicle: z

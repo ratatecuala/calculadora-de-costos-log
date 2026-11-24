@@ -1,5 +1,5 @@
 import { useState, useSyncExternalStore } from 'react';
-import { displayThreshold, formatClp } from '../../engine/rounding';
+import { displayAmount, displayThreshold, formatClp } from '../../engine/rounding';
 import type { Comparison } from '../../engine/compare';
 import { googleMapsDirectionsUrl } from '../../shared/mapsUrl';
 import type { RouteKind } from '../../shared/route';
@@ -8,7 +8,7 @@ import { buildWaypoints } from '../../shared/waypoints';
 import { boundedText, formatKm, formatMinutes, missingText, ROLE_LABEL, signedBoundedText, SOURCE_LABEL } from '../format';
 import type { QuoteSession, RouteComputation, RouteState } from '../session';
 import { bloqueoEmision } from '../modules/integracion';
-import { blocksComputation, blocksQuote } from '../numericLimits';
+import { blocksComputation, blocksQuote, limitIssue, PRICE_LIMIT } from '../numericLimits';
 import { CargoSection } from './CargoSection';
 import { Fold } from './Fold';
 import { NumberField } from './NumberField';
@@ -55,6 +55,11 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles,
   const fallaCalculo = session.computationError('habitual');
   // D-I3: con el detalle activo, no se emite si tiene datos por corregir.
   const bloqueoCarga = cargoEnabled ? bloqueoEmision(s.cargo, s.resources) : null;
+  function loadExample() {
+    if (session.wouldReplaceCosts(EXAMPLE) &&
+        !window.confirm('Se sustituirán los costos actuales del viaje por los valores ficticios del ejemplo. ¿Cargar el ejemplo?')) return;
+    session.setParams(EXAMPLE);
+  }
   const mapsUrl = (() => {
     const { origin, destination, base, startAtBase, returnToBase } = s.inputs;
     if (origin.trim().length < 3 || destination.trim().length < 3) return null;
@@ -108,7 +113,7 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles,
         <div className="card">
           <div className="row-between">
             <h2 className="sec">Costos del viaje</h2>
-            <button type="button" className="link-btn" onClick={() => session.setParams(EXAMPLE)}>
+            <button type="button" className="link-btn" onClick={loadExample}>
               Cargar ejemplo ficticio
             </button>
           </div>
@@ -139,7 +144,7 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles,
               {...p('fuelPricePerL')}
             />
             {/* A-71: sin redondear en silencio; un número con decimales se marca como inválido. */}
-            <NumberField label="Ayudantes" value={s.params.helpers} placeholder="0" onChange={(v) => session.setParams({ helpers: v ?? 0 })} {...p('helpers')} />
+            <NumberField label="Ayudantes" value={s.params.helpers} placeholder="0" onChange={(v) => session.setParams({ helpers: v })} {...p('helpers')} />
             <NumberField label="Pago por ayudante" suffix="$" value={s.params.helperFee} onChange={(v) => session.setParams({ helperFee: v })} {...p('helperFee')} />
             <NumberField
               label="Peajes y TAG"
@@ -149,7 +154,7 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles,
               hint="Vacío = no lo sé · 0 = no hay peajes"
               {...p('tolls')}
             />
-            <NumberField label="Carga y descarga" suffix="min" value={s.params.loadMinutes} placeholder="0" onChange={(v) => session.setParams({ loadMinutes: v ?? 0 })} {...p('loadMinutes')} />
+            <NumberField label="Carga y descarga" suffix="min" value={s.params.loadMinutes} placeholder="0" onChange={(v) => session.setParams({ loadMinutes: v })} {...p('loadMinutes')} />
           </div>
           <Fold summary="Opciones avanzadas">
             <div className="grid2">
@@ -421,6 +426,13 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
   const s = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
   const [custom, setCustom] = useState(() => ![0.1, 0.15, 0.2].includes(s.margin));
   const m = computation?.measures ?? null;
+  const suggestedPrice = m?.complete ? displayAmount(m.suggested) : null;
+  function useSuggestedPrice() {
+    if (suggestedPrice === null) return;
+    const replacingPrice = s.textIssues.chosenPrice !== undefined || (s.chosenPrice !== null && s.chosenPrice !== suggestedPrice);
+    if (replacingPrice && !window.confirm(`¿Reemplazar el precio que escribiste por el sugerido de ${formatClp(suggestedPrice)}?`)) return;
+    session.setChosenPrice(suggestedPrice);
+  }
   const pct = Math.round(s.margin * 100);
   const issues = session.numericIssues();
   // A-71: un margen fuera de rango (p. ej., de un borrador dañado) siempre queda a la vista.
@@ -466,6 +478,9 @@ function PriceCard({ session, computation }: { session: QuoteSession; computatio
         <div className="suggest">
           <span>Precio sugerido</span>
           <strong className="num">{boundedText(m.suggested, 'precio')}</strong>
+          {suggestedPrice !== null && limitIssue(suggestedPrice, PRICE_LIMIT) === null ? (
+            <button type="button" className="btn2 small" onClick={useSuggestedPrice}>Usar precio sugerido</button>
+          ) : null}
         </div>
       ) : (
         <p className="sub">{Object.keys(issues).some((k) => blocksComputation(k, 'habitual')) ? 'Revisa los campos marcados para ver el precio sugerido.' : 'Calcula la ruta para ver el precio sugerido.'}</p>

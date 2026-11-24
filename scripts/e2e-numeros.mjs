@@ -187,6 +187,7 @@ try {
         JSON.stringify({ valor: await f.inputValue(), invalido: await f.getAttribute('aria-invalid'), aviso: await aviso.count(), crear: await crear.isEnabled(), errores: await page.locator('.field-error').allInnerTexts() });
       const combustible = campo(/^Precio del combustible/);
       await combustible.fill('abc');
+      page.once('dialog', (dialog) => dialog.accept());
       await page.getByRole('button', { name: 'Cargar ejemplo ficticio' }).click();
       await confirmarPrecio();
       check(

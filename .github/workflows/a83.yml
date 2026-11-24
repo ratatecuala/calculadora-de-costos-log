@@ -93,7 +93,10 @@ jobs:
           servidor=$!
           trap 'kill "$servidor" 2>/dev/null || true' EXIT
           curl --fail --silent --show-error --retry 12 --retry-connrefused --retry-delay 1 http://127.0.0.1:5191/ -o /dev/null
-          NODE_PATH="$RUNNER_TEMP/qa-navegador/node_modules" node scripts/e2e-flujo-completo.mjs http://127.0.0.1:5191
+          if ! command -v pdftotext >/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends poppler-utils
+          fi
+          VERIFICAR_PDF=1 NODE_PATH="$RUNNER_TEMP/qa-navegador/node_modules" node scripts/e2e-flujo-completo.mjs http://127.0.0.1:5191
 
       - name: Precio entero · ensayo original y ocho mutaciones
         if: ${{ !cancelled() && steps.pg.outcome == 'success' }}
