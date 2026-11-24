@@ -1,12 +1,24 @@
 -- Verificación de un respaldo restaurado (docs/17-supabase-seguridad-respaldo.md §5).
 --
--- SOLO LECTURA: una única consulta SELECT, sin datos personales en la salida (conteos,
--- banderas y huellas md5 de identificadores). Se puede ejecutar en el proyecto de origen y en el
--- restaurado, y comparar ambas salidas con `diff`:
+-- SOLO LECTURA: fija el formato de la sesión (SET) y ejecuta una única consulta SELECT, sin datos
+-- personales en la salida (conteos, banderas y huellas md5). Se ejecuta en el origen y en la base
+-- restaurada CON EL MISMO instante de referencia (el `referencia_utc` del manifiesto), y se comparan
+-- ambas salidas con `diff` (las conexiones, con service=…: docs/17 §5.5):
 --
---   psql "$ORIGEN"      -X -A -t -F ' | ' -f scripts/verificar-restauracion.sql > origen.txt
---   psql "$RESTAURADO"  -X -A -t -F ' | ' -f scripts/verificar-restauracion.sql > restaurado.txt
---   diff origen.txt restaurado.txt && echo "Restauración idéntica"
+--   psql -w -d "service=ORIGEN"     -X -q -A -t -F ' | ' -v referencia=2026-11-24T12:00:00Z -f scripts/verificar-restauracion.sql > origen.txt
+--   psql -w -d "service=RESTAURADO" -X -q -A -t -F ' | ' -v referencia=2026-11-24T12:00:00Z -f scripts/verificar-restauracion.sql > restaurado.txt
+--   diff origen.txt restaurado.txt && echo "Sin diferencias"
+--
+-- Qué compara (A-78):
+--   * conteos;
+--   * huellas del CONTENIDO COMPLETO de las tablas de la app (todas las columnas de profiles, vehicles,
+--     jobs, client_quotes, quote_shares y quote_counters) y de auth.users y auth.identities: md5 de
+--     cada fila en su forma de texto, en orden de clave. Un cambio en cualquier columna (un cliente,
+--     un precio, el JSON interno, un vehículo, un correo o un hash de contraseña) cambia la huella;
+--   * huellas de identificadores y números (para ubicar la diferencia);
+--   * invariantes de numeración y privilegios.
+--   Los enlaces «vigentes» se cuentan en el instante de referencia, no en now(): un enlace que vence
+--   entre el respaldo y la restauración no es una diferencia (P2 de la reauditoría de A-77).
 --
 -- Las filas «inv.*» son invariantes: deben valer lo indicado en la columna «esperado» en
 -- cualquier base sana (también sirven sin comparar con el origen).
@@ -15,7 +27,20 @@
 -- (se detecta porque create_job_with_quote es SECURITY DEFINER). Así el script sirve antes y después.
 -- Probado en local con las dos variantes (ensayo-52/probar-restauracion.sh).
 
+\set ON_ERROR_STOP 1
+\if :{?referencia}
+\else
+  do $$ begin raise exception 'falta el instante de referencia: psql -v referencia=<referencia_utc del manifiesto>'; end $$;
+\endif
+-- Formato de texto fijo: las huellas no dependen de la zona horaria ni de la configuración local.
+set timezone = 'UTC';
+set datestyle = 'ISO, YMD';
+set intervalstyle = 'postgres';
+set extra_float_digits = 1;
+set bytea_output = 'hex';
+
 with
+ref as (select :'referencia'::timestamptz as instante),
 m52 as (
   select coalesce((select p.prosecdef from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                     where n.nspname = 'public' and p.proname = 'create_job_with_quote'
@@ -29,8 +54,8 @@ cnt as (
   union all select 'conteo.public.jobs', count(*)::text, '' from public.jobs
   union all select 'conteo.public.client_quotes', count(*)::text, '' from public.client_quotes
   union all select 'conteo.public.quote_shares', count(*)::text, '' from public.quote_shares
-  union all select 'conteo.public.quote_shares_vigentes', count(*)::text, '' from public.quote_shares
-    where revoked_at is null and (expires_at is null or expires_at > now())
+  union all select 'conteo.public.quote_shares_vigentes_en_referencia', count(*)::text, '' from public.quote_shares
+    where revoked_at is null and (expires_at is null or expires_at > (select instante from ref))
   union all select 'conteo.public.quote_counters', count(*)::text, '' from public.quote_counters
 ),
 huella as (
@@ -41,6 +66,15 @@ huella as (
   union all select 'huella.public.quote_shares.id+hash', md5(coalesce(string_agg(id::text || ':' || encode(token_hash, 'hex'), ',' order by id), '')), '' from public.quote_shares
   union all select 'huella.public.quote_counters', md5(coalesce(string_agg(owner_id::text || ':' || last_number, ',' order by owner_id), '')), '' from public.quote_counters
   union all select 'huella.public.vehicles.id', md5(coalesce(string_agg(id::text, ',' order by id), '')), '' from public.vehicles
+  -- CONTENIDO COMPLETO (A-78): todas las columnas de cada fila, en su forma de texto.
+  union all select 'contenido.auth.users', md5(coalesce(string_agg(md5(t::text), ',' order by t.id), '')), '' from auth.users t
+  union all select 'contenido.auth.identities', md5(coalesce(string_agg(md5(t::text), ',' order by t.id), '')), '' from auth.identities t
+  union all select 'contenido.public.profiles', md5(coalesce(string_agg(md5(t::text), ',' order by t.id), '')), '' from public.profiles t
+  union all select 'contenido.public.vehicles', md5(coalesce(string_agg(md5(t::text), ',' order by t.id), '')), '' from public.vehicles t
+  union all select 'contenido.public.jobs', md5(coalesce(string_agg(md5(t::text), ',' order by t.id), '')), '' from public.jobs t
+  union all select 'contenido.public.client_quotes', md5(coalesce(string_agg(md5(t::text), ',' order by t.id), '')), '' from public.client_quotes t
+  union all select 'contenido.public.quote_shares', md5(coalesce(string_agg(md5(t::text), ',' order by t.id), '')), '' from public.quote_shares t
+  union all select 'contenido.public.quote_counters', md5(coalesce(string_agg(md5(t::text), ',' order by t.owner_id), '')), '' from public.quote_counters t
 ),
 inv as (
   -- Numeración (A-47): toda cuenta con trabajos tiene contador. Antes de #52, además, el contador es
@@ -121,4 +155,5 @@ inv as (
 select control, valor, esperado from cnt
 union all select control, valor, esperado from huella
 union all select control, valor, esperado from inv
+union all select 'referencia_utc', to_char((select instante from ref), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), ''
 order by control;

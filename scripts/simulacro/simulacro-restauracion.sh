@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
-# SIMULACRO DE RESTAURACIÓN LOCAL de un respaldo de Supabase (docs/25 fase 2, docs/17 §5.6; A-77).
+# SIMULACRO DE RESTAURACIÓN LOCAL de un respaldo de Supabase (docs/25 fase 2b, docs/17 §5.6; A-77, A-78).
 #
-# Comprueba que un respaldo hecho con scripts/respaldo-supabase.sh se puede restaurar y queda IDÉNTICO
-# (conteos, huellas de identificadores, numeración y privilegios), usando una base PostgreSQL LOCAL y
-# temporal. Nunca se conecta a Supabase ni a staging. No necesita contraseñas de Supabase.
+# Comprueba que los DATOS de un respaldo hecho con scripts/respaldo-supabase.sh se cargan completos en
+# una base PostgreSQL LOCAL y temporal y coinciden con el origen: contenido completo de las tablas de la
+# app y de auth.users/auth.identities, conteos, numeración y privilegios que dejan las migraciones.
+# Nunca se conecta a Supabase ni a staging. No necesita contraseñas de Supabase.
+#
+# Lo que NO demuestra: una restauración FUNCIONAL de Supabase Auth (inicio de sesión, funciones,
+# triggers y demás tablas de auth no viajan en el respaldo) ni una restauración en un proyecto Supabase
+# nuevo. Es una comprobación de integridad de los datos, no un ensayo de recuperación completa.
 #
 #   RESPALDO=~/respaldos-cotizador/respaldo-<fecha>.tar.age \
 #   CLAVE_AGE=~/.config/cotizador/clave-respaldo.txt \
@@ -17,10 +22,12 @@
 #      migración de #52, y aplica EXACTAMENTE las migraciones de ese estado (lista explícita: nunca
 #      «todas las de la carpeta»). Antes de #52: solo las 3 anteriores;
 #   4. crea una base temporal con una base mínima tipo Supabase y las tablas auth.users y
-#      auth.identities con las MISMAS columnas que trae el respaldo (procesar-respaldo.py);
-#   5. carga los datos de la app (public, private, auth.users y auth.identities);
-#   6. ejecuta scripts/verificar-restauracion.sql y la compara con la del origen (diff).
-# Resultado: «RESULTADO: restauración idéntica» (código 0) o «RESULTADO: HAY DIFERENCIAS» (código 2).
+#      auth.identities con las MISMAS columnas y TIPOS del origen (auth-columnas.txt del respaldo);
+#   5. carga los datos de la app (public, private, auth.users y auth.identities); un formato o dato
+#      que el simulacro no sepa interpretar es un ERROR explícito (procesar-respaldo.py);
+#   6. ejecuta scripts/verificar-restauracion.sql con el MISMO instante de referencia del origen
+#      (referencia_utc del manifiesto) y la compara con la del origen (diff).
+# Resultado: «RESULTADO: DATOS VERIFICADOS» (código 0) o «RESULTADO: HAY DIFERENCIAS» (código 2).
 # La salida solo muestra conteos, huellas y nombres de tablas: nunca datos personales.
 #
 # Requisitos (en Windows 11, dentro de Ubuntu en WSL: docs/25): PostgreSQL de la misma versión que el
@@ -75,12 +82,21 @@ else
   fallar "RESPALDO debe ser un archivo .tar.age (o, solo en ensayos ficticios, una carpeta con SIMULACRO_CARPETA_FICTICIA=1)"
 fi
 carpeta="$(find "$trabajo" -mindepth 1 -maxdepth 1 -type d -name 'respaldo-*' | head -n 1)"
-[[ -n "$carpeta" && -f "$carpeta/manifiesto.txt" && -f "$carpeta/data.sql" && -f "$carpeta/verificacion-origen.txt" ]] || fallar "el respaldo no tiene manifiesto.txt, data.sql y verificacion-origen.txt"
-(cd "$carpeta" && grep -E ' (roles\.sql|schema\.sql|data\.sql|verificacion-origen\.txt)$' manifiesto.txt | suma_c) || fallar "las sumas SHA-256 no coinciden: el respaldo está dañado o incompleto"
-echo "   sumas SHA-256 correctas; modo del respaldo: $(grep '^modo:' "$carpeta/manifiesto.txt" | cut -d' ' -f2)"
+for f in manifiesto.txt data.sql auth-columnas.txt verificacion-origen.txt; do
+  [[ -n "$carpeta" && -f "$carpeta/$f" ]] || fallar "el respaldo no trae $f (¿es de una versión anterior de respaldo-supabase.sh? Haz un respaldo nuevo)"
+done
+for f in data.sql auth-columnas.txt verificacion-origen.txt; do
+  grep -qE " $f\$" "$carpeta/manifiesto.txt" || fallar "el manifiesto no trae la suma SHA-256 de $f"
+done
+(cd "$carpeta" && grep -E ' (roles\.sql|schema\.sql|data\.sql|auth-columnas\.txt|verificacion-origen\.txt)$' manifiesto.txt | suma_c) || fallar "las sumas SHA-256 no coinciden: el respaldo está dañado o incompleto"
+modo_respaldo="$(grep '^modo:' "$carpeta/manifiesto.txt" | cut -d' ' -f2 || true)"
+[[ "$modo_respaldo" == pgdump || "$modo_respaldo" == cli ]] || fallar "modo de respaldo no reconocido en el manifiesto: «$modo_respaldo»"
+referencia="$(grep '^referencia_utc:' "$carpeta/manifiesto.txt" | cut -d' ' -f2 || true)"
+[[ "$referencia" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]] || fallar "el manifiesto no trae un referencia_utc válido"
+echo "   sumas SHA-256 correctas; modo del respaldo: $modo_respaldo; instante de referencia: $referencia"
 
 echo "2) Versión de PostgreSQL"
-srv="$(grep '^postgres_servidor:' "$carpeta/manifiesto.txt" | grep -oE '[0-9]+' | head -n 1)"
+srv="$(grep '^postgres_servidor:' "$carpeta/manifiesto.txt" | grep -oE '[0-9]+' | head -n 1 || true)"
 [[ -n "$srv" ]] || fallar "el manifiesto no indica la versión del servidor"
 mayor_origen=$(( srv / 10000 ))
 (( mayor_local >= mayor_origen )) || fallar "tu PostgreSQL local es $mayor_local y el respaldo es de PostgreSQL $mayor_origen: instala PostgreSQL $mayor_origen (docs/25 fase 0)"
@@ -107,9 +123,9 @@ mkdir -p "$sock"
 "$pgbin/pg_ctl" -D "$cluster" -o "-k $sock -c listen_addresses= -p 54329" -l "$trabajo/pg.log" -w start >/dev/null
 psql_l() { "$pgbin/psql" -X -q -v ON_ERROR_STOP=1 -h "$sock" -p 54329 -U postgres -d postgres "$@"; }
 psql_l -f "$dir/base-supabase.sql" >/dev/null
-python3 "$dir/procesar-respaldo.py" auth "$carpeta/data.sql" > "$trabajo/auth.sql"
-psql_l -f "$trabajo/auth.sql" >/dev/null
-echo "   $(grep '^-- auth.users' "$trabajo/auth.sql" | sed 's/^-- //') (las del respaldo)"
+python3 -I "$dir/procesar-respaldo.py" auth "$carpeta/auth-columnas.txt" "$carpeta/data.sql" > "$trabajo/auth.sql"
+psql_l -f "$trabajo/auth.sql" >/dev/null || fallar "no se pudieron crear las tablas de Auth con los tipos del origen"
+echo "   $(grep '^-- auth.users' "$trabajo/auth.sql" | sed 's/^-- //') (las del origen)"
 for m in "${migraciones[@]}"; do
   psql_l --single-transaction -f "$repo/supabase/migrations/$m" >/dev/null
   echo "   migración aplicada: $m"
@@ -120,14 +136,17 @@ if [[ "$estado" == anterior && "$definer" != f ]] || [[ "$estado" == posterior &
 fi
 
 echo "5) Cargar los datos"
-python3 "$dir/procesar-respaldo.py" filtrar "$carpeta/data.sql" "$trabajo/datos.sql"
-psql_l --single-transaction -c 'SET session_replication_role = replica' -f "$trabajo/datos.sql" >/dev/null
+python3 -I "$dir/procesar-respaldo.py" filtrar "$carpeta/data.sql" "$trabajo/datos.sql"
+psql_l --single-transaction -c 'SET session_replication_role = replica' -f "$trabajo/datos.sql" >/dev/null || fallar "los datos no se pudieron cargar"
+
 
 echo "6) Verificar"
-"$pgbin/psql" -X -A -t -F ' | ' -v ON_ERROR_STOP=1 -h "$sock" -p 54329 -U postgres -d postgres -f "$repo/scripts/verificar-restauracion.sql" > "$trabajo/restaurado.txt"
-controles="$(grep -c ' | ' "$trabajo/restaurado.txt")"
+psql_l -A -t -F ' | ' -v referencia="$referencia" -f "$repo/scripts/verificar-restauracion.sql" > "$trabajo/restaurado.txt"
+controles="$(grep -c ' | ' "$trabajo/restaurado.txt" || true)"
+contenido="$(grep -c '^contenido\.' "$trabajo/restaurado.txt" || true)"
 if diff -u "$carpeta/verificacion-origen.txt" "$trabajo/restaurado.txt" > "$trabajo/diferencias.txt"; then
-  echo "RESULTADO: restauración idéntica ($controles controles: conteos, huellas, numeración y privilegios)"
+  echo "RESULTADO: DATOS VERIFICADOS. Los $controles controles coinciden con el origen: contenido completo de $contenido tablas (las 6 de la app, auth.users y auth.identities), conteos, numeración y privilegios."
+  echo "   Alcance: integridad de los datos. NO prueba que Supabase Auth funcione (inicio de sesión) ni una restauración en un proyecto Supabase nuevo."
 else
   echo "RESULTADO: HAY DIFERENCIAS. Líneas distintas (solo conteos, huellas o invariantes; sin datos personales):"
   grep -E '^[-+][a-z]' "$trabajo/diferencias.txt" || true

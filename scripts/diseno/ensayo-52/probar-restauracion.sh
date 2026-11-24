@@ -42,7 +42,7 @@ select public.create_job_with_quote(
 commit;
 SQL
   contador=$(psql -X -Atq -d "$db" -c "select last_number from public.quote_counters where owner_id = '00000000-0000-0000-0000-0000000000f1'")
-  salida=$(psql -X -At -F ' | ' -v ON_ERROR_STOP=1 -d "$db" -f "$repo/scripts/verificar-restauracion.sql")
+  salida=$(psql -X -q -At -F ' | ' -v ON_ERROR_STOP=1 -v referencia=2026-11-24T00:00:00Z -d "$db" -f "$repo/scripts/verificar-restauracion.sql")
   malas=$(echo "$salida" | awk -F ' \\| ' '$1 ~ /^inv\./ && $2 != $3 {print}')
   total=$(echo "$salida" | grep -c '^inv\.')
   if [[ -n "$malas" ]]; then echo "$malas"; echo "FALLA restauración ($estado de la migración): invariantes distintas de lo esperado"; exit 1; fi
