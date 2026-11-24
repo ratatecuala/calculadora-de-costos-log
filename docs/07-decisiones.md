@@ -410,3 +410,11 @@ Comunicada por el propietario por chat a Claude y **registrada literalmente** en
 **Pendiente:**
 - **POR CONFIRMAR** el menú del panel y que el certificado oficial valide el Session pooler.
 - Nueva auditoría solicitada.
+
+## Decisión del 24-11-2026: preparar I-2, catálogo piloto C-1 y calidad del flujo completo (A-80)
+
+Comunicada por el propietario por chat a Claude y **registrada literalmente** en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7140861257) antes de trabajar. **APROBADA.** A-79 queda **cerrada técnicamente**.
+
+| ID | Decisión | Alcance de la aprobación |
+|---|---|---|
+| A-80 | **Frente A, preparación de I-2:** revisar el estado de M3 y M4 y su dependencia con #52; pruebas de integración en un PostgreSQL local desechable; compatibilidad de inventario, recursos, vehículos y snapshots v1/v2; cambios concretos y secuencia, separando lo local de lo que requiere Supabase.<br>**Frente B, catálogo C-1:** investigar camionetas, furgones y camiones livianos frecuentes en Chile; piloto de hasta 15 versiones con especificaciones oficiales, fuente y fecha, `null` cuando falte el dato; catálogo estructurado de **candidatos**, sin incorporarlo a producción.<br>**Frente C, calidad funcional:** revisar las pruebas y detectar regresiones que bloqueen una cotización real (vehículo → recorrido manual → carga → costos → precio → cotización → PDF/WhatsApp); agregar pruebas sin cambiar funciones ni reglas comerciales | **No** implementar I-2 ni alterar las migraciones aprobadas: se entrega una propuesta. **No** inventar cifras ni usar datos de terceros no autorizados. Google Routes sigue desconectado. **Sin** flags, despliegues, acceso a Supabase ni migraciones remotas. **Sin** I-3 ni cambios de fórmulas, IVA o márgenes. **Sin** merge del PR #34. Se permiten agentes y *worktrees* paralelos si no comparten archivos. **Excepción a A-57:** el Frente B autoriza a Claude a investigar C-1, solo para este piloto de candidatos |

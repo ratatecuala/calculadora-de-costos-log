@@ -574,3 +574,73 @@ Por eso no bastaba con exigir `≥ 0`.
 
 - **Valores enormes escritos a mano (anterior a D-I8):** `parseAmount` acepta cualquier número finito ≥ 0. Si alguien escribe, por ejemplo, `1e308` en un campo de costo o de km, el motor lanza `InvalidAmountError` y la calculadora puede fallar, con o sin borrador. Corregirlo toca la interfaz o la validación de entradas (A-50) y no se hizo sin tu autorización.
 - **Nota de experiencia de usuario de la auditoría:** tras recuperar un recorrido manual y presionar «Calcular ruta», la regla anterior conserva los km escritos como correcciones sobre la ruta del proveedor, con un aviso. Conviene que el texto deje claro que las cifras declaradas prevalecen. No se cambió: el punto 2 de D-I8 sigue sin autorizar.
+
+## 17. Preparación de I-2: estado real, prueba de integración y propuesta (A-80, 24-11-2026)
+
+**PROPUESTA, no implementada.** No cambia las migraciones aprobadas, los borradores M3/M4 ni `src/`. Todo se ensayó en un PostgreSQL **local y desechable**, sin Supabase.
+
+### 17.1 Estado real comprobado
+
+| Pieza | Estado | Prueba ejecutada (Claude, 24-11, PostgreSQL 16.15 local) |
+|---|---|---|
+| #52 (`20261122120000`) | En el repositorio, aprobada técnicamente (A-76). **No aplicada** en staging: espera el respaldo real y A-59 | `ensayar.sh`: 65 OK |
+| M3 y M4 | Solo **borradores** (`scripts/diseno/borradores/`), no son migraciones | `probar-borradores.sh` sobre las 4 migraciones reales: T1–T15, C3 27/27 y concurrencia (20 guardados simultáneos) **todos OK**, pero solo con D-52-3 **simulado** |
+| Dependencia con #52 | **M4 tal como está escrito falla después de #52**: `permission denied for schema private`. Con #52, `authenticated` ya no tiene acceso a `private` (D-52-2) | `probar-i2.sh` con `CONTROL_SIN_D523=1`: el guardado falla, código 3 |
+| Cliente | Arma v2 y `toCloudPayload` (A-61) desde I-1; en la cuenta sigue escribiendo **v1** (`snapshotVersionFor(…, 'nube') = 1`); `clasificarParaCopia` difiere las v2 con líneas | `npm test` |
+
+### 17.2 Prueba de integración cliente ↔ servidor (`scripts/diseno/i2/probar-i2.sh`)
+
+Arma 7 cotizaciones con el **código real del cliente** (`QuoteSession` → `buildJobRecord` v1/v2 → `toCloudPayload` → `jobWithQuotePayload`). Las guarda con `create_job_with_quote_v2` como `authenticated` (borradores M3/M4 + D-52-3, sobre las 4 migraciones reales) y las lee de vuelta con `jobFromRow`, `readSnapshot` y `clientQuoteFromRow`. **Resultado: 49/49.**
+
+| Caso | Qué comprueba |
+|---|---|
+| v2 con 6 líneas variadas y recursos | `internal` guardado idéntico; líneas en el mismo orden y con el mismo contenido (medidas con volumen calculado, volumen declarado, solo peso con decimales, frágil, manejo); el snapshot del navegador se **reconstruye igual** a partir de la nube |
+| v2 solo con recursos · v2 «Rápido» | `cargo` null o resumen sin líneas; 0 líneas |
+| v1 por la v2 sin líneas | `internal` v1 idéntico al de hoy (L1) |
+| v2 con 200 líneas de 80 caracteres | Las 200 líneas, en orden |
+| Copia de una v2 local (`local_id`, N° emitido 900), dos veces | Segunda copia: `NULL`, sin líneas duplicadas, N° 900 conservado |
+| v2 con recursos en sus topes y 200 líneas largas | Peor caso válido: **7 057 B** de JSON en el cliente (tope 11 000) y **8 558 B** de `jsonb` sin comprimir (tope del CHECK 16 384). El tope del cliente deja margen |
+| En todos | El documento del cliente es exactamente `toClientQuote`, sin inventario ni costos (D-I7) |
+
+### 17.3 Compatibilidad revisada
+
+- **Snapshots v1/v2:** v1 se guarda y se lee sin cambios. En la nube, la v2 se guarda sin `items`, y con `job_cargo_items` se reconstruye igual al del navegador (schema y totales).
+- **Inventario:** el contrato de las líneas coincide en el cliente (Zod) y en el servidor (CHECK de M3): C3 27/27 y los 7 casos.
+- **Recursos:** viajan dentro de `internal` y no tienen tabla propia. El peor caso cabe con margen.
+- **Vehículos:** la v2 guarda el vehículo con los campos del catálogo en `null`. **I-2 no toca la tabla `vehicles`.** El catálogo (#46: M1 y M2) es independiente de I-2.
+
+### 17.4 Modificaciones concretas para implementar I-2
+
+**Servidor.** Son dos migraciones nuevas, posteriores a `20261122120000`. Cada una se aplica con su propia autorización, después de #52:
+1. **M3′ (`job_cargo_items`)**, desde el borrador:
+   - **sin** `grant execute` de `private.insert_cargo_items` a `authenticated` (D-52-3);
+   - capas de defensa sin cambios (marca de transacción, trabajo creado en esta transacción, sin líneas previas, máximo 200);
+   - el supuesto de seguridad pasa a ser también de privilegios SQL.
+2. **M4′ (`create_job_with_quote_v2`)**:
+   - **`SECURITY DEFINER`**, con `search_path = ''`;
+   - `revoke` a `public`, `anon` y `service_role`, y `grant` solo a `authenticated`;
+   - sigue reutilizando la v1, que con #52 también es DEFINER: `auth.uid()` y N1 se conservan (probado en T1–T15).
+3. **Reversión preparada:** M4′ se revierte con `drop function`. Revertir M3′ **borra las líneas guardadas**, así que exige un respaldo previo.
+
+**Cliente** (todo local; detrás de una flag **nueva**, `VITE_FF_CARGA_NUBE`, apagada, para que publicar el cliente nunca se adelante a las migraciones):
+1. `saveQuote.snapshotVersionFor`: v2 también con el repositorio `nube` cuando las dos flags estén encendidas.
+2. `cloud/quotes.ts` `create`:
+   - una v2 pasa por `toCloudPayload` y `rpc('create_job_with_quote_v2', { p_job, p_quote, p_cargo_items })`;
+   - una v1 sigue igual;
+   - si `toCloudPayload` falla, no se guarda y se avisa.
+3. `cloud/mappers.ts`: `cargoItemFromRow`, que ya está probada como `lineaDesdeFila` en `verificar-lectura.ts`.
+4. `cloud/quotes.ts` `get`: lee `job_cargo_items` (orden por `position`) para el detalle y para retomar una cotización. `list` no cambia.
+5. `cloud/migration.ts`: con la flag nueva, las `v2-con-lineas` pasan a ser elegibles y se copian con la v2; las diferidas salen de la lista al verificarse.
+6. `Calculator` y `draftStore`: editores y recuperación del borrador también con cuenta (aislados por dueño, I-1b).
+
+### 17.5 Secuencia propuesta
+
+| Paso | Qué | Dónde | Autorización |
+|---|---|---|---|
+| 1 | M3′ y M4′ como archivos de migración (sin aplicar) + cambios del cliente detrás de `VITE_FF_CARGA_NUBE` apagada + pruebas unitarias y `probar-i2.sh` ampliado a M3′/M4′ reales | **Local** | Implementar I-2 en local |
+| 2 | Auditoría de ChatGPT de privilegios y del contrato | — | — |
+| 3 | Respaldo real y simulacro (docs/25), luego **#52 en staging** (A-59) y sus verificaciones | **Supabase** | Las ya previstas en docs/25 |
+| 4 | Aplicar M3′ y después M4′ en staging; verificaciones de solo lectura; T1–T15 con usuarios ficticios | **Supabase** | Una por migración |
+| 5 | Build de staging con las dos flags encendidas; e2e con cuentas A y B (guardar, ver, copiar desde el navegador, enlaces) | **Supabase + despliegue** | Encender flags en staging y desplegar |
+
+**Qué NO incluye:** I-3 (recursos en el costo), el catálogo (#46), cambios de fórmulas, IVA o márgenes, ni encender flags fuera de las pruebas.
