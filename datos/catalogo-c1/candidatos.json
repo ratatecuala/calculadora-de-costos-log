@@ -307,7 +307,7 @@
           "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio del importador (Andes Motor). | Verificación 2026-11-25: maxus.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a la página y al PDF; valor NO verificado."
         },
         "version": {
-          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60%2BGSL%2B%284%29.pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
           "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
@@ -321,35 +321,35 @@
           "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio del importador (Andes Motor). Segmento asignado por el agente según tipo de carrocería (tentativo), no es un dato de la fuente. | Verificación 2026-11-25: maxus.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a la página y al PDF; valor NO verificado."
         },
         "engine": {
-          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60%2BGSL%2B%284%29.pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
           "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
           "note": "Tren motriz publicado para la DX gasolina. Falta archivar el original con SHA-256."
         },
         "fuel": {
-          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60%2BGSL%2B%284%29.pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
           "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
           "note": "Gasolina según la ficha de la DX 5MT. Falta archivar el original con SHA-256."
         },
         "curb_weight_kg": {
-          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60%2BGSL%2B%284%29.pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
           "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
           "note": "Peso en orden de marcha. Falta archivar el original con SHA-256."
         },
         "gvw_kg": {
-          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60%2BGSL%2B%284%29.pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
           "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
           "note": "Peso bruto publicado. Falta archivar el original con SHA-256."
         },
         "payload_kg": {
-          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60%2BGSL%2B%284%29.pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
           "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
@@ -363,21 +363,21 @@
           "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio del importador (Andes Motor). | Verificación 2026-11-25: maxus.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a la página y al PDF; valor NO verificado."
         },
         "cargo_length_mm": {
-          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60%2BGSL%2B%284%29.pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
           "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
           "note": "Largo medido en el piso de la caja. Falta archivar el original con SHA-256."
         },
         "cargo_width_mm": {
-          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60%2BGSL%2B%284%29.pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
           "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
           "note": "Ancho superior de la caja. El ancho libre entre pasos de rueda sigue sin documentar. Falta archivar el original con SHA-256."
         },
         "cargo_height_mm": {
-          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60%2BGSL%2B%284%29.pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
           "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
