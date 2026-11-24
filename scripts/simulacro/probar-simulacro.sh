@@ -16,6 +16,10 @@
 # Frente B (integridad): contenido completo; alterar un cliente, un precio, el JSON interno, un vehículo, un
 # correo o un hash de contraseña provoca HAY DIFERENCIAS; formatos no reconocidos son errores explícitos.
 # Frente C (tiempo): un enlace que vence entre el respaldo y el simulacro no produce una diferencia falsa.
+# TLS (A-79): el servidor temporal tiene TLS con un certificado de una CA de prueba. Las conexiones de las
+# pruebas generales usan la EXCEPCIÓN explícita de pruebas locales (loopback, sin TLS); el grupo T prueba
+# sin excepción: verify-full con la CA correcta funciona, y certificado incorrecto, nombre de servidor
+# distinto, archivo faltante, modos inseguros (también editados a mano) y variables PGSSL* se rechazan.
 set -euo pipefail
 umask 077
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -40,10 +44,22 @@ check() {
 restos() { find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'simulacro-*' -user "$(id -un)" 2>/dev/null | wc -l; }
 antes_restos="$(restos)"
 
-# ---- Servidor temporal: local por socket sin contraseña (administración), TCP con scram-sha-256 -------------
+# ---- Certificados de PRUEBA: una CA, el certificado del servidor (solo DNS:localhost) y otra CA ajena ------
+mkdir "$t/tls"
+ca() { openssl req -x509 -newkey rsa:2048 -nodes -keyout "$t/tls/$1.key" -out "$t/tls/$1.crt" -days 2 -subj "/CN=$2" \
+         -addext basicConstraints=critical,CA:TRUE -addext keyUsage=critical,keyCertSign,cRLSign 2>/dev/null; }
+ca ca "CA de prueba"; ca otra-ca "Otra CA de prueba"
+openssl req -newkey rsa:2048 -nodes -keyout "$t/tls/server.key" -out "$t/tls/server.csr" -subj "/CN=localhost" 2>/dev/null
+printf 'subjectAltName=DNS:localhost\nbasicConstraints=CA:FALSE\n' > "$t/tls/ext"
+openssl x509 -req -in "$t/tls/server.csr" -CA "$t/tls/ca.crt" -CAkey "$t/tls/ca.key" -CAcreateserial -out "$t/tls/server.crt" -days 2 -extfile "$t/tls/ext" 2>/dev/null
+printf 'esto no es un certificado\n' > "$t/tls/basura.crt"
+
+# ---- Servidor temporal: local por socket sin contraseña (administración), TCP con scram-sha-256 y TLS ------
 "$pgbin/initdb" -D "$t/pg" -U postgres --auth-local=trust --auth-host=scram-sha-256 --no-sync >/dev/null
 mkdir "$t/s"
-"$pgbin/pg_ctl" -D "$t/pg" -o "-k $t/s -c listen_addresses=127.0.0.1 -p $puerto -c timezone=America/Santiago" -l "$t/pg.log" -w start >/dev/null
+"$pgbin/pg_ctl" -D "$t/pg" -o "-k $t/s -c listen_addresses=127.0.0.1 -p $puerto -c timezone=America/Santiago -c ssl=on -c ssl_cert_file=$t/tls/server.crt -c ssl_key_file=$t/tls/server.key" -l "$t/pg.log" -w start >/dev/null
+# Excepción EXPLÍCITA para las pruebas generales (servidor de loopback). El grupo T la quita.
+export COTIZADOR_PRUEBA_LOCAL_SIN_TLS=solo-loopback-de-prueba
 adm() { PGOPTIONS='-c client_min_messages=warning' "$pgbin/psql" -X -q -v ON_ERROR_STOP=1 -h "$t/s" -p "$puerto" -U postgres "$@"; }
 
 # ---- Credencial FICTICIA: aleatoria, con : \ @ % / para probar el escapado. Nunca va en argumentos. -------
@@ -236,6 +252,77 @@ cp "$t/pgpass.bueno" "$PGPASSFILE"
 check "A14 contraseña equivocada: falla con un mensaje SANEADO (<usuario>, <servidor>; sin usuario, IP ni contraseña)" '[[ $x == 1 ]] && grep -q "<usuario>" "$t/log-mala.txt" && ! grep -q "$usuario" "$t/log-mala.txt" && ! grep -q "127.0.0.1" "$t/log-mala.txt" && ! grep -qF "INCORRECTA" "$t/log-mala.txt" && sin_secreto "$t/log-mala.txt"'
 sed -n '/ERROR\|FATAL\|failed/p' "$t/log-mala.txt" | head -n 2 | sed 's/^/   /'
 
+echo "== T · TLS: verify-full con certificado raíz; todo lo demás se rechaza (sin la excepción de prueba)"
+sin_exc() { env -u COTIZADOR_PRUEBA_LOCAL_SIN_TLS "$@"; }
+mkdir -p "$t/conf-vacia"
+if printf 'postgresql://u:[YOUR-PASSWORD]@db.ejemplo.invalid:5432/postgres\nNO-DEBE-PEDIRSE\n' | sin_exc env COTIZADOR_CONFIG_DIR="$t/conf-vacia" python3 -I "$repo/scripts/conexion/configurar-conexion.py" > "$t/ult.log" 2>&1; then x=0; else x=1; fi
+check "T1 asistente sin el certificado: se detiene ANTES de pedir la contraseña y no escribe nada" '[[ $x == 1 ]] && grep -q "no existe el certificado" "$t/ult.log" && [[ ! -e "$t/conf-vacia/pgpass" && ! -e "$t/conf-vacia/pg_service.conf" ]]'
+{ printf 'postgresql://%s:[YOUR-PASSWORD]@localhost:%s/pre_%s?sslmode=require\n' "$usuario" "$puerto" "$sello"; cat "$t/secreto"; printf '\n'; } \
+  | sin_exc env COTIZADOR_CONFIG_DIR="$t/conf" python3 -I "$repo/scripts/conexion/configurar-conexion.py" --servicio tls --certificado "$t/tls/ca.crt" > "$t/ult.log" 2>&1 || true
+seccion_tls() { python3 -I -c 'import configparser,sys; c=configparser.ConfigParser(interpolation=None); c.optionxform=str; c.read(sys.argv[1]); print("\n".join(f"{k}={v}" for k,v in c["tls"].items()))' "$PGSERVICEFILE"; }
+check "T2 asistente: escribe sslmode=verify-full, sslrootcert y gssencmode=disable, aunque la cadena traiga sslmode=require" 'seccion_tls | grep -qx "sslmode=verify-full" && seccion_tls | grep -qx "sslrootcert=$t/tls/ca.crt" && seccion_tls | grep -qx "gssencmode=disable" && grep -q "se usará sslmode=verify-full" "$t/ult.log"'
+if PG_SERVICIO=tls sin_exc "$repo/scripts/conexion/probar-conexion.sh" > "$t/ult.log" 2>&1; then x=0; else x=1; fi
+check "T3 verify-full con la CA correcta: conecta y confirma «TLS verificado»" '[[ $x == 0 ]] && grep -q "TLS verificado (verify-full" "$t/ult.log"'
+if (unset COTIZADOR_PRUEBA_LOCAL_SIN_TLS; PG_SERVICIO=tls BACKUP_DIR="$t/respaldos" BACKUP_AGE_RECIPIENT="$destinatario" vigilar tls-resp "$repo/scripts/respaldo-supabase.sh" pgdump); then x=0; else x=1; fi
+check "T4 el respaldo completo funciona por TLS verificado, sin la contraseña en argumentos ni /proc" '[[ $x == 0 ]] && grep -q "Respaldo listo" "$t/log-tls-resp.txt" && sin_secreto "$t/shim-tls-resp.log" "$t/log-tls-resp.txt" && vigia_limpio tls-resp'
+# Variantes de la sección [tls] editadas «a mano» en una copia de pg_service.conf.
+variante() {  # variante <nombre> <operaciones...>: k=v cambia o agrega, -k quita, ^línea antepone tal cual
+  python3 -I - "$PGSERVICEFILE" "$t/conf/v-$1.conf" "${@:2}" <<'PY'
+import configparser, sys
+c = configparser.ConfigParser(interpolation=None); c.optionxform = str; c.read(sys.argv[1])
+d = dict(c['tls']); antes = []
+for op in sys.argv[3:]:
+    if op.startswith('-'): d.pop(op[1:], None)
+    elif op.startswith('^'): antes.append(op[1:])
+    else: k, v = op.split('=', 1); d[k] = v
+open(sys.argv[2], 'w').write('[tls]\n' + ''.join(l + '\n' for l in antes) + ''.join(f'{k}={v}\n' for k, v in d.items()))
+PY
+}
+con_variante() { PGSERVICEFILE="$t/conf/v-$1.conf" PG_SERVICIO=tls sin_exc "${2:-$repo}/scripts/conexion/probar-conexion.sh" > "$t/ult.log" 2>&1; }
+rechaza() {  # rechaza <id> <descripción> <variante> <mensaje esperado>
+  if con_variante "$3"; then x=0; else x=1; fi
+  esperado="$4"
+  check "$1 $2 → rechazado («$4»)" '[[ $x == 1 ]] && grep -qF -- "$esperado" "$t/ult.log" && ! grep -q "Conexión correcta" "$t/ult.log"'
+}
+antes_auth="$(grep -c "password authentication failed" "$t/pg.log" || true)"
+variante otra-ca "sslrootcert=$t/tls/otra-ca.crt"
+rechaza T5 "certificado de OTRA CA" otra-ca "certificate verify failed"
+check "T6 … y la contraseña no llegó al servidor: se cortó en TLS, sin intento de autenticación" '[[ "$(grep -c "password authentication failed" "$t/pg.log" || true)" == "$antes_auth" ]]'
+variante otro-nombre "host=127.0.0.1"
+rechaza T7 "nombre de servidor distinto del certificado (127.0.0.1 vs localhost)" otro-nombre "does not match host name"
+variante falta "sslrootcert=$t/tls/no-existe.crt"
+rechaza T8 "certificado faltante" falta "no existe el certificado"
+n=8
+for modo in disable allow prefer require verify-ca; do
+  n=$((n + 1)); variante "modo-$modo" "sslmode=$modo"
+  rechaza "T$n" "sslmode=$modo editado a mano" "modo-$modo" "sslmode=$modo no verifica la identidad del servidor"
+done
+variante sin-modo -sslmode;                       rechaza T14 "sin sslmode (libpq usaría prefer)" sin-modo "sslmode=(sin definir)"
+variante duplicado "^sslmode=disable";            rechaza T15 "sslmode=disable antes de verify-full (libpq usa la primera)" duplicado "repetido"
+variante system "sslrootcert=system";             rechaza T16 "sslrootcert=system" system "no «system»"
+variante sin-cert -sslrootcert;                   rechaza T17 "verify-full sin sslrootcert" sin-cert "sslrootcert debe ser la ruta"
+variante basura "sslrootcert=$t/tls/basura.crt";  rechaza T18 "archivo que no es un certificado" basura "no es un certificado válido"
+variante hoja "sslrootcert=$t/tls/server.crt";    rechaza T19 "certificado de servidor en lugar de la CA raíz" hoja "no contiene un certificado raíz"
+variante gss "gssencmode=prefer";                 rechaza T20 "gssencmode=prefer" gss "gssencmode=disable"
+variante extra "requiressl=1";                    rechaza T21 "parámetro extra (requiressl)" extra "no permitidos: requiressl"
+cp "$t/tls/ca.crt" "$t/tls/ca-escribible.crt"; chmod 666 "$t/tls/ca-escribible.crt"
+variante escribible "sslrootcert=$t/tls/ca-escribible.crt"; rechaza T22 "certificado modificable por otros (666)" escribible "no debe poder modificarlo nadie más"
+variante ok
+for v in PGSSLMODE=disable PGSSLROOTCERT=/dev/null PGGSSENCMODE=prefer PGREQUIRESSL=0; do
+  n=$((n + 1)); if PGSERVICEFILE="$t/conf/v-ok.conf" PG_SERVICIO=tls sin_exc env "$v" "$repo/scripts/conexion/probar-conexion.sh" > "$t/ult.log" 2>&1; then x=0; else x=1; fi
+  esperado="no uses la variable ${v%%=*}"
+  check "T$((n + 9)) variable ${v%%=*} en el entorno → rechazada" '[[ $x == 1 ]] && grep -qF -- "$esperado" "$t/ult.log"'
+done
+variante remoto "host=db.ejemplo.invalid" "sslmode=disable"
+if PGSERVICEFILE="$t/conf/v-remoto.conf" PG_SERVICIO=tls "$repo/scripts/conexion/probar-conexion.sh" > "$t/ult.log" 2>&1; then x=0; else x=1; fi
+check "T27 la excepción de prueba NO vale para un servidor remoto" '[[ $x == 1 ]] && grep -q "solo vale para un servidor local" "$t/ult.log"'
+if PGSERVICEFILE="$t/conf/v-remoto.conf" PG_SERVICIO=tls COTIZADOR_PRUEBA_LOCAL_SIN_TLS=1 "$repo/scripts/conexion/probar-conexion.sh" > "$t/ult.log" 2>&1; then x=0; else x=1; fi
+check "T28 la excepción exige su valor exacto" '[[ $x == 1 ]] && grep -q "solo admite el valor exacto" "$t/ult.log"'
+if PG_SERVICIO="o-pre_$sello" sin_exc "$repo/scripts/conexion/probar-conexion.sh" > "$t/ult.log" 2>&1; then x=0; else x=1; fi
+check "T29 sin la excepción, ni siquiera un servidor local acepta sslmode=disable" '[[ $x == 1 ]] && grep -q "sslmode=disable no verifica" "$t/ult.log"'
+if printf 'postgresql://u:[YOUR-PASSWORD]@db.ejemplo.invalid:5432/postgres\nx\n' | COTIZADOR_CONFIG_DIR="$t/conf-vacia" python3 -I "$repo/scripts/conexion/configurar-conexion.py" > "$t/ult.log" 2>&1; then x=0; else x=1; fi
+check "T30 el asistente con la excepción y un servidor remoto se niega (no escribe sslmode=disable)" '[[ $x == 1 ]] && grep -q "solo vale para un servidor local" "$t/ult.log" && [[ ! -e "$t/conf-vacia/pg_service.conf" ]]'
+
 echo "== E2 · origen DESPUÉS de #52 + verificaciones de solo lectura (V1–V17) con la conexión segura"
 origen "post_$sello" 1
 r2="$(respaldar "post_$sello")" || r2=""
@@ -359,7 +446,7 @@ rm -f "$t/conf/clave-cruda"
 check "M2a contraseña en la cadena de conexión → el registro de llamadas la detecta (A4 fallaría)" '! sin_secreto "$t/shim-resp-pre_$sello.log"'
 check "M2b … y la vigilancia de /proc también, por su cuenta (A5 fallaría)" '! vigia_limpio "resp-pre_$sello"'
 m="$(mutante m3 conexion/conexion.sh 's|python3 -I "$_conexion_dir/sanear.py" < "$err" >\&2|cat "$err" >\&2|')"
-cp "$t/pgpass.bueno" "$t/pgpass.tmp"; sed -i 's/[^:]*$/OTRA/' "$PGPASSFILE"
+cp "$PGPASSFILE" "$t/pgpass.tmp"; sed -i 's/[^:]*$/OTRA/' "$PGPASSFILE"
 if PG_SERVICIO="o-pre_$sello" BACKUP_DIR="$t/respaldos" BACKUP_AGE_RECIPIENT="$destinatario" "$m/scripts/respaldo-supabase.sh" pgdump > "$t/ult.log" 2>&1; then x=0; else x=1; fi
 cp "$t/pgpass.tmp" "$PGPASSFILE"
 check "M3 sin sanear los errores → el usuario aparece en el mensaje (A14 fallaría)" 'grep -q "$usuario" "$t/ult.log"'
@@ -382,6 +469,32 @@ check "M7 sin fijar la zona horaria, origen (America/Santiago) y simulacro difie
 m="$(mutante m8 simulacro/procesar-respaldo.py "s/            if generada == 's':/            if False:/")"
 if simular "$r1" "$m/scripts/simulacro/simulacro-restauracion.sh"; then x=0; else x=$?; fi
 check "M8 Auth sin sus columnas generadas → HAY DIFERENCIAS en contenido.auth.* (los tipos del origen importan)" '[[ $x == 2 ]] && grep -q "^[-+]contenido.auth" "$t/ult.log"'
+
+echo "== Mutaciones de la política TLS: cada defecto reintroducido deja pasar una configuración insegura"
+m="$(mutante mt1 conexion/sanear.py "s/        if sec.get('sslmode') != 'verify-full':/        if False:/")"
+if con_variante modo-require "$m"; then x=0; else x=1; fi
+check "MT1 sin exigir verify-full, sslmode=require conecta (T12 lo detecta)" '[[ $x == 0 ]] && grep -q "Conexión correcta" "$t/ult.log"'
+m="$(mutante mt2 conexion/sanear.py "s/cp = leer_servicios(os.environ\['PGSERVICEFILE'\], estricto=True)/cp = leer_servicios(os.environ['PGSERVICEFILE'])/")"
+if con_variante duplicado "$m"; then x=0; else x=1; fi
+check "MT2 aceptando claves repetidas, «sslmode=disable» antepuesto conecta SIN TLS (T15 lo detecta)" '[[ $x == 0 ]] && grep -q "SIN TLS" "$t/ult.log"'
+m="$(mutante mt3 conexion/sanear.py "s/    if not es_loopback(host):/    if False:/")"
+if printf 'postgresql://u:[YOUR-PASSWORD]@db.ejemplo.invalid:5432/postgres\nx\n' | COTIZADOR_CONFIG_DIR="$t/conf-mt3" python3 -I "$m/scripts/conexion/configurar-conexion.py" > "$t/ult.log" 2>&1; then x=0; else x=1; fi
+check "MT3 excepción sin límite de loopback: el asistente escribe sslmode=disable para un servidor remoto (T30 lo detecta)" '[[ $x == 0 ]] && grep -q "^sslmode=disable" "$t/conf-mt3/pg_service.conf"'
+m="$(mutante mt4 conexion/sanear.py "s/    if sec.get('gssencmode') != 'disable':/    if False:/")"
+if con_variante gss "$m"; then x=0; else x=1; fi
+check "MT4 sin exigir gssencmode=disable, gssencmode=prefer pasa (T20 lo detecta)" '[[ $x == 0 ]]'
+m="$(mutante mt5 conexion/sanear.py "s/    cas = ctx.get_ca_certs()/    cas = [{'notAfter': 'Jan  1 00:00:00 2999 GMT'}]/")"
+if con_variante hoja "$m"; then x=0; else x=$?; fi
+check "MT5 sin comprobar que sea una CA, el certificado de servidor pasa la comprobación (T19 lo detecta)" '! grep -q "no contiene un certificado raíz" "$t/ult.log"'
+m="$(mutante mt6 conexion/conexion.sh 's/      PGSSL\*|PGGSS\*|PGREQUIRESSL|PGSYSCONFDIR)/      NINGUNA)/')"
+if PGSERVICEFILE="$t/conf/v-ok.conf" PG_SERVICIO=tls sin_exc env PGSSLMODE=disable "$m/scripts/conexion/probar-conexion.sh" > "$t/ult.log" 2>&1; then x=0; else x=1; fi
+check "MT6 sin rechazar PGSSL*, PGSSLMODE=disable ya no se rechaza (T23 lo detecta)" '[[ $x == 0 ]]'
+m="$(mutante mt7 conexion/configurar-conexion.py "s/        tls = \[('sslmode', 'verify-full'), ('sslrootcert', cert)\]/        tls = [('sslmode', 'require')]/")"
+{ printf 'postgresql://%s:[YOUR-PASSWORD]@localhost:%s/pre_%s\n' "$usuario" "$puerto" "$sello"; cat "$t/secreto"; printf '\n'; } \
+  | sin_exc env COTIZADOR_CONFIG_DIR="$t/conf-mt7" python3 -I "$m/scripts/conexion/configurar-conexion.py" --servicio tls --certificado "$t/tls/ca.crt" > "$t/ult.log" 2>&1 || true
+check "MT7 un asistente que escribe sslmode=require (lo anterior) deja una configuración que T2 detecta" 'grep -q "^sslmode=require" "$t/conf-mt7/pg_service.conf"'
+if PGSERVICEFILE="$t/conf-mt7/pg_service.conf" PGPASSFILE="$t/conf-mt7/pgpass" PG_SERVICIO=tls sin_exc "$repo/scripts/conexion/probar-conexion.sh" > "$t/ult.log" 2>&1; then x=0; else x=1; fi
+check "MT7b … y los scripts reales la rechazan igual (defensa en profundidad)" '[[ $x == 1 ]] && grep -q "sslmode=require no verifica" "$t/ult.log"'
 
 echo "== Limpieza y repositorio"
 check "C7 sin carpetas «simulacro-*» residuales (también tras las corridas fallidas)" '[[ "$(restos)" == "$antes_restos" ]]'

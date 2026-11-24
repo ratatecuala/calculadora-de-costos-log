@@ -5,6 +5,11 @@
 #   * pg_service.conf (permisos 600): servidor, puerto, base y usuario, bajo un nombre de servicio.
 #   * pgpass          (permisos 600): la contraseña. libpq la lee del archivo; no aparece en ningún
 #                                     argumento de proceso.
+# TLS (A-79): toda conexión remota exige sslmode=verify-full y sslrootcert con el certificado raíz de
+# Supabase (cifrado + identidad del servidor). Se rechazan disable/allow/prefer/require/verify-ca, también
+# si se editan los archivos a mano, y cualquier variable PGSSL*/PGGSS*/PGREQUIRESSL que pudiera torcer la
+# política. Única excepción: pruebas en un servidor LOCAL (loopback) con
+# COTIZADOR_PRUEBA_LOCAL_SIN_TLS=solo-loopback-de-prueba (sanear.py).
 # Los dos se crean con `python3 scripts/conexion/configurar-conexion.py` (docs/25, paso 1.3), fuera del
 # repositorio, en ~/.config/cotizador. Los programas reciben solo `service=<nombre>` y `-w` (nunca piden
 # la contraseña por teclado). Los mensajes de error de psql/pg_dump se muestran SANEADOS (sanear.py):
@@ -39,6 +44,13 @@ cargar_conexion() {
     || _conexion_fallar "SUPABASE_DB_URL y SUPABASE_DB_URL_FILE ya no se usan: ponían la contraseña en la línea de comandos. Usa python3 scripts/conexion/configurar-conexion.py (docs/25, paso 1.3)"
   [[ -z "${PGPASSWORD:-}" ]] || _conexion_fallar "no uses la variable PGPASSWORD: la contraseña va solo en el archivo pgpass"
   [[ -z "${DATABASE_URL:-}" ]] || _conexion_fallar "no uses DATABASE_URL: la conexión va en pg_service.conf y pgpass"
+  local v
+  for v in $(compgen -e); do
+    case "$v" in
+      PGSSL*|PGGSS*|PGREQUIRESSL|PGSYSCONFDIR)
+        _conexion_fallar "no uses la variable $v: la seguridad de la conexión (TLS) se fija solo en pg_service.conf" ;;
+    esac
+  done
 
   PG_SERVICIO="${PG_SERVICIO:-cotizador-staging}"
   [[ "$PG_SERVICIO" =~ ^[A-Za-z0-9_-]+$ ]] || _conexion_fallar "PG_SERVICIO solo admite letras, números, - y _"

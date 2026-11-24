@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 """CONFIGURAR LA CONEXIÓN a la base de Supabase, sin dejar la contraseña a la vista (A-78, docs/25 paso 1.3).
 
-  python3 scripts/conexion/configurar-conexion.py [--servicio cotizador-staging]
+  python3 scripts/conexion/configurar-conexion.py [--servicio cotizador-staging] [--certificado RUTA]
+
+ANTES: descarga el certificado raíz (CA) de tu proyecto desde el panel de Supabase y cópialo a
+~/.config/cotizador/supabase-ca.crt (docs/25, paso 1.3). Sin él, el asistente no continúa.
 
 Pide (sin mostrar lo que escribes ni guardarlo en el historial):
   1. la cadena de conexión del «Session pooler» copiada del botón Connect de Supabase; puede traer
      [YOUR-PASSWORD] en vez de la contraseña;
   2. la contraseña de la base, si la cadena no la trae.
 Escribe, en ~/.config/cotizador (carpeta 700) y con permisos 600:
-  * pg_service.conf: la sección [cotizador-staging] con servidor, puerto, base, usuario y sslmode
-    (sin contraseña);
+  * pg_service.conf: la sección [cotizador-staging] con servidor, puerto, base, usuario y TLS
+    verificado: sslmode=verify-full, sslrootcert=<certificado> y gssencmode=disable (A-79), sin
+    contraseña. Cualquier sslmode que traiga la cadena se ignora;
   * pgpass: una línea servidor:puerto:base:usuario:contraseña.
 Los scripts se conectan luego con `service=cotizador-staging`: la contraseña nunca aparece en la línea
 de comandos, en variables de entorno ni en la salida. No se conecta a nada: solo escribe los archivos.
@@ -19,11 +23,18 @@ lee las respuestas de la entrada estándar, una por línea.
 import argparse
 import configparser
 import getpass
+import importlib.util
 import io
 import os
 import re
 import sys
 from urllib.parse import unquote, urlsplit, parse_qs
+
+# Misma política TLS que comprueban los scripts (sanear.py), cargada por ruta: con `python3 -I` la
+# carpeta del script no está en sys.path.
+_spec = importlib.util.spec_from_file_location('sanear', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sanear.py'))
+sanear = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(sanear)
 
 REPO = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 
@@ -57,6 +68,8 @@ def escribir_privado(ruta, contenido):
 def main():
     ap = argparse.ArgumentParser(description='Configura la conexión segura (sin contraseña a la vista).')
     ap.add_argument('--servicio', default='cotizador-staging')
+    ap.add_argument('--certificado', default=None,
+                    help='certificado raíz de Supabase (por defecto ~/.config/cotizador/supabase-ca.crt)')
     args = ap.parse_args()
     if not re.fullmatch(r'[A-Za-z0-9_-]+', args.servicio):
         fallar('el nombre del servicio solo admite letras, números, - y _')
@@ -82,7 +95,17 @@ def main():
         fallar('esa es la cadena del «transaction pooler» (puerto 6543): copia la del Session pooler (puerto 5432)')
     usuario = unquote(u.username)
     base = unquote(u.path.lstrip('/')) or 'postgres'
-    sslmode = parse_qs(u.query).get('sslmode', ['require'])[0]
+    pedido = parse_qs(u.query).get('sslmode', [None])[0]
+    # TLS (A-79): siempre verify-full con el certificado raíz, salvo la excepción de pruebas locales.
+    if sanear.excepcion_local(u.hostname):
+        tls = [('sslmode', 'disable')]
+        print('AVISO: excepción de PRUEBA LOCAL sin TLS (servidor de loopback). Nunca para Supabase.')
+    else:
+        cert = os.path.realpath(os.path.expanduser(args.certificado or os.path.join(carpeta, 'supabase-ca.crt')))
+        sanear.validar_certificado(cert)  # antes de pedir la contraseña
+        tls = [('sslmode', 'verify-full'), ('sslrootcert', cert)]
+        if pedido and pedido != 'verify-full':
+            print(f'AVISO: la cadena traía sslmode={pedido}; se usará sslmode=verify-full (verifica el servidor).')
     clave = '' if falta_clave or not u.password else unquote(u.password)
     if not clave:
         clave = preguntar('Escribe o pega la contraseña de la base (no se verá) y pulsa Enter: ')
@@ -100,8 +123,8 @@ def main():
     if cp.has_section(args.servicio):
         cp.remove_section(args.servicio)
     cp.add_section(args.servicio)
-    for k, v in (('host', u.hostname), ('port', str(puerto)), ('dbname', base), ('user', usuario),
-                 ('sslmode', sslmode), ('connect_timeout', '20')):
+    for k, v in [('host', u.hostname), ('port', str(puerto)), ('dbname', base), ('user', usuario),
+                 *tls, ('gssencmode', 'disable'), ('connect_timeout', '20')]:
         cp[args.servicio][k] = v
     buf = io.StringIO()
     cp.write(buf, space_around_delimiters=False)
