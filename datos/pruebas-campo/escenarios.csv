@@ -1,0 +1,6 @@
+caso;recorrido;vehiculo;uso;origen_km_min;km;min_marcha;km_l_ref;fuente_km_l;clp_l;fuente_clp_l;desgaste_clp_km;fijos_clp_h;trabajo_clp_h;min_carga;ayudantes;pago_ayudante_clp;tag_clp;fuente_tag;otros_clp;fuente_otros
+refrigerador;sim-01;pickup-A;simulacion;supuesto;12.5;32;10;supuesto;1300;supuesto;45;1800;6000;25;0;;0;supuesto;0;supuesto
+mudanza-pequena;sim-02;camion-B;simulacion;supuesto;21;60;7.5;supuesto;1100;supuesto;85;2600;6500;90;1;18000;2600;supuesto;3500;supuesto
+muebles;sim-03;furgon-C;simulacion;supuesto;16;45;9;supuesto;1150;supuesto;55;2000;6000;40;0;;;;2500;supuesto
+reparto-furgon;sim-04;furgon-D;simulacion;supuesto;42;105;11;supuesto;1150;supuesto;52;2000;6000;35;0;;1900;supuesto;1800;supuesto
+flete-ayudantes;sim-05;camion-E;simulacion;supuesto;25;50;8;supuesto;1100;supuesto;80;2600;6500;75;2;16000;2400;supuesto;0;supuesto

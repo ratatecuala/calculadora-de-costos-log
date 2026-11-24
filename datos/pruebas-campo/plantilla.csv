@@ -1,0 +1,2 @@
+caso;recorrido;vehiculo;uso;origen_km_min;km;min_marcha;km_l_ref;fuente_km_l;clp_l;fuente_clp_l;desgaste_clp_km;fijos_clp_h;trabajo_clp_h;min_carga;ayudantes;pago_ayudante_clp;tag_clp;fuente_tag;otros_clp;fuente_otros
+viaje-001;tramo-001;vehiculo-A;circulacion;medido;;;;;;;;;0;0;0;;;;0;supuesto

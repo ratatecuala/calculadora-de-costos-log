@@ -10,6 +10,8 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 
 ## Estado para retomar en otro chat
 
+- **Pruebas de campo.** [Registro privado de circulación y cinco escenarios ficticios de flete](docs/05-pruebas-y-calibracion.md#primera-prueba-de-campo). Reproducibles con el motor del cotizador desde el notebook.
+
 - **Catálogo C-1.** [Seguimiento de las versiones y sus límites de uso](datos/catalogo-c1/notas.md#seguimiento-de-versiones-desde-el-notebook).
 
 - **Cotización manual (PR #34).** El ingreso de km y minutos es la acción principal. El ejemplo pide confirmación si sustituye costos. El precio final se escribe en pesos o se copia con «Usar precio sugerido» cuando el cálculo está completo. La CI prueba el flujo hasta PDF y WhatsApp en teléfono emulado y escritorio con datos ficticios.

@@ -45,6 +45,42 @@ El registro **manual** es gratis; la lectura automática de fotografías y anál
 - Los valores de homologación **no equivalen** a consumo real.
 - Los datos de calibración privada no deben subirse al repositorio público.
 
+### Primera prueba de campo
+
+1. Copia la [plantilla CSV](../datos/pruebas-campo/plantilla.csv) a `calibracion/viajes.csv` en tu equipo. Esa carpeta privada ya está excluida de Git. La plantilla trae una fila de circulación sin mediciones. Identifica el caso, el recorrido y el vehículo con alias. Conserva domicilios, patentes, boletas y registros reales fuera de GitHub.
+2. Al terminar, anota los km del contador parcial (o la diferencia entre odómetros) y los minutos de marcha, incluida la espera en taco. Registra carga, descarga y atención de entregas aparte para contar cada minuto una vez. El CSV usa punto y coma, acepta coma o punto decimal y se escribe sin separadores de miles.
+3. Registra el precio del litro y su fuente cuando lo conozcas. Para el rendimiento usa tu estimación o el promedio de un intervalo medido lleno a lleno. Los litros repostados corresponden al intervalo. Multiplicar el consumo estimado del recorrido por el precio del litro sigue dando un **costo estimado**, incluso con precio de boleta y distancia medida.
+4. Para simular un flete sobre el mismo viaje, duplica la fila, cambia `caso` y selecciona `uso=simulacion`. Conserva el mismo `recorrido`, vehículo, km, minutos y `origen_km_min=medido`. Agrega los supuestos de servicio. Así puedes comparar las dos filas manteniendo constante el recorrido observado.
+5. Desde la raíz del proyecto, con las dependencias instaladas (`npm ci`), ejecuta el registro. El último argumento guarda el resultado en un CSV **nuevo**. Si lo omites, el resultado sale por la terminal. El comando usa las funciones de la calculadora y funciona sin cuentas ni servicios de rutas.
+
+```sh
+npm run campo -- calibracion/viajes.csv calibracion/resultados-001.csv
+npm run campo -- datos/pruebas-campo/escenarios.csv
+```
+
+| Entrada | Qué registrar |
+|---|---|
+| `uso`, `origen_km_min` | Viaje personal: `circulacion`, `medido`. Escenario comercial: `simulacion` con recorrido `medido` o `supuesto`. Km y minutos vacíos dejan el recorrido pendiente. |
+| `km_l_ref`, `fuente_km_l` | Rendimiento en km/L. Fuente: `estimado`, `lleno_a_lleno` o `supuesto`. |
+| `clp_l`, `fuente_clp_l` | Precio del combustible en pesos por litro. Fuente: `boleta`, `surtidor`, `estimado` o `supuesto`. |
+| `desgaste_clp_km`, `fijos_clp_h` | Estimaciones de desgaste por km y gastos fijos por hora. Pueden quedar vacías. |
+| `trabajo_clp_h`, `min_carga`, `ayudantes`, `pago_ayudante_clp` | Para un servicio, meta de remuneración por hora, tiempo adicional de atención/carga, número de ayudantes y pago por persona. En circulación la plantilla excluye trabajo comercial, carga y ayudantes. |
+| `tag_clp`, `otros_clp` y sus fuentes | Peajes/TAG y total de extras incluidos (estacionamiento, materiales). Fuentes: `comprobante`, `declarado`, `estimado` o `supuesto`. TAG vacío = desconocido, 0 = no hubo. Si falta un valor opcional deja vacía también su fuente. El motor exige un monto para otros gastos: la plantilla parte con 0 como supuesto explícito; reemplázalo si hubo extras. |
+
+**Lectura del resultado.** Cada fila conserva las entradas y añade el desglose del motor: combustible, peajes, ayudantes, otros, desgaste, fijos y remuneración. Los fijos y la remuneración se asignan por el tiempo de marcha y carga. El costo económico puede incluir reservas y trabajo propio además de desembolsos. `estimacion_parcial` indica una cota inferior; `faltan` enumera las partidas desconocidas. Con solo km y minutos y ninguna tarifa conocida, un mínimo de $0 no permite valorar el viaje. En circulación se omite el precio. En simulación se informa cuando el cálculo está completo y el sugerido cumple los límites de precio del cotizador. Se usan el margen inicial, los recargos iniciales y la presentación monetaria del producto.
+
+**Cinco ensayos ficticios en Santiago.** Los km, tiempos, tarifas y capacidades económicas del [CSV de escenarios](../datos/pruebas-campo/escenarios.csv) son supuestos de prueba, sin valor de referencia para un modelo de vehículo ni para tarifas de mercado.
+
+| Escenario | Variables que lo distinguen | Cómo se ingresan hoy |
+|---|---|---|
+| Refrigerador | Retiro y entrega en comunas vecinas, 25 min de manipulación, sin peajes ni ayudante | Recorrido manual y minutos de carga y descarga |
+| Mudanza pequeña | 90 min de carga, un ayudante, TAG y materiales | Carga y descarga, pago por ayudante, peajes y otros gastos |
+| Muebles | 40 min de maniobra, protección de muebles y TAG desconocido | Otros gastos y peajes vacíos; se comprueba que el costo quede parcial |
+| Reparto en furgón | Varias entregas, 42 km y 105 min acumulados de conducción, 35 min de atención | Sumar los tramos y las detenciones de servicio por separado e ingresar los totales manualmente |
+| Flete con ayudantes | Dos ayudantes, $16.000 por persona y 75 min de carga | Cantidad, pago unitario y tiempo de carga; el motor cuenta el pago una vez por persona |
+
+Peso, fragilidad, pisos y ascensor pueden orientar el tiempo y personal supuestos. El motor vigente no agrega un cobro automático por esas características.
+
 ## 5. Validación con transportistas reales
 
 **Hipótesis a validar:** usuarios que calculan un flete y vuelven a usar la aplicación para cotizaciones reales.
