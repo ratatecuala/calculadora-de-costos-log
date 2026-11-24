@@ -12,7 +12,7 @@ begin
   execute 'reset role';
   return r;
 exception when others then execute 'reset role'; raise;
-end $;
+end $$;
 create or replace function pg_temp.job(p_price numeric, p_local uuid default null) returns jsonb language sql as $$
   select jsonb_build_object('local_id', p_local, 'quote_date', '2026-11-25', 'client_name', 'Cliente ficticio', 'net_price', p_price, 'internal', jsonb_build_object('engineVersion', 'x')) $$;
 create or replace function pg_temp.quote(p_price numeric) returns jsonb language sql as $$
