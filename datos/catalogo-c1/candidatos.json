@@ -1,5 +1,5 @@
 {
-  "dataVersion": "c1-candidatos-2026-11-25-v3",
+  "dataVersion": "c1-candidatos-v4",
   "status": "CANDIDATOS PARA REVISIÓN — no cargar en producción",
   "versions": [
     {
@@ -276,7 +276,7 @@
       "version": "DX 2.4 gasolina 4x2 5MT",
       "year_from": null,
       "year_to": null,
-      "engine": "2.4 L gasolina 4 cil. 16V (motor Mitsubishi, Euro 6C según ficha oficial; 158 hp/225 Nm según Autocosmos)",
+      "engine": "Mitsubishi 2.4 L gasolina Euro 6C, 158 HP y 225 Nm",
       "fuel": "gasolina",
       "km_per_l_ref": null,
       "km_per_l_cycle": null,
@@ -284,9 +284,9 @@
       "gvw_kg": 2850,
       "payload_kg": 1055,
       "cargo_volume_m3": null,
-      "cargo_length_mm": null,
-      "cargo_width_mm": null,
-      "cargo_height_mm": null,
+      "cargo_length_mm": 1485,
+      "cargo_width_mm": 1510,
+      "cargo_height_mm": 530,
       "door_width_mm": null,
       "door_height_mm": null,
       "presence_evidence": "Ficha y página de versión en maxus.cl; catálogo Autocosmos 2025 (T60 2.4L DX 4x2). Sin estadística de ventas por versión.",
@@ -307,11 +307,11 @@
           "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio del importador (Andes Motor). | Verificación 2026-11-25: maxus.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a la página y al PDF; valor NO verificado."
         },
         "version": {
-          "url": "https://maxus.cl/w/t60-dx",
-          "title": "T60 DX — maxus.cl",
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
-          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio del importador (Andes Motor). | Verificación 2026-11-25: maxus.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a la página y al PDF; valor NO verificado."
+          "note": "Ficha específica de la DX 4x2 gasolina con caja manual de cinco marchas. Falta archivar el original con SHA-256."
         },
         "segment": {
           "url": "https://maxus.cl/w/t60-dx",
@@ -325,35 +325,35 @@
           "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
-          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha de la versión gasolina 4x2 DX 5MT. | Verificación 2026-11-25: maxus.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a la página y al PDF; valor NO verificado."
+          "note": "Tren motriz publicado para la DX gasolina. Falta archivar el original con SHA-256."
         },
         "fuel": {
           "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
           "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
-          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha de la versión gasolina 4x2 DX 5MT. | Verificación 2026-11-25: maxus.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a la página y al PDF; valor NO verificado."
+          "note": "Gasolina según la ficha de la DX 5MT. Falta archivar el original con SHA-256."
         },
         "curb_weight_kg": {
           "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
           "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
-          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Peso en orden de marcha 1.795 kg. | Verificación 2026-11-25: maxus.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a la página y al PDF; valor NO verificado."
+          "note": "Peso en orden de marcha. Falta archivar el original con SHA-256."
         },
         "gvw_kg": {
           "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
           "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
-          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. PBV 2.850 kg (la ficha DX general da 2.850–3.050 según configuración). | Verificación 2026-11-25: maxus.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a la página y al PDF; valor NO verificado."
+          "note": "Peso bruto publicado. Falta archivar el original con SHA-256."
         },
         "payload_kg": {
-          "url": "https://maxus.cl/w/t60-dx",
-          "title": "T60 DX — maxus.cl",
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
-          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'gasolina 4x2 carga hasta 1.055 kg' — publicado (no derivado); coincide con 2850 − 1795. Una nota de lanzamiento 'New T60' menciona 800 kg (otra configuración/desactualizado). | Verificación 2026-11-25: maxus.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a la página y al PDF; valor NO verificado."
+          "note": "Capacidad de carga de la pick-up. Falta archivar el original con SHA-256."
         },
         "presence_evidence": {
           "url": "https://maxus.cl/w/t60-dx",
@@ -361,6 +361,27 @@
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
           "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio del importador (Andes Motor). | Verificación 2026-11-25: maxus.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a la página y al PDF; valor NO verificado."
+        },
+        "cargo_length_mm": {
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Largo medido en el piso de la caja. Falta archivar el original con SHA-256."
+        },
+        "cargo_width_mm": {
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Ancho superior de la caja. El ancho libre entre pasos de rueda sigue sin documentar. Falta archivar el original con SHA-256."
+        },
+        "cargo_height_mm": {
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Alto de la caja. Falta archivar el original con SHA-256."
         }
       }
     },
@@ -1093,16 +1114,16 @@
       "segment": "furgon",
       "make": "Mercedes-Benz",
       "model": "Sprinter",
-      "version": "Furgón 316 CDI 14 m³ 4x2 manual (ficha Kaufmann ~2020)",
+      "version": "Furgón 316 CDI 14 m³ 4x2 manual",
       "year_from": null,
       "year_to": null,
-      "engine": "diésel Euro 6 (SCR), 163 CV a 3.800 rpm, 360 Nm",
+      "engine": "OM 651 diésel de 2.143 cc, 163 CV, Euro 6 SCR",
       "fuel": "diesel",
       "km_per_l_ref": null,
       "km_per_l_cycle": null,
       "curb_weight_kg": null,
-      "gvw_kg": null,
-      "payload_kg": null,
+      "gvw_kg": 3500,
+      "payload_kg": 1260,
       "cargo_volume_m3": 14,
       "cargo_length_mm": null,
       "cargo_width_mm": null,
@@ -1131,7 +1152,7 @@
           "title": "NEW SPRINTER 316 CDI 14 m3 — ficha Kaufmann (distribuidor Mercedes-Benz en Chile)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
-          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha con marca de tiempo de 2020; texto del PDF mal codificado según el buscador. | Verificación 2026-11-25: www.kaufmann.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a páginas y PDF; valor NO verificado."
+          "note": "Pág. 1. Coinciden denominación, volumen, tracción y caja. La fecha del enlace no acredita un año modelo. Falta archivar el original con SHA-256."
         },
         "segment": {
           "url": "https://www.kaufmann.cl/documents/68916/166120/NEW-SPRINTER-316-CDI-14-m3.pdf/e688159c-c795-d3c0-2b9b-daeefe106fe6?t=1594740244090",
@@ -1145,21 +1166,21 @@
           "title": "NEW SPRINTER 316 CDI 14 m3 — ficha Kaufmann (distribuidor Mercedes-Benz en Chile)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
-          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha con marca de tiempo de 2020; texto del PDF mal codificado según el buscador. | Verificación 2026-11-25: www.kaufmann.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a páginas y PDF; valor NO verificado."
+          "note": "Págs. 1–2. Motor y especificaciones de la configuración de 14 m³. Falta archivar el original con SHA-256."
         },
         "fuel": {
           "url": "https://www.kaufmann.cl/documents/68916/166120/NEW-SPRINTER-316-CDI-14-m3.pdf/e688159c-c795-d3c0-2b9b-daeefe106fe6?t=1594740244090",
           "title": "NEW SPRINTER 316 CDI 14 m3 — ficha Kaufmann (distribuidor Mercedes-Benz en Chile)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
-          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha con marca de tiempo de 2020; texto del PDF mal codificado según el buscador. | Verificación 2026-11-25: www.kaufmann.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a páginas y PDF; valor NO verificado."
+          "note": "Pág. 1. Diésel. Falta archivar el original con SHA-256."
         },
         "cargo_volume_m3": {
           "url": "https://www.kaufmann.cl/documents/68916/166120/NEW-SPRINTER-316-CDI-14-m3.pdf/e688159c-c795-d3c0-2b9b-daeefe106fe6?t=1594740244090",
           "title": "NEW SPRINTER 316 CDI 14 m3 — ficha Kaufmann (distribuidor Mercedes-Benz en Chile)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
-          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'Volumen de carga: 14 [m3]' en el título del documento. | Verificación 2026-11-25: www.kaufmann.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a páginas y PDF; valor NO verificado."
+          "note": "Pág. 1. Volumen de carga de la versión larga consultada. Falta archivar el original con SHA-256."
         },
         "presence_evidence": {
           "url": "https://www.kaufmann.cl/vans/sprinter",
@@ -1167,6 +1188,20 @@
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
           "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página vigente del distribuidor. | Verificación 2026-11-25: www.kaufmann.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a páginas y PDF; valor NO verificado."
+        },
+        "gvw_kg": {
+          "url": "https://www.kaufmann.cl/documents/68916/166120/NEW-SPRINTER-316-CDI-14-m3.pdf/e688159c-c795-d3c0-2b9b-daeefe106fe6?t=1594740244090",
+          "title": "NEW SPRINTER 316 CDI 14 m3 — ficha Kaufmann (distribuidor Mercedes-Benz en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Pág. 2. Peso bruto vehicular de la versión de 14 m³. Falta archivar el original con SHA-256."
+        },
+        "payload_kg": {
+          "url": "https://www.kaufmann.cl/documents/68916/166120/NEW-SPRINTER-316-CDI-14-m3.pdf/e688159c-c795-d3c0-2b9b-daeefe106fe6?t=1594740244090",
+          "title": "NEW SPRINTER 316 CDI 14 m3 — ficha Kaufmann (distribuidor Mercedes-Benz en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Pág. 2. Capacidad de carga útil publicada para el furgón. Falta archivar el original con SHA-256."
         }
       }
     },
@@ -1713,7 +1748,7 @@
       "fuel": "diesel",
       "km_per_l_ref": null,
       "km_per_l_cycle": null,
-      "curb_weight_kg": 2070,
+      "curb_weight_kg": null,
       "gvw_kg": 5700,
       "payload_kg": 3630,
       "cargo_volume_m3": null,
@@ -1744,7 +1779,7 @@
           "title": "CANTER 613 4x2 euro 5 — ficha Kaufmann (distribuidor Fuso en Chile)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
-          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha del distribuidor oficial. | Verificación 2026-11-25: www.kaufmann.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a páginas y PDF; valor NO verificado."
+          "note": "Págs. 1–2. Chasis cabina 613 4x2 Euro 5. El documento no identifica año modelo. Falta archivar el original con SHA-256."
         },
         "segment": {
           "url": "https://www.kaufmann.cl/documents/68916/f80b9131-129f-cf14-9778-51385ed34af8",
@@ -1771,22 +1806,22 @@
           "url": "https://www.kaufmann.cl/documents/68916/f80b9131-129f-cf14-9778-51385ed34af8",
           "title": "CANTER 613 4x2 euro 5 — ficha Kaufmann (distribuidor Fuso en Chile)",
           "retrievedAt": "2026-11-24",
-          "confidence": "SECUNDARIO",
-          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'Vacío sin carrocería ... total 2.070 kg'. | Verificación 2026-11-25: www.kaufmann.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a páginas y PDF; valor NO verificado."
+          "confidence": "DATO_FALTANTE",
+          "note": "Pág. 2. El total sin carrocería publicado es 2.070 kg. Los pesos por eje, 1.405 y 625 kg, suman 2.030 kg. Pendiente de aclaración."
         },
         "gvw_kg": {
           "url": "https://www.kaufmann.cl/documents/68916/f80b9131-129f-cf14-9778-51385ed34af8",
           "title": "CANTER 613 4x2 euro 5 — ficha Kaufmann (distribuidor Fuso en Chile)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
-          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'Peso Bruto Vehicular (P.B.V.) 5.700 kg'. Liviano según tabla de camiones ANAC (2.701–6.350 kg); 'pesado' según umbral de emisiones (≥3.860 kg). Ver notas.md. | Verificación 2026-11-25: www.kaufmann.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a páginas y PDF; valor NO verificado."
+          "note": "Pág. 2. PBV publicado para el Canter 613 4x2 Euro 5. Falta archivar el original con SHA-256."
         },
         "payload_kg": {
           "url": "https://www.kaufmann.cl/documents/68916/f80b9131-129f-cf14-9778-51385ed34af8",
           "title": "CANTER 613 4x2 euro 5 — ficha Kaufmann (distribuidor Fuso en Chile)",
           "retrievedAt": "2026-11-24",
           "confidence": "SECUNDARIO",
-          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'Capacidad de carga 3.630 kg' publicada, sin carrocería (la carga real baja al carrozar); coincide con 5700 − 2070. | Verificación 2026-11-25: www.kaufmann.cl respondió HTTP 403 «Access Denied» (CDN) el 2026-11-25 a páginas y PDF; valor NO verificado."
+          "note": "Pág. 2. Capacidad declarada del chasis sin carrocería. La carga disponible para un flete depende de la carrocería instalada. Falta archivar el original con SHA-256."
         },
         "presence_evidence": {
           "url": "https://www.kaufmann.cl/camiones/modelos/canter-613",

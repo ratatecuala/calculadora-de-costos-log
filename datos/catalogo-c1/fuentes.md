@@ -1,6 +1,6 @@
-# Fuentes — catálogo C1 v3 (`c1-candidatos-2026-11-25-v3`)
+# Fuentes — catálogo C1 (`c1-candidatos-v4`)
 
-Descargadas con `curl -sL --max-time 30–90 -A "Mozilla/5.0"` el 2026-11-25 (fecha de registro pedida; reloj del equipo: 2026-11-24 UTC).
+Evidencia archivada en v3. Fuentes descargadas con `curl -sL --max-time 30–90 -A "Mozilla/5.0"` el 2026-11-25 (fecha de registro pedida; reloj del equipo: 2026-11-24 UTC).
 Cada archivo está en `evidencia/`; para PDF se guardó además el texto extraído con `pdftotext -layout` (`.txt`) y para HTML un texto plano (`.txt`) donde se comprobaron las citas.
 SHA-256 calculado sobre el archivo original (`.pdf` / `.html`).
 
@@ -49,6 +49,8 @@ Ninguna de las condiciones encontradas autoriza expresamente copiar datos técni
 | www.kia.cl | https://www.kia.cl/terminos-y-condiciones.html (kia-terminos.html · b1557e0490d4fb5bef2b9618eb793a2f0102368e55901907cb86412e3b7e65a9); privacidad: kia-privacidad.html · 78451b73fa996fd82f90692048dd26230c698b5159c78f84d2a9b6c1e3eb47e0 | No se encontraron condiciones sobre copia de contenidos (revisar). La página contiene bases de promociones y servicios, y la de privacidad trata cookies y datos personales. |
 | www.nissan.cl | https://www.nissan.cl/terminos-y-condiciones-generales-del-sitio.html (nissan-terminos-sitio.html · 614f3ffb45aa728a2a10d428969b963721fdc75b755d937768fa42f311bedddd) | Igual que Toyota: las «compilaciones de datos» son de Nissan Chile. Solo se permite copiarlas para uso personal no comercial; cualquier copia comercial requiere permiso escrito. |
 | www.consumovehicular.cl | — | No se encontraron condiciones publicadas (revisar). Es una aplicación de una sola página sin texto en HTML y los datos se sirven desde un host no permitido en esta corrida. |
-| www.ford.cl, www.kaufmann.cl, www.peugeot.cl, maxus.cl, energia.gob.cl | — | No se pudo abrir ninguna página (HTTP 403 «Access Denied»), tampoco la de condiciones (revisar). |
+| www.ford.cl | https://www.ford.cl/politica-de-privacidad/ (§1, consultado el 24-11-2026) | Ford exige consentimiento expreso y escrito para copiar o distribuir el contenido de sus activos digitales. No consta permiso en el piloto. |
+| www.kaufmann.cl, maxus.cl | Fichas de las versiones citadas en `candidatos.json` | Las fichas se pudieron consultar en la revisión desde el notebook. La consulta acredita los datos que muestra cada versión. El permiso de redistribución sigue pendiente. |
+| www.peugeot.cl, energia.gob.cl | — | En la corrida v3 los sitios respondieron HTTP 403. |
 | configuradorpro.peugeot.cl | — | HTTP 503; no se pudo leer (revisar). |
 | www.anac.cl, www.mtt.gob.cl, www.bcn.cl | — | No se usaron como fuente de datos en esta corrida. |

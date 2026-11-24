@@ -1,8 +1,8 @@
-# Notas — verificación del catálogo C1 v3 (2026-11-25)
+# Notas — catálogo C1 v4
 
-Estado: **CANDIDATOS PARA REVISIÓN — no cargar en producción** (sin cambios). No se tocó el repositorio.
+Estado: **CANDIDATOS PARA REVISIÓN — no cargar en producción**.
 
-## Método
+## Método de la revisión v3
 
 1. Entrada: `datos/catalogo-c1/candidatos.json` (15 versiones, todo SECUNDARIO). Las 128 marcas VERIFICADO de `scratchpad/c1v2` se trataron como no verificadas: solo se usaron sus URL como pistas. No se reutilizó ningún archivo de `scratchpad/dl/`; todo se descargó de nuevo en esta corrida.
 2. Descarga con `curl -sL -A "Mozilla/5.0"` solo en los hosts permitidos. Un archivo entra en `evidencia/` solo con HTTP 200; las respuestas 404/403 no se guardaron y quedan registradas en este documento.
@@ -16,10 +16,16 @@ Estado: **CANDIDATOS PARA REVISIÓN — no cargar en producción** (sin cambios)
    - **sin_verificar**: ningún campo verificado.
 8. Autocomprobación: el script `work/build.py` y una segunda comprobación independiente recalcularon el SHA-256 y buscaron cada cita en su `.txt`. Resultado: **62/62 citas encontradas**, y cada valor numérico aparece literalmente en su cita.
 
-## Resultado
+## Resultado de v3 antes del seguimiento
 
 - Campos (20 por versión × 15): **62 VERIFICADO**, **99 SECUNDARIO**, **6 SUPUESTO** (segmento), **133 null**.
 - **0 completa**, **6 parcial** (Hilux, L200 Work CR 2020, N400 Max, Porter, Kia Frontier pick-up, HD35 Light), **9 sin_verificar**.
+
+## Seguimiento de versiones desde el notebook
+
+Las fichas oficiales de la Sprinter 316 CDI de 14 m³ y la Maxus T60 DX gasolina 4x2 5MT permitieron identificar dos pesos y tres medidas de caja antes vacíos. En el Canter 613 4x2 Euro 5 quedó sin asignar la tara por la discrepancia entre el total y los ejes. La capacidad publicada del Canter corresponde al chasis sin carrocería. Las notas por campo enlazan la página de origen.
+
+Tras estos ajustes hay **62 campos VERIFICADO, 103 SECUNDARIO, 6 SUPUESTO y 129 vacíos**. Las tres fichas se leyeron en el navegador. Falta conservar los archivos originales con su SHA-256 para elevar los campos revisados a VERIFICADO. Ninguna de las 15 versiones reúne todos los campos mínimos. Véanse las [condiciones de reutilización](fuentes.md#2-condiciones-de-reutilización-por-host).
 
 ## Hallazgos y conflictos
 
