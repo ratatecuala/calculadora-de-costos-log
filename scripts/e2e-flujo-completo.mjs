@@ -17,7 +17,9 @@
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 
-const { chromium, devices } = createRequire(import.meta.url)('playwright');
+const require = createRequire(import.meta.url);
+const { chromium, devices } = require('playwright');
+const { expect } = require('playwright/test');
 
 const [base, capturas] = process.argv.slice(2);
 if (!base || !['localhost', '127.0.0.1'].includes(new URL(base).hostname)) {
@@ -102,13 +104,17 @@ async function probarEjemploYSugerido(page) {
   check('cancelar conserva cero ayudantes y el cálculo parcial', await ayudantes.inputValue() === '0' && await usar.count() === 0);
   await ayudantes.fill('');
   await clickSinDialogo(page, ejemplo); // sin diálogo: ya no se pierde ningún dato
-  check('ejemplo directo con recorrido y costos vacíos', await ayudantes.inputValue() === '1' && await usar.isVisible());
+  await expect(ayudantes).toHaveValue('1');
+  await expect(usar).toBeVisible();
+  ok++; // Ejemplo directo con recorrido y costos vacíos.
   await clickSinDialogo(page, ejemplo); // los costos ya son idénticos
   check('el ejemplo nunca elige el precio', await precio.inputValue() === '' && await crear.isDisabled());
 
   await clickSinDialogo(page, usar);
   const original = await sugerencia.innerText();
-  check('un toque copia exactamente los pesos mostrados', '$' + await precio.inputValue() === original && await crear.isEnabled());
+  await expect(precio).toHaveValue(original.slice(1));
+  await expect(crear).toBeEnabled();
+  ok++; // Copia exactamente los pesos mostrados.
   await ayudantes.fill('100');
   await page.getByLabel('Pago por ayudante').fill('9999999999');
   check('un sugerido fuera del máximo del precio final sigue visible pero no se puede copiar', await sugerencia.isVisible() && await usar.count() === 0);
@@ -126,8 +132,11 @@ async function probarEjemploYSugerido(page) {
   await decidir(page, ejemplo, false, 'valores ficticios');
   check('cancelar conserva el texto inválido', await peajes.inputValue() === 'pendiente' && await crear.isDisabled());
   await decidir(page, ejemplo, true, 'valores ficticios');
-  check('aceptar restaura los costos y exige reconfirmar el precio anterior',
-    await peajes.inputValue() === '4.200' && await precio.inputValue() === '12.345' && await mantener.isVisible() && await crear.isDisabled());
+  await expect(peajes).toHaveValue('4.200');
+  await expect(precio).toHaveValue('12.345');
+  await expect(mantener).toBeVisible();
+  await expect(crear).toBeDisabled();
+  ok++; // El costo cambió y el precio anterior exige confirmación.
 
   await precio.fill('12345,5');
   await decidir(page, usar, false, 'precio que escribiste');
@@ -138,7 +147,9 @@ async function probarEjemploYSugerido(page) {
   check('cancelar conserva un precio ilegible', await precio.inputValue() === 'por definir' && await crear.isDisabled());
   const mostrado = await sugerencia.innerText();
   await decidir(page, usar, true, mostrado);
-  check('aceptar copia el sugerido y resuelve el error del campo', '$' + await precio.inputValue() === mostrado && await crear.isEnabled());
+  await expect(precio).toHaveValue(mostrado.slice(1));
+  await expect(crear).toBeEnabled();
+  ok++; // Copiar reemplaza el texto inválido.
   await clickSinDialogo(page, usar); // mismo precio: sin reemplazo ni confirmación
   await precio.fill('21999');
   await precio.blur();
