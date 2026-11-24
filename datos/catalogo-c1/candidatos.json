@@ -1,0 +1,1535 @@
+{
+  "dataVersion": "c1-candidatos-2026-11-24",
+  "status": "CANDIDATOS PARA REVISIÓN — no cargar en producción",
+  "versions": [
+    {
+      "id": "toyota-hilux-4x2-24-mt-sr-diesel",
+      "segment": "camioneta",
+      "make": "Toyota",
+      "model": "Hilux",
+      "version": "4x2 2.4 MT SR Diesel",
+      "year_from": null,
+      "year_to": null,
+      "engine": "2.4 L diésel, transmisión manual",
+      "fuel": "diesel",
+      "km_per_l_ref": 13.9,
+      "km_per_l_cycle": "ciclo no indicado en el fragmento — urbano 11,7 / carretera 15,7 / mixto 13,9 km/l",
+      "curb_weight_kg": null,
+      "gvw_kg": null,
+      "payload_kg": null,
+      "cargo_volume_m3": null,
+      "cargo_length_mm": null,
+      "cargo_width_mm": null,
+      "cargo_height_mm": null,
+      "door_width_mm": null,
+      "door_height_mm": null,
+      "presence_evidence": "Listada en tienda.toyota.cl y en toyota.cl/modelos/pickup/hilux/ (fragmentos). Prensa (Chocale, ene-2026) atribuye a ANAC que Hilux fue el modelo más vendido de 2025 (8.548 u.) — dato a nivel modelo, no versión.",
+      "sources": {
+        "make": {
+          "url": "https://tienda.toyota.cl/index.php?id_product=257&rewrite=hilux&controller=product",
+          "title": "Hilux 4x2 2.4 MT SR Diesel — tienda.toyota.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Listado vigente en la tienda oficial de Toyota Chile."
+        },
+        "model": {
+          "url": "https://tienda.toyota.cl/index.php?id_product=257&rewrite=hilux&controller=product",
+          "title": "Hilux 4x2 2.4 MT SR Diesel — tienda.toyota.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Listado vigente en la tienda oficial de Toyota Chile."
+        },
+        "version": {
+          "url": "https://tienda.toyota.cl/index.php?id_product=257&rewrite=hilux&controller=product",
+          "title": "Hilux 4x2 2.4 MT SR Diesel — tienda.toyota.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Listado vigente en la tienda oficial de Toyota Chile."
+        },
+        "segment": {
+          "url": "https://tienda.toyota.cl/index.php?id_product=257&rewrite=hilux&controller=product",
+          "title": "Hilux 4x2 2.4 MT SR Diesel — tienda.toyota.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Listado vigente en la tienda oficial de Toyota Chile. Segmento asignado por el agente según tipo de carrocería (tentativo), no es un dato de la fuente."
+        },
+        "engine": {
+          "url": "https://tienda.toyota.cl/index.php?id_product=257&rewrite=hilux&controller=product",
+          "title": "Hilux 4x2 2.4 MT SR Diesel — tienda.toyota.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Listado vigente en la tienda oficial de Toyota Chile."
+        },
+        "fuel": {
+          "url": "https://tienda.toyota.cl/index.php?id_product=257&rewrite=hilux&controller=product",
+          "title": "Hilux 4x2 2.4 MT SR Diesel — tienda.toyota.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Listado vigente en la tienda oficial de Toyota Chile."
+        },
+        "km_per_l_ref": {
+          "url": "https://tienda.toyota.cl/index.php?id_product=257&rewrite=hilux&controller=product",
+          "title": "Hilux 4x2 2.4 MT SR Diesel — tienda.toyota.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Valor mixto 13,9 km/lt del listado. El fragmento no indica ciclo de homologación. No se pudo contrastar con consumovehicular.cl (bloqueado)."
+        },
+        "km_per_l_cycle": {
+          "url": "https://tienda.toyota.cl/index.php?id_product=257&rewrite=hilux&controller=product",
+          "title": "Hilux 4x2 2.4 MT SR Diesel — tienda.toyota.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Valores '15,7 km/lt carretera / 11,7 km/lt ciudad / 13,9 km/lt mixto'."
+        },
+        "presence_evidence": {
+          "url": "https://toyota.cl/modelos/pickup/hilux/",
+          "title": "Toyota Hilux — toyota.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de modelo en sitio oficial. Ranking de ventas: https://chocale.cl/2026/01/conoce-los-autos-camionetas-y-suv-mas-vendidos-de-2025/ (SECUNDARIO, no abierto)."
+        }
+      }
+    },
+    {
+      "id": "mitsubishi-l200-work-cr-4x2-24-ficha2020",
+      "segment": "camioneta",
+      "make": "Mitsubishi",
+      "model": "L200",
+      "version": "Work CR 4x2 2.4 diésel (ficha 2020; generación anterior a Euro 6C)",
+      "year_from": null,
+      "year_to": null,
+      "engine": "2.4 L diésel common rail, 380 Nm a 1.500–2.500 rpm",
+      "fuel": "diesel",
+      "km_per_l_ref": null,
+      "km_per_l_cycle": null,
+      "curb_weight_kg": 1725,
+      "gvw_kg": 2760,
+      "payload_kg": 1035,
+      "cargo_volume_m3": null,
+      "cargo_length_mm": null,
+      "cargo_width_mm": null,
+      "cargo_height_mm": null,
+      "door_width_mm": null,
+      "door_height_mm": null,
+      "presence_evidence": "Ficha en mitsubishi-motors.cl (2020) y avisos chilenos de L200 Work CR 4x2 2022–2024. Prensa (Meganoticias, jul-2025) cita ANAC: L200 líder de ventas a junio 2025 (4.296 u.) — nivel modelo.",
+      "sources": {
+        "make": {
+          "url": "https://mitsubishi-motors.cl/wp-content/uploads/2020/01/L200-4x2-1.pdf",
+          "title": "Modelo: L200 4×2 — Dimensiones y peso — Versiones Work CR 4x2 / Katana CR (ficha Mitsubishi Chile, publicada 2020-01)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha antigua (ruta wp-content/2020/01); no corresponde a la L200 Euro 6C vigente."
+        },
+        "model": {
+          "url": "https://mitsubishi-motors.cl/wp-content/uploads/2020/01/L200-4x2-1.pdf",
+          "title": "Modelo: L200 4×2 — Dimensiones y peso — Versiones Work CR 4x2 / Katana CR (ficha Mitsubishi Chile, publicada 2020-01)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha antigua (ruta wp-content/2020/01); no corresponde a la L200 Euro 6C vigente."
+        },
+        "version": {
+          "url": "https://mitsubishi-motors.cl/wp-content/uploads/2020/01/L200-4x2-1.pdf",
+          "title": "Modelo: L200 4×2 — Dimensiones y peso — Versiones Work CR 4x2 / Katana CR (ficha Mitsubishi Chile, publicada 2020-01)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha antigua (ruta wp-content/2020/01); no corresponde a la L200 Euro 6C vigente."
+        },
+        "segment": {
+          "url": "https://mitsubishi-motors.cl/wp-content/uploads/2020/01/L200-4x2-1.pdf",
+          "title": "Modelo: L200 4×2 — Dimensiones y peso — Versiones Work CR 4x2 / Katana CR (ficha Mitsubishi Chile, publicada 2020-01)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha antigua (ruta wp-content/2020/01); no corresponde a la L200 Euro 6C vigente. Segmento asignado por el agente según tipo de carrocería (tentativo), no es un dato de la fuente."
+        },
+        "engine": {
+          "url": "https://mitsubishi-motors.cl/wp-content/uploads/2020/01/L200-4x2-1.pdf",
+          "title": "Modelo: L200 4×2 — Dimensiones y peso — Versiones Work CR 4x2 / Katana CR (ficha Mitsubishi Chile, publicada 2020-01)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Torque 380 Nm 1500–2500 rpm en el fragmento; cilindrada 2.442 cc solo en Autocosmos (secundario)."
+        },
+        "fuel": {
+          "url": "https://mitsubishi-motors.cl/wp-content/uploads/2020/01/L200-4x2-1.pdf",
+          "title": "Modelo: L200 4×2 — Dimensiones y peso — Versiones Work CR 4x2 / Katana CR (ficha Mitsubishi Chile, publicada 2020-01)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha antigua (ruta wp-content/2020/01); no corresponde a la L200 Euro 6C vigente."
+        },
+        "curb_weight_kg": {
+          "url": "https://mitsubishi-motors.cl/wp-content/uploads/2020/01/L200-4x2-1.pdf",
+          "title": "Modelo: L200 4×2 — Dimensiones y peso — Versiones Work CR 4x2 / Katana CR (ficha Mitsubishi Chile, publicada 2020-01)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'PESO EN ORDEN DE MARCHA (KG) 1725'."
+        },
+        "gvw_kg": {
+          "url": "https://mitsubishi-motors.cl/wp-content/uploads/2020/01/L200-4x2-1.pdf",
+          "title": "Modelo: L200 4×2 — Dimensiones y peso — Versiones Work CR 4x2 / Katana CR (ficha Mitsubishi Chile, publicada 2020-01)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'PESO BRUTO VEHICULAR (KG) 2760'. Según umbrales de emisiones (2.700–3.860 kg) sería 'mediano': ver notas.md."
+        },
+        "payload_kg": {
+          "url": "https://mitsubishi-motors.cl/wp-content/uploads/2020/01/L200-4x2-1.pdf",
+          "title": "Modelo: L200 4×2 — Dimensiones y peso — Versiones Work CR 4x2 / Katana CR (ficha Mitsubishi Chile, publicada 2020-01)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'CAPACIDAD DE CARGA (KG) 1035' — dato publicado (no derivado); coincide con 2760 − 1725."
+        },
+        "presence_evidence": {
+          "url": "https://mitsubishi-motors.cl/modelos/l200/",
+          "title": "Mitsubishi L200 — mitsubishi-motors.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de modelo vigente. Ventas: https://www.meganoticias.cl/nacional/491687-ranking-modelos-autos-mas-vendidos-vehiculos-junio-brk-10-07-2025.html (SECUNDARIO, no abierto)."
+        }
+      }
+    },
+    {
+      "id": "maxus-t60-dx-24-gasolina-4x2",
+      "segment": "camioneta",
+      "make": "Maxus",
+      "model": "T60",
+      "version": "DX 2.4 gasolina 4x2 5MT",
+      "year_from": null,
+      "year_to": null,
+      "engine": "2.4 L gasolina 4 cil. 16V (motor Mitsubishi, Euro 6C según ficha oficial; 158 hp/225 Nm según Autocosmos)",
+      "fuel": "gasolina",
+      "km_per_l_ref": null,
+      "km_per_l_cycle": null,
+      "curb_weight_kg": 1795,
+      "gvw_kg": 2850,
+      "payload_kg": 1055,
+      "cargo_volume_m3": null,
+      "cargo_length_mm": null,
+      "cargo_width_mm": null,
+      "cargo_height_mm": null,
+      "door_width_mm": null,
+      "door_height_mm": null,
+      "presence_evidence": "Ficha y página de versión en maxus.cl; catálogo Autocosmos 2025 (T60 2.4L DX 4x2). Sin estadística de ventas por versión.",
+      "sources": {
+        "make": {
+          "url": "https://maxus.cl/w/t60-dx",
+          "title": "T60 DX — maxus.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio del importador (Andes Motor)."
+        },
+        "model": {
+          "url": "https://maxus.cl/w/t60-dx",
+          "title": "T60 DX — maxus.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio del importador (Andes Motor)."
+        },
+        "version": {
+          "url": "https://maxus.cl/w/t60-dx",
+          "title": "T60 DX — maxus.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio del importador (Andes Motor)."
+        },
+        "segment": {
+          "url": "https://maxus.cl/w/t60-dx",
+          "title": "T60 DX — maxus.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio del importador (Andes Motor). Segmento asignado por el agente según tipo de carrocería (tentativo), no es un dato de la fuente."
+        },
+        "engine": {
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha de la versión gasolina 4x2 DX 5MT."
+        },
+        "fuel": {
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha de la versión gasolina 4x2 DX 5MT."
+        },
+        "curb_weight_kg": {
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Peso en orden de marcha 1.795 kg."
+        },
+        "gvw_kg": {
+          "url": "https://maxus.cl/documents/8014255/0/MAXUS_FT-T60+GSL+(4).pdf/9ced2467-1f47-7700-b1ec-9a9d8a4e8ecb?t=1707229368198",
+          "title": "MAXUS_FT-T60 GSL (ficha técnica Maxus Chile, versión gasolina)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. PBV 2.850 kg (la ficha DX general da 2.850–3.050 según configuración)."
+        },
+        "payload_kg": {
+          "url": "https://maxus.cl/w/t60-dx",
+          "title": "T60 DX — maxus.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'gasolina 4x2 carga hasta 1.055 kg' — publicado (no derivado); coincide con 2850 − 1795. Una nota de lanzamiento 'New T60' menciona 800 kg (otra configuración/desactualizado)."
+        },
+        "presence_evidence": {
+          "url": "https://maxus.cl/w/t60-dx",
+          "title": "T60 DX — maxus.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio del importador (Andes Motor)."
+        }
+      }
+    },
+    {
+      "id": "ford-ranger-xl-mt-4x2-20-td",
+      "segment": "camioneta",
+      "make": "Ford",
+      "model": "Ranger",
+      "version": "XL MT 4x2 2.0 Turbo Diesel (nueva generación)",
+      "year_from": null,
+      "year_to": null,
+      "engine": "2.0 L turbodiésel, transmisión manual",
+      "fuel": "diesel",
+      "km_per_l_ref": 13.7,
+      "km_per_l_cycle": "ciclo de ensayo CEE (europeo), homologado en MTT — mixto 13,7 km/l; urbano/carretera no publicados en el fragmento",
+      "curb_weight_kg": 2042,
+      "gvw_kg": 3100,
+      "payload_kg": 1058,
+      "cargo_volume_m3": 1.23,
+      "cargo_length_mm": 1505,
+      "cargo_width_mm": 1584,
+      "cargo_height_mm": 529,
+      "door_width_mm": null,
+      "door_height_mm": null,
+      "presence_evidence": "Página de versión vigente en ford.cl. Sin estadística de ventas por versión.",
+      "sources": {
+        "make": {
+          "url": "https://www.ford.cl/pickups/ranger/models/xl-4x2/",
+          "title": "Ranger® XL MT 4x2 — ford.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio oficial Ford Chile."
+        },
+        "model": {
+          "url": "https://www.ford.cl/pickups/ranger/models/xl-4x2/",
+          "title": "Ranger® XL MT 4x2 — ford.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio oficial Ford Chile."
+        },
+        "version": {
+          "url": "https://www.ford.cl/pickups/ranger/models/xl-4x2/",
+          "title": "Ranger® XL MT 4x2 — ford.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio oficial Ford Chile."
+        },
+        "segment": {
+          "url": "https://www.ford.cl/pickups/ranger/models/xl-4x2/",
+          "title": "Ranger® XL MT 4x2 — ford.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio oficial Ford Chile. Segmento asignado por el agente según tipo de carrocería (tentativo), no es un dato de la fuente."
+        },
+        "engine": {
+          "url": "https://www.ford.cl/pickups/ranger/models/xl-4x2/",
+          "title": "Ranger® XL MT 4x2 — ford.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio oficial Ford Chile."
+        },
+        "fuel": {
+          "url": "https://www.ford.cl/pickups/ranger/models/xl-4x2/",
+          "title": "Ranger® XL MT 4x2 — ford.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio oficial Ford Chile."
+        },
+        "km_per_l_ref": {
+          "url": "https://www.ford.cl/pickups/ranger/models/xl-4x2/",
+          "title": "Ranger® XL MT 4x2 — ford.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'Rendimiento 13,7 KM/L (Mixto)'."
+        },
+        "km_per_l_cycle": {
+          "url": "https://www.ford.cl/pickups/ranger/models/xl-4x2/",
+          "title": "Ranger® XL MT 4x2 — ford.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Texto legal: mediciones de laboratorio según ciclo de ensayo de la Comunidad Económica Europea, homologadas en el MTT."
+        },
+        "curb_weight_kg": {
+          "url": "https://www.ford.cl/pickups/ranger/models/xl-4x2/",
+          "title": "Ranger® XL MT 4x2 — ford.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'Peso neto 2042 kg'. El resumen de búsqueda advirtió que no podía asegurar que todas las cifras de la página sean exclusivas de la XL 4x2 2.0."
+        },
+        "gvw_kg": {
+          "url": "https://www.ford.cl/pickups/ranger/models/xl-4x2/",
+          "title": "Ranger® XL MT 4x2 — ford.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'Peso bruto total 3100 kg' (misma advertencia)."
+        },
+        "payload_kg": {
+          "url": "https://www.ford.cl/pickups/ranger/models/xl-4x2/",
+          "title": "Ranger® XL MT 4x2 — ford.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'Capacidad de carga 1058 kg' publicada (no derivada); coincide con 3100 − 2042."
+        },
+        "cargo_volume_m3": {
+          "url": "https://www.ford.cl/pickups/ranger/models/xl-4x2/",
+          "title": "Ranger® XL MT 4x2 — ford.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Volumen de caja 1,23 m³ (misma advertencia)."
+        },
+        "cargo_length_mm": {
+          "url": "https://www.ford.cl/pickups/ranger/models/xl-4x2/",
+          "title": "Ranger® XL MT 4x2 — ford.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Largo de caja 1.505 mm."
+        },
+        "cargo_width_mm": {
+          "url": "https://www.ford.cl/pickups/ranger/models/xl-4x2/",
+          "title": "Ranger® XL MT 4x2 — ford.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ancho de caja 1.584 mm (máximo); 1.223 mm entre pasos de rueda."
+        },
+        "cargo_height_mm": {
+          "url": "https://www.ford.cl/pickups/ranger/models/xl-4x2/",
+          "title": "Ranger® XL MT 4x2 — ford.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Alto de caja 529 mm."
+        },
+        "presence_evidence": {
+          "url": "https://www.ford.cl/pickups/ranger/models/xl-4x2/",
+          "title": "Ranger® XL MT 4x2 — ford.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de versión en sitio oficial Ford Chile."
+        }
+      }
+    },
+    {
+      "id": "nissan-navara-se-4x2-23-diesel",
+      "segment": "camioneta",
+      "make": "Nissan",
+      "model": "Navara",
+      "version": "SE 4x2 2.3 diésel (cabina doble)",
+      "year_from": null,
+      "year_to": null,
+      "engine": "2.3 L diésel (158 hp según Autocosmos; 161 hp según nota Autocosmos 2023 de la Navara argentina)",
+      "fuel": "diesel",
+      "km_per_l_ref": 14.4,
+      "km_per_l_cycle": "ciclo no indicado — ciudad 12,8 / ruta 15,6 / mixto 14,4 km/l (otras comparaciones del mismo sitio: 14,1 mixto)",
+      "curb_weight_kg": null,
+      "gvw_kg": null,
+      "payload_kg": null,
+      "cargo_volume_m3": null,
+      "cargo_length_mm": null,
+      "cargo_width_mm": null,
+      "cargo_height_mm": null,
+      "door_width_mm": null,
+      "door_height_mm": null,
+      "presence_evidence": "Ficha técnica 'Nueva Navara' en nissan.cl (versiones 4x2 SE y XE, diésel) — fragmento. Sin estadística de ventas por versión.",
+      "sources": {
+        "make": {
+          "url": "https://www.nissan.cl/content/dam/Nissan/cl/fichastecnicas/FICHA%20TECNICA%20NUEVA%20NAVARA.pdf",
+          "title": "FICHA TÉCNICA NUEVA NAVARA — nissan.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Identificación de versión."
+        },
+        "model": {
+          "url": "https://www.nissan.cl/content/dam/Nissan/cl/fichastecnicas/FICHA%20TECNICA%20NUEVA%20NAVARA.pdf",
+          "title": "FICHA TÉCNICA NUEVA NAVARA — nissan.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Identificación de versión."
+        },
+        "version": {
+          "url": "https://www.nissan.cl/content/dam/Nissan/cl/fichastecnicas/FICHA%20TECNICA%20NUEVA%20NAVARA.pdf",
+          "title": "FICHA TÉCNICA NUEVA NAVARA — nissan.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Identificación de versión."
+        },
+        "segment": {
+          "url": "https://www.nissan.cl/content/dam/Nissan/cl/fichastecnicas/FICHA%20TECNICA%20NUEVA%20NAVARA.pdf",
+          "title": "FICHA TÉCNICA NUEVA NAVARA — nissan.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Identificación de versión. Segmento asignado por el agente según tipo de carrocería (tentativo), no es un dato de la fuente."
+        },
+        "engine": {
+          "url": "https://www.autocosmos.cl/catalogo/comparar?v1=179678&v2=179677",
+          "title": "Comparación versiones Nissan Navara — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Catálogo de terceros; versión SE 4x2 2.3 diésel."
+        },
+        "fuel": {
+          "url": "https://www.autocosmos.cl/catalogo/comparar?v1=179678&v2=179677",
+          "title": "Comparación versiones Nissan Navara — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Catálogo de terceros; versión SE 4x2 2.3 diésel."
+        },
+        "km_per_l_ref": {
+          "url": "https://www.autocosmos.cl/catalogo/comparar?v1=179678&v2=179677",
+          "title": "Comparación versiones Nissan Navara — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Conflicto: 14,4 vs 14,1 km/l mixto en distintas páginas del mismo sitio. Requiere fuente oficial/consumovehicular.cl."
+        },
+        "km_per_l_cycle": {
+          "url": "https://www.autocosmos.cl/catalogo/comparar?v1=179678&v2=179677",
+          "title": "Comparación versiones Nissan Navara — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Ciclo no indicado."
+        },
+        "presence_evidence": {
+          "url": "https://www.nissan.cl/content/dam/Nissan/cl/fichastecnicas/FICHA%20TECNICA%20NUEVA%20NAVARA.pdf",
+          "title": "FICHA TÉCNICA NUEVA NAVARA — nissan.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. El fragmento muestra versiones cabina doble 4x2 (SE, XE) y 4x4, diésel; sin cifras de peso/carga legibles."
+        }
+      }
+    },
+    {
+      "id": "peugeot-partner-l1-bluehdi-100",
+      "segment": "furgon",
+      "make": "Peugeot",
+      "model": "Partner",
+      "version": "Furgón L1 1.5 BlueHDi 100",
+      "year_from": 2025,
+      "year_to": null,
+      "engine": "1.5 L BlueHDi diésel, 1.499 cc (100 hp según marca; Autocosmos muestra 75 hp — inconsistencia)",
+      "fuel": "diesel",
+      "km_per_l_ref": 22.0,
+      "km_per_l_cycle": "ciclo no indicado — ciudad 19,4 / ruta 23,0 / mixto 22,0 km/l (otra página del mismo sitio: 19,0 mixto)",
+      "curb_weight_kg": 1320,
+      "gvw_kg": null,
+      "payload_kg": 1000,
+      "cargo_volume_m3": 3.3,
+      "cargo_length_mm": null,
+      "cargo_width_mm": null,
+      "cargo_height_mm": null,
+      "door_width_mm": null,
+      "door_height_mm": null,
+      "presence_evidence": "Configurador oficial configuradorpro.peugeot.cl (Partner L1/L2) y catálogo Autocosmos 2025. Prensa (Pauta, jun-2025) cita ANAC: Partner encabezaba comerciales a mayo 2025 (3.015 u.) — nivel modelo, incluye todas las versiones.",
+      "sources": {
+        "make": {
+          "url": "https://configuradorpro.peugeot.cl/profesionales/",
+          "title": "Gama Profesionales — configuradorpro.peugeot.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Configurador oficial Peugeot Chile: 'Partner L1 3,3 m³ / 1000 kg; L2 3,9 m³ / 950 kg'."
+        },
+        "model": {
+          "url": "https://configuradorpro.peugeot.cl/profesionales/",
+          "title": "Gama Profesionales — configuradorpro.peugeot.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Configurador oficial Peugeot Chile: 'Partner L1 3,3 m³ / 1000 kg; L2 3,9 m³ / 950 kg'."
+        },
+        "version": {
+          "url": "https://configuradorpro.peugeot.cl/profesionales/",
+          "title": "Gama Profesionales — configuradorpro.peugeot.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Configurador oficial Peugeot Chile: 'Partner L1 3,3 m³ / 1000 kg; L2 3,9 m³ / 950 kg'."
+        },
+        "segment": {
+          "url": "https://configuradorpro.peugeot.cl/profesionales/",
+          "title": "Gama Profesionales — configuradorpro.peugeot.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Configurador oficial Peugeot Chile: 'Partner L1 3,3 m³ / 1000 kg; L2 3,9 m³ / 950 kg'. Segmento asignado por el agente según tipo de carrocería (tentativo), no es un dato de la fuente."
+        },
+        "year_from": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/peugeot/partner/l1-bluehdi-100/179728",
+          "title": "Peugeot Partner L1 BlueHDi 100 (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Año de catálogo 2025; año inicial real de la versión no confirmado."
+        },
+        "engine": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/peugeot/partner/l1-bluehdi-100/179728",
+          "title": "Peugeot Partner L1 BlueHDi 100 (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Catálogo de terceros."
+        },
+        "fuel": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/peugeot/partner/l1-bluehdi-100/179728",
+          "title": "Peugeot Partner L1 BlueHDi 100 (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Catálogo de terceros."
+        },
+        "km_per_l_ref": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/peugeot/partner/l1-bluehdi-100/179728",
+          "title": "Peugeot Partner L1 BlueHDi 100 (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Conflicto 22,0 vs 19,0 km/l mixto entre páginas del mismo sitio."
+        },
+        "km_per_l_cycle": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/peugeot/partner/l1-bluehdi-100/179728",
+          "title": "Peugeot Partner L1 BlueHDi 100 (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Ciclo no indicado."
+        },
+        "curb_weight_kg": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/peugeot/partner/l1-bluehdi-100/179728",
+          "title": "Peugeot Partner L1 BlueHDi 100 (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. 'Peso 1320 kg' (no se indica si es en orden de marcha). Una comparación del mismo sitio muestra 1.382 kg (probablemente L2)."
+        },
+        "payload_kg": {
+          "url": "https://configuradorpro.peugeot.cl/profesionales/",
+          "title": "Gama Profesionales — configuradorpro.peugeot.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Configurador oficial Peugeot Chile: 'Partner L1 3,3 m³ / 1000 kg; L2 3,9 m³ / 950 kg'."
+        },
+        "cargo_volume_m3": {
+          "url": "https://configuradorpro.peugeot.cl/profesionales/",
+          "title": "Gama Profesionales — configuradorpro.peugeot.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 3,3 m³ (3,8 m³ con banqueta Multiflex según nota Autocosmos 2024)."
+        },
+        "presence_evidence": {
+          "url": "https://configuradorpro.peugeot.cl/profesionales/",
+          "title": "Gama Profesionales — configuradorpro.peugeot.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ranking: https://www.pauta.cl/tendencias/2025/06/05/tercer-mes-consecutivo-al-alza-estos-son-los-autos-mas-vendidos-en-chile-este-2025 (SECUNDARIO, no abierto)."
+        }
+      }
+    },
+    {
+      "id": "chevrolet-n400-max-furgon-15-gasolina",
+      "segment": "furgon",
+      "make": "Chevrolet",
+      "model": "N400 Max",
+      "version": "Furgón 1.5 gasolina (Autocosmos 2025: '1.5L Ac S')",
+      "year_from": null,
+      "year_to": null,
+      "engine": "1.5 L gasolina, 103 HP, 147 Nm, manual (5 vel. según ficha; una página oficial dice 6)",
+      "fuel": "gasolina",
+      "km_per_l_ref": 13.9,
+      "km_per_l_cycle": "mixto 13,9 km/l 'homologado' según nota de prensa 2020; ciclo no especificado",
+      "curb_weight_kg": 1200,
+      "gvw_kg": 1920,
+      "payload_kg": 720,
+      "cargo_volume_m3": 3.1,
+      "cargo_length_mm": null,
+      "cargo_width_mm": null,
+      "cargo_height_mm": null,
+      "door_width_mm": null,
+      "door_height_mm": null,
+      "presence_evidence": "Página de modelo chevrolet.cl/vans/n400-van y ficha oficial PDF; catálogo Autocosmos 2025. Sin estadística de ventas por versión.",
+      "sources": {
+        "make": {
+          "url": "https://www.chevrolet.cl/content/dam/chevrolet/south-america/chile/espanol/index/comprar/catalogos/02-pfds/pickups-comerciales/n400/abril/ficha-tecnica-n400-max.xlsx.pdf",
+          "title": "Ficha técnica N400 MAX — chevrolet.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha oficial Chevrolet Chile (sin año explícito en el fragmento)."
+        },
+        "model": {
+          "url": "https://www.chevrolet.cl/content/dam/chevrolet/south-america/chile/espanol/index/comprar/catalogos/02-pfds/pickups-comerciales/n400/abril/ficha-tecnica-n400-max.xlsx.pdf",
+          "title": "Ficha técnica N400 MAX — chevrolet.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha oficial Chevrolet Chile (sin año explícito en el fragmento)."
+        },
+        "version": {
+          "url": "https://www.chevrolet.cl/content/dam/chevrolet/south-america/chile/espanol/index/comprar/catalogos/02-pfds/pickups-comerciales/n400/abril/ficha-tecnica-n400-max.xlsx.pdf",
+          "title": "Ficha técnica N400 MAX — chevrolet.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha oficial Chevrolet Chile (sin año explícito en el fragmento)."
+        },
+        "segment": {
+          "url": "https://www.chevrolet.cl/content/dam/chevrolet/south-america/chile/espanol/index/comprar/catalogos/02-pfds/pickups-comerciales/n400/abril/ficha-tecnica-n400-max.xlsx.pdf",
+          "title": "Ficha técnica N400 MAX — chevrolet.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha oficial Chevrolet Chile (sin año explícito en el fragmento). Segmento asignado por el agente según tipo de carrocería (tentativo), no es un dato de la fuente."
+        },
+        "engine": {
+          "url": "https://www.chevrolet.cl/content/dam/chevrolet/south-america/chile/espanol/index/comprar/catalogos/02-pfds/pickups-comerciales/n400/abril/ficha-tecnica-n400-max.xlsx.pdf",
+          "title": "Ficha técnica N400 MAX — chevrolet.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha oficial Chevrolet Chile (sin año explícito en el fragmento)."
+        },
+        "fuel": {
+          "url": "https://www.chevrolet.cl/content/dam/chevrolet/south-america/chile/espanol/index/comprar/catalogos/02-pfds/pickups-comerciales/n400/abril/ficha-tecnica-n400-max.xlsx.pdf",
+          "title": "Ficha técnica N400 MAX — chevrolet.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha oficial Chevrolet Chile (sin año explícito en el fragmento)."
+        },
+        "km_per_l_ref": {
+          "url": "https://noticias.autocosmos.cl/2020/01/24/chevrolet-n400-max-2020-crecimiento-en-todo-sentido",
+          "title": "Chevrolet N400 Max 2020, crecimiento en todo sentido — noticias.autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Valor de 2020; puede no corresponder al año vigente."
+        },
+        "km_per_l_cycle": {
+          "url": "https://noticias.autocosmos.cl/2020/01/24/chevrolet-n400-max-2020-crecimiento-en-todo-sentido",
+          "title": "Chevrolet N400 Max 2020, crecimiento en todo sentido — noticias.autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Ciclo no especificado."
+        },
+        "curb_weight_kg": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/chevrolet/n400-max/15l-ac-s/178908",
+          "title": "Chevrolet N400 Max 1.5L Ac S (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. 'Peso 1200 kg' (no figura en la ficha oficial; no se usa para derivar carga útil)."
+        },
+        "gvw_kg": {
+          "url": "https://www.chevrolet.cl/content/dam/chevrolet/south-america/chile/espanol/index/comprar/catalogos/02-pfds/pickups-comerciales/n400/abril/ficha-tecnica-n400-max.xlsx.pdf",
+          "title": "Ficha técnica N400 MAX — chevrolet.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. PBV 1.920 kg (tabla oficial). Consistente con 720 kg de carga útil + 1.200 kg (Autocosmos), pero no se derivó."
+        },
+        "payload_kg": {
+          "url": "https://www.chevrolet.cl/content/dam/chevrolet/south-america/chile/espanol/index/comprar/catalogos/02-pfds/pickups-comerciales/n400/abril/ficha-tecnica-n400-max.xlsx.pdf",
+          "title": "Ficha técnica N400 MAX — chevrolet.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Capacidad de carga útil 720 kg (publicada)."
+        },
+        "cargo_volume_m3": {
+          "url": "https://www.chevrolet.cl/content/dam/chevrolet/south-america/chile/espanol/index/comprar/catalogos/02-pfds/pickups-comerciales/n400/abril/ficha-tecnica-n400-max.xlsx.pdf",
+          "title": "Ficha técnica N400 MAX — chevrolet.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 3,1 m³ bajo norma ISO según ficha oficial; Autocosmos/prensa citan 4,4 m³ (conflicto)."
+        },
+        "presence_evidence": {
+          "url": "https://www.chevrolet.cl/vans/n400-van",
+          "title": "N400 Max — chevrolet.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de modelo vigente (precio desde $10.290.000 + IVA en el fragmento)."
+        }
+      }
+    },
+    {
+      "id": "peugeot-boxer-furgon-l2h2-20-bluehdi-160",
+      "segment": "furgon",
+      "make": "Peugeot",
+      "model": "Boxer",
+      "version": "Furgón L2H2 2.0 BlueHDi 160 HP 6MT",
+      "year_from": 2024,
+      "year_to": null,
+      "engine": "2.0 L BlueHDi diésel, 160 hp, 350 Nm, manual 6 vel.",
+      "fuel": "diesel",
+      "km_per_l_ref": 12.8,
+      "km_per_l_cycle": "ciclo no nombrado en el fragmento — urbano 11,3 / extraurbano 13,9 / mixto 12,8 km/l",
+      "curb_weight_kg": 1965,
+      "gvw_kg": null,
+      "payload_kg": 1535,
+      "cargo_volume_m3": 11.5,
+      "cargo_length_mm": 3120,
+      "cargo_width_mm": null,
+      "cargo_height_mm": 1932,
+      "door_width_mm": null,
+      "door_height_mm": null,
+      "presence_evidence": "Página de modelo peugeot.cl y configurador profesional oficial; catálogos Autocosmos 2024 y 2025. Sin estadística de ventas por versión.",
+      "sources": {
+        "make": {
+          "url": "https://configuradorpro.peugeot.cl/profesionales/boxer/l2h2/",
+          "title": "BOXER L2H2 — Configurador Peugeot (configuradorpro.peugeot.cl)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Configurador oficial; el resumen de búsqueda advierte que la página no deja totalmente claro si las cifras corresponden solo a esta variante."
+        },
+        "model": {
+          "url": "https://configuradorpro.peugeot.cl/profesionales/boxer/l2h2/",
+          "title": "BOXER L2H2 — Configurador Peugeot (configuradorpro.peugeot.cl)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Configurador oficial; el resumen de búsqueda advierte que la página no deja totalmente claro si las cifras corresponden solo a esta variante."
+        },
+        "version": {
+          "url": "https://configuradorpro.peugeot.cl/profesionales/boxer/l2h2/",
+          "title": "BOXER L2H2 — Configurador Peugeot (configuradorpro.peugeot.cl)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Configurador oficial; el resumen de búsqueda advierte que la página no deja totalmente claro si las cifras corresponden solo a esta variante."
+        },
+        "segment": {
+          "url": "https://configuradorpro.peugeot.cl/profesionales/boxer/l2h2/",
+          "title": "BOXER L2H2 — Configurador Peugeot (configuradorpro.peugeot.cl)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Configurador oficial; el resumen de búsqueda advierte que la página no deja totalmente claro si las cifras corresponden solo a esta variante. Segmento asignado por el agente según tipo de carrocería (tentativo), no es un dato de la fuente."
+        },
+        "year_from": {
+          "url": "https://www.autocosmos.cl/catalogo/2024/peugeot/boxer/20l-furgon-l2h2/177828",
+          "title": "Peugeot Boxer 2.0L Furgón L2H2 (2024) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Primer año de catálogo encontrado (2024); no confirma el año real de inicio."
+        },
+        "engine": {
+          "url": "https://www.peugeot.cl/gama/peugeot-boxer.html",
+          "title": "Nueva Peugeot Boxer — peugeot.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Sitio oficial; versión 2.0 BlueHDi 160 HP 6MT (2024)."
+        },
+        "fuel": {
+          "url": "https://www.peugeot.cl/gama/peugeot-boxer.html",
+          "title": "Nueva Peugeot Boxer — peugeot.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Sitio oficial; versión 2.0 BlueHDi 160 HP 6MT (2024)."
+        },
+        "km_per_l_ref": {
+          "url": "https://www.peugeot.cl/gama/peugeot-boxer.html",
+          "title": "Nueva Peugeot Boxer — peugeot.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'Consumo Mixto (km/L): 12.8'."
+        },
+        "km_per_l_cycle": {
+          "url": "https://www.peugeot.cl/gama/peugeot-boxer.html",
+          "title": "Nueva Peugeot Boxer — peugeot.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Urbano 11,3 / extraurbano 13,9 / mixto 12,8 km/L; nombre del ciclo no visible."
+        },
+        "curb_weight_kg": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/peugeot/boxer/20l-furgon-l2h2/179702",
+          "title": "Peugeot Boxer 2.0L Furgón L2H2 (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. 'Peso 1965 kg' (tipo de peso no indicado)."
+        },
+        "payload_kg": {
+          "url": "https://configuradorpro.peugeot.cl/profesionales/boxer/l2h2/",
+          "title": "BOXER L2H2 — Configurador Peugeot (configuradorpro.peugeot.cl)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 1.535 kg (Autocosmos coincide). peugeot.cl indica 'carga útil hasta 1,3 t' para la gama: conflicto a revisar."
+        },
+        "cargo_volume_m3": {
+          "url": "https://configuradorpro.peugeot.cl/profesionales/boxer/l2h2/",
+          "title": "BOXER L2H2 — Configurador Peugeot (configuradorpro.peugeot.cl)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Volumen útil 11,5 m³."
+        },
+        "cargo_length_mm": {
+          "url": "https://configuradorpro.peugeot.cl/profesionales/boxer/l2h2/",
+          "title": "BOXER L2H2 — Configurador Peugeot (configuradorpro.peugeot.cl)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Longitud útil 3.120 mm (peugeot.cl menciona 'hasta 4.070 mm' para L2H2: conflicto, posiblemente otra medida)."
+        },
+        "cargo_height_mm": {
+          "url": "https://configuradorpro.peugeot.cl/profesionales/boxer/l2h2/",
+          "title": "BOXER L2H2 — Configurador Peugeot (configuradorpro.peugeot.cl)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Altura útil 1.932 mm (peugeot.cl: 'hasta 2,17 m')."
+        },
+        "presence_evidence": {
+          "url": "https://www.peugeot.cl/gama/peugeot-boxer.html",
+          "title": "Nueva Peugeot Boxer — peugeot.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Sitio oficial; versión 2.0 BlueHDi 160 HP 6MT (2024)."
+        }
+      }
+    },
+    {
+      "id": "toyota-hiace-furgon-l1h1-28-diesel",
+      "segment": "furgon",
+      "make": "Toyota",
+      "model": "Hiace Furgón",
+      "version": "L1H1 2.8 diésel 6MT",
+      "year_from": null,
+      "year_to": null,
+      "engine": "2.8 L turbodiésel, 2.755 cc, 174 cv, 420 Nm (otra página: 450 Nm), manual 6 vel.",
+      "fuel": "diesel",
+      "km_per_l_ref": null,
+      "km_per_l_cycle": "3CV (según nota 2019) — ciudad 9,2 / ruta 13,8 km/l; mixto no publicado",
+      "curb_weight_kg": null,
+      "gvw_kg": null,
+      "payload_kg": null,
+      "cargo_volume_m3": 6.2,
+      "cargo_length_mm": null,
+      "cargo_width_mm": null,
+      "cargo_height_mm": null,
+      "door_width_mm": null,
+      "door_height_mm": null,
+      "presence_evidence": "Página toyota.cl/modelos/comerciales/hiace-cargo (fragmento) y catálogo Autocosmos 2025. Sin estadística de ventas por versión.",
+      "sources": {
+        "make": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/toyota/hiace-furgon/28l-l1h1/180002",
+          "title": "Toyota Hiace Furgón 2.8L L1H1 (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Catálogo de terceros."
+        },
+        "model": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/toyota/hiace-furgon/28l-l1h1/180002",
+          "title": "Toyota Hiace Furgón 2.8L L1H1 (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Catálogo de terceros."
+        },
+        "version": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/toyota/hiace-furgon/28l-l1h1/180002",
+          "title": "Toyota Hiace Furgón 2.8L L1H1 (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Catálogo de terceros."
+        },
+        "segment": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/toyota/hiace-furgon/28l-l1h1/180002",
+          "title": "Toyota Hiace Furgón 2.8L L1H1 (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Catálogo de terceros. Segmento asignado por el agente según tipo de carrocería (tentativo), no es un dato de la fuente."
+        },
+        "engine": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/toyota/hiace-furgon/28l-l1h1/180002",
+          "title": "Toyota Hiace Furgón 2.8L L1H1 (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Catálogo de terceros."
+        },
+        "fuel": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/toyota/hiace-furgon/28l-l1h1/180002",
+          "title": "Toyota Hiace Furgón 2.8L L1H1 (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Catálogo de terceros."
+        },
+        "km_per_l_cycle": {
+          "url": "https://noticias.autocosmos.cl/2019/05/02/toyota-hiace-2019-en-chile-ahora-con-versiones-para-pasajeros",
+          "title": "Toyota Hiace 2019 en Chile — noticias.autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. La nota atribuye 9,2/13,8 km/l a la L1H1 en ciclo 3CV; la ficha Autocosmos 2025 repite los mismos valores. Sin mixto, km_per_l_ref queda null."
+        },
+        "cargo_volume_m3": {
+          "url": "https://noticias.autocosmos.cl/2019/05/02/toyota-hiace-2019-en-chile-ahora-con-versiones-para-pasajeros",
+          "title": "Toyota Hiace 2019 en Chile — noticias.autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. 6,2 m³ para L1H1 (nota 2019; puede no aplicar al año vigente)."
+        },
+        "presence_evidence": {
+          "url": "https://toyota.cl/modelos/comerciales/hiace-cargo",
+          "title": "Hiace Cargo — toyota.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. El fragmento solo mostró texto genérico; la URL indica listado del modelo."
+        }
+      }
+    },
+    {
+      "id": "mercedes-sprinter-316-cdi-furgon-14m3",
+      "segment": "furgon",
+      "make": "Mercedes-Benz",
+      "model": "Sprinter",
+      "version": "Furgón 316 CDI 14 m³ 4x2 manual (ficha Kaufmann ~2020)",
+      "year_from": null,
+      "year_to": null,
+      "engine": "diésel Euro 6 (SCR), 163 CV a 3.800 rpm, 360 Nm",
+      "fuel": "diesel",
+      "km_per_l_ref": null,
+      "km_per_l_cycle": null,
+      "curb_weight_kg": null,
+      "gvw_kg": null,
+      "payload_kg": null,
+      "cargo_volume_m3": 14,
+      "cargo_length_mm": null,
+      "cargo_width_mm": null,
+      "cargo_height_mm": null,
+      "door_width_mm": null,
+      "door_height_mm": null,
+      "presence_evidence": "Página kaufmann.cl/vans/sprinter (importador oficial). Sin estadística de ventas por versión.",
+      "sources": {
+        "make": {
+          "url": "https://www.kaufmann.cl/documents/68916/166120/NEW-SPRINTER-316-CDI-14-m3.pdf/e688159c-c795-d3c0-2b9b-daeefe106fe6?t=1594740244090",
+          "title": "NEW SPRINTER 316 CDI 14 m3 — ficha Kaufmann (distribuidor Mercedes-Benz en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha con marca de tiempo de 2020; texto del PDF mal codificado según el buscador."
+        },
+        "model": {
+          "url": "https://www.kaufmann.cl/documents/68916/166120/NEW-SPRINTER-316-CDI-14-m3.pdf/e688159c-c795-d3c0-2b9b-daeefe106fe6?t=1594740244090",
+          "title": "NEW SPRINTER 316 CDI 14 m3 — ficha Kaufmann (distribuidor Mercedes-Benz en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha con marca de tiempo de 2020; texto del PDF mal codificado según el buscador."
+        },
+        "version": {
+          "url": "https://www.kaufmann.cl/documents/68916/166120/NEW-SPRINTER-316-CDI-14-m3.pdf/e688159c-c795-d3c0-2b9b-daeefe106fe6?t=1594740244090",
+          "title": "NEW SPRINTER 316 CDI 14 m3 — ficha Kaufmann (distribuidor Mercedes-Benz en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha con marca de tiempo de 2020; texto del PDF mal codificado según el buscador."
+        },
+        "segment": {
+          "url": "https://www.kaufmann.cl/documents/68916/166120/NEW-SPRINTER-316-CDI-14-m3.pdf/e688159c-c795-d3c0-2b9b-daeefe106fe6?t=1594740244090",
+          "title": "NEW SPRINTER 316 CDI 14 m3 — ficha Kaufmann (distribuidor Mercedes-Benz en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha con marca de tiempo de 2020; texto del PDF mal codificado según el buscador. Segmento asignado por el agente según tipo de carrocería (tentativo), no es un dato de la fuente."
+        },
+        "engine": {
+          "url": "https://www.kaufmann.cl/documents/68916/166120/NEW-SPRINTER-316-CDI-14-m3.pdf/e688159c-c795-d3c0-2b9b-daeefe106fe6?t=1594740244090",
+          "title": "NEW SPRINTER 316 CDI 14 m3 — ficha Kaufmann (distribuidor Mercedes-Benz en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha con marca de tiempo de 2020; texto del PDF mal codificado según el buscador."
+        },
+        "fuel": {
+          "url": "https://www.kaufmann.cl/documents/68916/166120/NEW-SPRINTER-316-CDI-14-m3.pdf/e688159c-c795-d3c0-2b9b-daeefe106fe6?t=1594740244090",
+          "title": "NEW SPRINTER 316 CDI 14 m3 — ficha Kaufmann (distribuidor Mercedes-Benz en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha con marca de tiempo de 2020; texto del PDF mal codificado según el buscador."
+        },
+        "cargo_volume_m3": {
+          "url": "https://www.kaufmann.cl/documents/68916/166120/NEW-SPRINTER-316-CDI-14-m3.pdf/e688159c-c795-d3c0-2b9b-daeefe106fe6?t=1594740244090",
+          "title": "NEW SPRINTER 316 CDI 14 m3 — ficha Kaufmann (distribuidor Mercedes-Benz en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'Volumen de carga: 14 [m3]' en el título del documento."
+        },
+        "presence_evidence": {
+          "url": "https://www.kaufmann.cl/vans/sprinter",
+          "title": "Van Sprinter Carga Mercedes-Benz — kaufmann.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página vigente del distribuidor."
+        }
+      }
+    },
+    {
+      "id": "hyundai-porter-h100-25-crdi-2024",
+      "segment": "camionLiviano",
+      "make": "Hyundai",
+      "model": "Porter H-100",
+      "version": "2.5 CRDi 4x2 6MT, configuración pick-up (ficha 2024)",
+      "year_from": 2024,
+      "year_to": null,
+      "engine": "2.5 L diésel CRDi (2.500 cc), 128 HP, Euro 6, manual 6 vel.",
+      "fuel": "diesel",
+      "km_per_l_ref": null,
+      "km_per_l_cycle": null,
+      "curb_weight_kg": null,
+      "gvw_kg": null,
+      "payload_kg": 1294,
+      "cargo_volume_m3": null,
+      "cargo_length_mm": null,
+      "cargo_width_mm": null,
+      "cargo_height_mm": null,
+      "door_width_mm": null,
+      "door_height_mm": null,
+      "presence_evidence": "Fichas técnicas y páginas de modelo en hyundai.cl (Porter y Porter Doble Cabina). Sin estadística de ventas por versión.",
+      "sources": {
+        "make": {
+          "url": "https://www.hyundai.cl/content/uploads/ficha-tecnica-porter-h-100-2024-21.5x28-cm.pdf",
+          "title": "Ficha técnica Porter H-100 2024 — hyundai.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Tabla del PDF desordenada según el buscador."
+        },
+        "model": {
+          "url": "https://www.hyundai.cl/content/uploads/ficha-tecnica-porter-h-100-2024-21.5x28-cm.pdf",
+          "title": "Ficha técnica Porter H-100 2024 — hyundai.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Tabla del PDF desordenada según el buscador."
+        },
+        "version": {
+          "url": "https://www.hyundai.cl/content/uploads/ficha-tecnica-porter-h-100-2024-21.5x28-cm.pdf",
+          "title": "Ficha técnica Porter H-100 2024 — hyundai.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Tabla del PDF desordenada según el buscador."
+        },
+        "segment": {
+          "url": "https://www.hyundai.cl/content/uploads/ficha-tecnica-porter-h-100-2024-21.5x28-cm.pdf",
+          "title": "Ficha técnica Porter H-100 2024 — hyundai.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Tabla del PDF desordenada según el buscador. Segmento asignado por el agente según tipo de carrocería (tentativo), no es un dato de la fuente."
+        },
+        "year_from": {
+          "url": "https://www.hyundai.cl/content/uploads/ficha-tecnica-porter-h-100-2024-21.5x28-cm.pdf",
+          "title": "Ficha técnica Porter H-100 2024 — hyundai.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Año tomado del nombre de la ficha (2024)."
+        },
+        "engine": {
+          "url": "https://www.hyundai.cl/content/uploads/ficha-tecnica-porter-h-100-2024-21.5x28-cm.pdf",
+          "title": "Ficha técnica Porter H-100 2024 — hyundai.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Tabla del PDF desordenada según el buscador."
+        },
+        "fuel": {
+          "url": "https://www.hyundai.cl/content/uploads/ficha-tecnica-porter-h-100-2024-21.5x28-cm.pdf",
+          "title": "Ficha técnica Porter H-100 2024 — hyundai.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Tabla del PDF desordenada según el buscador."
+        },
+        "payload_kg": {
+          "url": "https://www.hyundai.cl/content/uploads/ficha-tecnica-porter-h-100-2024-21.5x28-cm.pdf",
+          "title": "Ficha técnica Porter H-100 2024 — hyundai.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'Carga sobre pick-up hasta 1.294 kg' (1.400 kg con reforzamiento local); sobre chasis 1.494 kg (1.600 con reforzamiento). PBV ambiguo (3.050 / 3.390 kg sin asignación clara de columna) → gvw_kg null. Largo carrozable 3.110 mm (chasis) no se usa como largo de caja."
+        },
+        "presence_evidence": {
+          "url": "https://www.hyundai.cl/modelos/porter-doble-cabina/",
+          "title": "Porter Doble Cabina — hyundai.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de modelo vigente."
+        }
+      }
+    },
+    {
+      "id": "kia-frontier-pickup-lx-25",
+      "segment": "camionLiviano",
+      "make": "Kia",
+      "model": "Frontier",
+      "version": "2306 P/UP LX 2.5L 6MT (pick-up)",
+      "year_from": null,
+      "year_to": null,
+      "engine": "2.5 L turbodiésel, 2.497 cc, 129 hp a 3.800 rpm, 255 Nm, manual 6 vel.",
+      "fuel": "diesel",
+      "km_per_l_ref": null,
+      "km_per_l_cycle": null,
+      "curb_weight_kg": null,
+      "gvw_kg": null,
+      "payload_kg": null,
+      "cargo_volume_m3": null,
+      "cargo_length_mm": null,
+      "cargo_width_mm": null,
+      "cargo_height_mm": null,
+      "door_width_mm": null,
+      "door_height_mm": null,
+      "presence_evidence": "Ficha feb-2026 y página kia.cl/modelos/comerciales/kia-frontier-pickup.html. Sin estadística de ventas por versión.",
+      "sources": {
+        "make": {
+          "url": "https://www.kia.cl/content/dam/indumotora/general/fichas-tecnicas/2026/NEW-FT-Frontier_feb2026_imp.pdf",
+          "title": "Kia Frontier — ficha técnica feb-2026 (kia.cl)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha oficial Kia Chile (Indumotora). El buscador no pudo asignar valores a cada versión."
+        },
+        "model": {
+          "url": "https://www.kia.cl/content/dam/indumotora/general/fichas-tecnicas/2026/NEW-FT-Frontier_feb2026_imp.pdf",
+          "title": "Kia Frontier — ficha técnica feb-2026 (kia.cl)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha oficial Kia Chile (Indumotora). El buscador no pudo asignar valores a cada versión."
+        },
+        "version": {
+          "url": "https://www.kia.cl/content/dam/indumotora/general/fichas-tecnicas/2026/NEW-FT-Frontier_feb2026_imp.pdf",
+          "title": "Kia Frontier — ficha técnica feb-2026 (kia.cl)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha oficial Kia Chile (Indumotora). El buscador no pudo asignar valores a cada versión."
+        },
+        "segment": {
+          "url": "https://www.kia.cl/content/dam/indumotora/general/fichas-tecnicas/2026/NEW-FT-Frontier_feb2026_imp.pdf",
+          "title": "Kia Frontier — ficha técnica feb-2026 (kia.cl)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha oficial Kia Chile (Indumotora). El buscador no pudo asignar valores a cada versión. Segmento asignado por el agente según tipo de carrocería (tentativo), no es un dato de la fuente."
+        },
+        "engine": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/frontier/frontier/25l-deluxe/179347",
+          "title": "Kia Frontier 2.5L Deluxe (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Datos de motor de la versión Deluxe; La Tercera coincide en 2.5 turbodiésel 129 hp/255 Nm. No confirmado para LX en la ficha oficial."
+        },
+        "fuel": {
+          "url": "https://www.kia.cl/content/dam/indumotora/general/fichas-tecnicas/2026/NEW-FT-Frontier_feb2026_imp.pdf",
+          "title": "Kia Frontier — ficha técnica feb-2026 (kia.cl)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha oficial Kia Chile (Indumotora). El buscador no pudo asignar valores a cada versión."
+        },
+        "presence_evidence": {
+          "url": "https://www.kia.cl/modelos/comerciales/kia-frontier-pickup.html",
+          "title": "Kia Frontier Pickup 2026 — kia.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página vigente. PBV 3.240 / 3.360 kg y carga sobre chasis 1.600 / 1.660 kg aparecen en la ficha sin asignación clara por versión → no cargados."
+        }
+      }
+    },
+    {
+      "id": "hyundai-hd35-light-25-diesel",
+      "segment": "camionLiviano",
+      "make": "Hyundai",
+      "model": "HD35",
+      "version": "Light 4x2 chasis cabina 2.5 diésel 6MT",
+      "year_from": null,
+      "year_to": null,
+      "engine": "D4CB 2.5 L diésel (2.497 cc) common rail turbo intercooler, 130 hp a 3.800 rpm, 255 Nm, Euro V",
+      "fuel": "diesel",
+      "km_per_l_ref": null,
+      "km_per_l_cycle": null,
+      "curb_weight_kg": 1800,
+      "gvw_kg": 3500,
+      "payload_kg": 1700,
+      "cargo_volume_m3": null,
+      "cargo_length_mm": null,
+      "cargo_width_mm": null,
+      "cargo_height_mm": null,
+      "door_width_mm": null,
+      "door_height_mm": null,
+      "presence_evidence": "Fichas en api.hyundaicamionesybuses.cl y en concesionario cartoni.cl; lanzamiento en Chile reportado por Autocosmos (2017). Conducible con licencia clase B según prensa. Sin estadística de ventas por versión.",
+      "sources": {
+        "make": {
+          "url": "https://api.hyundaicamionesybuses.cl/files/vehiculo/HD35%20Light_compressed.pdf",
+          "title": "HD35 Light — Hyundai Camiones & Buses (importador oficial)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha del importador; texto del PDF desordenado según el buscador. Dealer cartoni.cl publica la misma ficha."
+        },
+        "model": {
+          "url": "https://api.hyundaicamionesybuses.cl/files/vehiculo/HD35%20Light_compressed.pdf",
+          "title": "HD35 Light — Hyundai Camiones & Buses (importador oficial)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha del importador; texto del PDF desordenado según el buscador. Dealer cartoni.cl publica la misma ficha."
+        },
+        "version": {
+          "url": "https://api.hyundaicamionesybuses.cl/files/vehiculo/HD35%20Light_compressed.pdf",
+          "title": "HD35 Light — Hyundai Camiones & Buses (importador oficial)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha del importador; texto del PDF desordenado según el buscador. Dealer cartoni.cl publica la misma ficha."
+        },
+        "segment": {
+          "url": "https://api.hyundaicamionesybuses.cl/files/vehiculo/HD35%20Light_compressed.pdf",
+          "title": "HD35 Light — Hyundai Camiones & Buses (importador oficial)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha del importador; texto del PDF desordenado según el buscador. Dealer cartoni.cl publica la misma ficha. Segmento asignado por el agente según tipo de carrocería (tentativo), no es un dato de la fuente."
+        },
+        "engine": {
+          "url": "https://api.hyundaicamionesybuses.cl/files/vehiculo/HD35%20Light_compressed.pdf",
+          "title": "HD35 Light — Hyundai Camiones & Buses (importador oficial)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha del importador; texto del PDF desordenado según el buscador. Dealer cartoni.cl publica la misma ficha."
+        },
+        "fuel": {
+          "url": "https://api.hyundaicamionesybuses.cl/files/vehiculo/HD35%20Light_compressed.pdf",
+          "title": "HD35 Light — Hyundai Camiones & Buses (importador oficial)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha del importador; texto del PDF desordenado según el buscador. Dealer cartoni.cl publica la misma ficha."
+        },
+        "curb_weight_kg": {
+          "url": "https://api.hyundaicamionesybuses.cl/files/vehiculo/HD35%20Light_compressed.pdf",
+          "title": "HD35 Light — Hyundai Camiones & Buses (importador oficial)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Tara 1.800 kg; el buscador advierte texto desordenado (cuadra con 1.700 + 1.800 = 3.500)."
+        },
+        "gvw_kg": {
+          "url": "https://api.hyundaicamionesybuses.cl/files/vehiculo/HD35%20Light_compressed.pdf",
+          "title": "HD35 Light — Hyundai Camiones & Buses (importador oficial)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. PBV 3.500 kg."
+        },
+        "payload_kg": {
+          "url": "https://api.hyundaicamionesybuses.cl/files/vehiculo/HD35%20Light_compressed.pdf",
+          "title": "HD35 Light — Hyundai Camiones & Buses (importador oficial)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Capacidad de carga 1.700 kg publicada (sin carrocería). Largo carrozable 3.400 mm no se usa como largo de caja."
+        },
+        "presence_evidence": {
+          "url": "https://www.cartoni.cl/storage/fichas/HD35 Light.pdf",
+          "title": "HD35 Light — ficha en cartoni.cl (concesionario)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Nota de lanzamiento: https://noticias.autocosmos.cl/2017/12/21/hyundai-presenta-su-camion-ligero-hd-35-light (SECUNDARIO, no abierta)."
+        }
+      }
+    },
+    {
+      "id": "fuso-canter-613-4x2-euro5",
+      "segment": "camionLiviano",
+      "make": "Fuso",
+      "model": "Canter",
+      "version": "613 4x2 Euro 5 chasis cabina",
+      "year_from": null,
+      "year_to": null,
+      "engine": "Fuso 4P10-7AT2, 4 cil. DOHC, 2.998 cc, common rail Bosch, turbo VGT, 130 CV, 300 Nm; caja MO38S5 5 vel.",
+      "fuel": "diesel",
+      "km_per_l_ref": null,
+      "km_per_l_cycle": null,
+      "curb_weight_kg": 2070,
+      "gvw_kg": 5700,
+      "payload_kg": 3630,
+      "cargo_volume_m3": null,
+      "cargo_length_mm": null,
+      "cargo_width_mm": null,
+      "cargo_height_mm": null,
+      "door_width_mm": null,
+      "door_height_mm": null,
+      "presence_evidence": "Página kaufmann.cl/camiones/modelos/canter-613 y ficha PDF del distribuidor. Sin estadística de ventas por versión.",
+      "sources": {
+        "make": {
+          "url": "https://www.kaufmann.cl/documents/68916/f80b9131-129f-cf14-9778-51385ed34af8",
+          "title": "CANTER 613 4x2 euro 5 — ficha Kaufmann (distribuidor Fuso en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha del distribuidor oficial."
+        },
+        "model": {
+          "url": "https://www.kaufmann.cl/documents/68916/f80b9131-129f-cf14-9778-51385ed34af8",
+          "title": "CANTER 613 4x2 euro 5 — ficha Kaufmann (distribuidor Fuso en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha del distribuidor oficial."
+        },
+        "version": {
+          "url": "https://www.kaufmann.cl/documents/68916/f80b9131-129f-cf14-9778-51385ed34af8",
+          "title": "CANTER 613 4x2 euro 5 — ficha Kaufmann (distribuidor Fuso en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha del distribuidor oficial."
+        },
+        "segment": {
+          "url": "https://www.kaufmann.cl/documents/68916/f80b9131-129f-cf14-9778-51385ed34af8",
+          "title": "CANTER 613 4x2 euro 5 — ficha Kaufmann (distribuidor Fuso en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha del distribuidor oficial. Segmento asignado por el agente según tipo de carrocería (tentativo), no es un dato de la fuente."
+        },
+        "engine": {
+          "url": "https://www.kaufmann.cl/documents/68916/f80b9131-129f-cf14-9778-51385ed34af8",
+          "title": "CANTER 613 4x2 euro 5 — ficha Kaufmann (distribuidor Fuso en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Ficha del distribuidor oficial."
+        },
+        "fuel": {
+          "url": "https://www.kaufmann.cl/documents/68916/f80b9131-129f-cf14-9778-51385ed34af8",
+          "title": "CANTER 613 4x2 euro 5 — ficha Kaufmann (distribuidor Fuso en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. El fragmento describe inyección common rail Bosch (motor diésel 4P10); la palabra 'diésel' no apareció literalmente."
+        },
+        "curb_weight_kg": {
+          "url": "https://www.kaufmann.cl/documents/68916/f80b9131-129f-cf14-9778-51385ed34af8",
+          "title": "CANTER 613 4x2 euro 5 — ficha Kaufmann (distribuidor Fuso en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'Vacío sin carrocería ... total 2.070 kg'."
+        },
+        "gvw_kg": {
+          "url": "https://www.kaufmann.cl/documents/68916/f80b9131-129f-cf14-9778-51385ed34af8",
+          "title": "CANTER 613 4x2 euro 5 — ficha Kaufmann (distribuidor Fuso en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'Peso Bruto Vehicular (P.B.V.) 5.700 kg'. Liviano según tabla de camiones ANAC (2.701–6.350 kg); 'pesado' según umbral de emisiones (≥3.860 kg). Ver notas.md."
+        },
+        "payload_kg": {
+          "url": "https://www.kaufmann.cl/documents/68916/f80b9131-129f-cf14-9778-51385ed34af8",
+          "title": "CANTER 613 4x2 euro 5 — ficha Kaufmann (distribuidor Fuso en Chile)",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. 'Capacidad de carga 3.630 kg' publicada, sin carrocería (la carga real baja al carrozar); coincide con 5700 − 2070."
+        },
+        "presence_evidence": {
+          "url": "https://www.kaufmann.cl/camiones/modelos/canter-613",
+          "title": "Canter 613 — kaufmann.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente oficial chilena (marca/importador) vista SOLO como fragmento de búsqueda web; la página no pudo abrirse (host bloqueado por el proxy de red de la sesión). Elevar a VERIFICADO tras abrirla y comprobar el valor. Página de modelo vigente."
+        }
+      }
+    },
+    {
+      "id": "jac-x200-20-chasis-luxury",
+      "segment": "camionLiviano",
+      "make": "JAC",
+      "model": "X200",
+      "version": "2.0L Chasis Luxury (cabina simple) 6MT",
+      "year_from": 2025,
+      "year_to": null,
+      "engine": "2.0 L turbodiésel common rail, 1.999 cc, 134 hp a 3.600 rpm, 285 Nm, manual 6 vel.",
+      "fuel": "diesel",
+      "km_per_l_ref": null,
+      "km_per_l_cycle": null,
+      "curb_weight_kg": null,
+      "gvw_kg": null,
+      "payload_kg": null,
+      "cargo_volume_m3": null,
+      "cargo_length_mm": null,
+      "cargo_width_mm": null,
+      "cargo_height_mm": null,
+      "door_width_mm": null,
+      "door_height_mm": null,
+      "presence_evidence": "Relanzamiento en Chile vía Gildemeister reportado por BioBioChile (jun-2025) y catálogo Autocosmos 2025. No se encontró ficha oficial chilena (jac.cl) en los resultados.",
+      "sources": {
+        "make": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/jac/x200/20l-chasis-luxury/179243",
+          "title": "JAC X200 2.0L Chasis Luxury (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Catálogo de terceros; 'Peso: N/D'."
+        },
+        "model": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/jac/x200/20l-chasis-luxury/179243",
+          "title": "JAC X200 2.0L Chasis Luxury (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Catálogo de terceros; 'Peso: N/D'."
+        },
+        "version": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/jac/x200/20l-chasis-luxury/179243",
+          "title": "JAC X200 2.0L Chasis Luxury (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Catálogo de terceros; 'Peso: N/D'."
+        },
+        "segment": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/jac/x200/20l-chasis-luxury/179243",
+          "title": "JAC X200 2.0L Chasis Luxury (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Catálogo de terceros; 'Peso: N/D'. Segmento asignado por el agente según tipo de carrocería (tentativo), no es un dato de la fuente."
+        },
+        "year_from": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/jac/x200/20l-chasis-luxury/179243",
+          "title": "JAC X200 2.0L Chasis Luxury (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Año de catálogo 2025; el modelo llegó a Chile en 2016 (MY17) según Autocosmos."
+        },
+        "engine": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/jac/x200/20l-chasis-luxury/179243",
+          "title": "JAC X200 2.0L Chasis Luxury (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Catálogo de terceros; 'Peso: N/D'."
+        },
+        "fuel": {
+          "url": "https://www.autocosmos.cl/catalogo/2025/jac/x200/20l-chasis-luxury/179243",
+          "title": "JAC X200 2.0L Chasis Luxury (2025) — autocosmos.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Catálogo de terceros; 'Peso: N/D'."
+        },
+        "presence_evidence": {
+          "url": "https://www.biobiochile.cl/noticias/economia/mercado-automotriz/2025/06/30/jac-relanza-su-clasico-camion-ligero-x200-que-puede-conducirse-con-licencia-clase-b.shtml",
+          "title": "JAC relanza su clásico camión ligero X200 — biobiochile.cl",
+          "retrievedAt": "2026-11-24",
+          "confidence": "SECUNDARIO",
+          "note": "Fuente secundaria chilena vista solo como fragmento de búsqueda web; página no abierta. Carga útil en conflicto entre fuentes (1.660 kg Autocosmos; 1.800 kg chasis cabina según nota 2025) y PBV no encontrado → no cargados."
+        }
+      }
+    }
+  ],
+  "excluded": [
+    {
+      "make": "Peugeot",
+      "model": "e-Partner",
+      "reason": "Eléctrico (fuera del piloto: solo gasolina/diésel). Listado en peugeot.cl/gama/new-partner.html."
+    },
+    {
+      "make": "Toyota",
+      "model": "Hilux (nueva generación eléctrica 2026)",
+      "reason": "Versión cero emisiones anunciada en Chile (noticias.autocosmos.cl, 2026-05-27); eléctrica, fuera del piloto."
+    },
+    {
+      "make": "Fuso",
+      "model": "eCanter",
+      "reason": "Eléctrico (kaufmann.cl/camiones/modelos/ecanter)."
+    },
+    {
+      "make": "Foton",
+      "model": "eAumark S 614",
+      "reason": "Ficha 'ftfoton_eaumarks614' en foton.cl corresponde a versión eléctrica (prefijo 'e'); además sin ficha chilena diésel verificable."
+    },
+    {
+      "make": "Hyundai",
+      "model": "HD65",
+      "reason": "PBV 6.500 kg en fichas de Colombia/Argentina → 'mediano' según tabla de camiones ANAC (6.351–14.968 kg); sin ficha chilena. Segmento fuera_de_piloto_mediano."
+    },
+    {
+      "make": "Fuso",
+      "model": "Canter 815 4x2",
+      "reason": "PBV 7.500 kg (Kaufmann) → 'mediano' según tabla ANAC; fuera_de_piloto_mediano."
+    },
+    {
+      "make": "Chevrolet",
+      "model": "NLR",
+      "reason": "Solo se hallaron fichas de Colombia (PBV 4.600 kg); prohibido usar datos de otro mercado. Sin ficha chilena."
+    },
+    {
+      "make": "Renault",
+      "model": "Master",
+      "reason": "Listada en renault.cl (consumo mixto 12,1 km/l en fragmento) pero sin PBV, carga útil ni volumen vigentes; cifras de 2014/2017 son de generaciones anteriores. Pendiente para una segunda ronda."
+    },
+    {
+      "make": "Citroën",
+      "model": "Berlingo",
+      "reason": "Presente en profesionales.citroen.cl, pero carga útil en conflicto (950 vs 1.050 kg) y consumo oficial solo para BlueHDi 130; se priorizó Peugeot Partner (misma plataforma) por el cupo de 15."
+    },
+    {
+      "make": "Fiat",
+      "model": "Fiorino",
+      "reason": "En Chile el modelo vigente parece comercializarse como RAM V700 Rapid (Autocosmos); no se verificó ficha oficial ni PBV."
+    },
+    {
+      "make": "Mitsubishi",
+      "model": "L200 Euro 6C (vigente)",
+      "reason": "Ficha 2025 en mitsubishi-motors.cl con columnas no asignables a versión (valores contradictorios); se usó la ficha 2020 de la Work CR 4x2."
+    },
+    {
+      "make": "Nissan, Ford, Chevrolet, Maxus, JAC, Great Wall, etc.",
+      "model": "Otros candidatos de la lista (D-Max, T90, T6/T8, Great Wall, Kangoo, N300, Jumper, Ducato, Transit, Deliver 9/V80, Staria Cargo, NMR/NPR, Hino 300, JMC)",
+      "reason": "No revisados por límite de 15 versiones y de tiempo; sin juicio sobre su idoneidad."
+    }
+  ]
+}
