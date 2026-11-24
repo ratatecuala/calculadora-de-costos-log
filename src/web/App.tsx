@@ -4,7 +4,7 @@ import type { VehicleProfile } from '../shared/vehicle';
 import { httpRouteClient } from './api';
 import { AuthStore } from './cloud/auth';
 import { cloudConfig, createBoundClient, getSupabase } from './cloud/client';
-import { mensajeCopia, migrateLocalToCloud, pendingLocalData, type PendingLocalData } from './cloud/migration';
+import { avisoDiferidas, mensajeCopia, migrateLocalToCloud, pendingLocalData, type PendingLocalData } from './cloud/migration';
 import { CloudQuoteRepository } from './cloud/quotes';
 import { CloudVehicleRepository } from './cloud/vehicles';
 import { AccountView } from './components/AccountView';
@@ -308,8 +308,7 @@ function MainApp() {
       {userId && pending && pending.deferred.length > 0 && !migration.message ? (
         // Las diferidas se informan, pero NO son pendientes de copia: no hay botón ni se repite como tarea.
         <p className="sub migration no-print" data-testid="copia-diferidas">
-          {pending.deferred.length} {pending.deferred.length === 1 ? 'cotización con detalle de carga queda' : 'cotizaciones con detalle de carga quedan'} en
-          este navegador; se podrán copiar a tu cuenta cuando la cuenta lo permita.
+          {avisoDiferidas(pending.deferred)}
         </p>
       ) : null}
       {migration.message ? <p className="notice migration no-print">{migration.message}</p> : null}

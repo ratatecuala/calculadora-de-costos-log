@@ -15,7 +15,7 @@ import type { CargoItem } from '../src/shared/cargo';
 import type { JobRecord } from '../src/shared/clientQuote';
 import { readSnapshot, toCloudPayload, type SnapshotV2 } from '../src/shared/snapshot';
 import { cargoItemFromRow, type CargoItemRow } from '../src/web/cloud/mappers';
-import { clasificarParaCopia, migrateLocalToCloud } from '../src/web/cloud/migration';
+import { clasificarParaCopia, mensajeCopia, migrateLocalToCloud, pendingLocalData } from '../src/web/cloud/migration';
 import { CloudQuoteRepository } from '../src/web/cloud/quotes';
 import { decidirAutoguardado, DraftStore, duenoConBorrador } from '../src/web/draftStore';
 import { buildJobRecord } from '../src/web/jobs';
@@ -214,6 +214,30 @@ describe('I-2 · copia del navegador a la cuenta', () => {
     expect(sinFlag.clase).toBe('v2-con-lineas');
     expect(sinFlag.envio).toBeUndefined();
     expect(clasificarParaCopia(j, { cargaNube: true })).toMatchObject({ clase: 'v2-con-lineas', envio: j });
+  });
+
+  it.each([false, true])('con cargaNube=%s conserva los históricos fraccionarios y solo copia los enteros', async (cargaNube) => {
+    const store = new MemoryKeyValueStore();
+    const local = createQuoteRepository(store);
+    await local.create({ ...jobV1(1), netPrice: 1234.5 });
+    await local.create({ ...jobV2(2), netPrice: 6789.25 });
+    await local.create(jobV1(3));
+    await local.create({ ...jobV1(4), tax: { ruleId: 'historica', amount: 25.5 } });
+    const original = await local.list();
+    const nube = nubeFalsa();
+    const copiar = () => migrateLocalToCloud({ supabase: nube.client, userId: A, localQuotes: local, localVehicles: sinVehiculos, store, isCurrentUser: () => true, cargaNube });
+    const pendientes = () => pendingLocalData(local, sinVehiculos, store, A, { cargaNube });
+    expect((await pendientes()).jobs).toBe(1);
+    for (let intento = 0; intento < 2; intento++) {
+      const r = await copiar();
+      expect(r.verified).toBe(true);
+      expect(r.deferred.map(d => d.clase)).toEqual(['precio-fraccionario', 'precio-fraccionario', 'precio-fraccionario']);
+      expect(mensajeCopia(r)).toMatch(/precio tiene decimales/);
+      expect((await pendientes()).deferred).toEqual(r.deferred);
+      expect((await pendientes()).jobs).toBe(0);
+      expect(await local.list()).toEqual(original);
+    }
+    expect(nube.llamadas.map(l => (l.args.p_job as { local_id: string }).local_id)).toEqual([meta(3).id, meta(3).id]);
   });
 
   it('con cargaNube: v1 por la v1, v2 con líneas por la v2 con local_id; repetir no duplica', async () => {

@@ -31,7 +31,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export interface DeferredJob {
   id: string;
   number: number;
-  clase: 'v2-con-lineas' | 'ilegible';
+  clase: 'v2-con-lineas' | 'ilegible' | 'precio-fraccionario';
   motivo: string;
 }
 
@@ -40,7 +40,7 @@ interface MigrationLog {
   [userId: string]: { at: string; jobs: string[]; vehicles: string[]; deferred?: DeferredJob[] };
 }
 
-export type ClaseCopia = 'v1' | 'v2-resumen' | 'v2-con-lineas' | 'ilegible';
+export type ClaseCopia = 'v1' | 'v2-resumen' | DeferredJob['clase'];
 
 export interface Clasificada {
   job: JobRecord;
@@ -67,6 +67,9 @@ export interface OpcionesCopia {
  * - v2 con líneas: diferida hasta I-2.
  */
 export function clasificarParaCopia(job: JobRecord, opciones: OpcionesCopia = {}): Clasificada {
+  if ([job.netPrice, job.tax?.amount ?? 0].some(monto => Number.isFinite(monto) && !Number.isInteger(monto))) {
+    return { job, clase: 'precio-fraccionario', motivo: 'El precio tiene decimales. La cotización se conserva íntegra en este navegador y queda pendiente de importación.' };
+  }
   const internal = job.internal as unknown;
   const p = toCloudPayload(internal);
   if (!p.ok) return { job, clase: 'ilegible', motivo: p.reason };
@@ -131,14 +134,22 @@ export interface MigrationResult {
 
 const numero = (n: number) => `N° ${String(n).padStart(4, '0')}`;
 
-/**
- * Mensaje final (docs/22 §2.5, paso 7): nunca un éxito global si quedan cotizaciones en el
- * navegador; se nombran por su número.
- */
+/** Aviso que se muestra tanto antes de copiar como en el resultado de la copia. */
+export function avisoDiferidas(deferred: DeferredJob[]): string {
+  if (!deferred.length) return '';
+  if (deferred.some(d => d.clase === 'precio-fraccionario')) {
+    return deferred.map(d => `${numero(d.number)}: ${d.motivo}`).join(' ');
+  }
+  const numeros = deferred.map(d => numero(d.number)).join(', ');
+  const motivo = deferred.every(d => d.clase === 'v2-con-lineas')
+    ? 'tienen detalle de carga que la cuenta aún no puede guardar'
+    : 'no se pudieron preparar para la cuenta';
+  return `${deferred.length} ${deferred.length === 1 ? 'cotización queda' : 'cotizaciones quedan'} en este navegador (${numeros}) porque ${motivo}.`;
+}
+
+/** Nunca se muestra un éxito global si quedan cotizaciones en el navegador. */
 export function mensajeCopia(r: MigrationResult): string {
-  const diferidas = r.deferred.length
-    ? ` ${r.deferred.length} ${r.deferred.length === 1 ? 'cotización queda' : 'cotizaciones quedan'} en este navegador (${r.deferred.map((d) => numero(d.number)).join(', ')}) porque ${r.deferred.every((d) => d.clase === 'v2-con-lineas') ? 'tienen detalle de carga que la cuenta aún no puede guardar' : 'no se pudieron preparar para la cuenta'}.`
-    : '';
+  const diferidas = r.deferred.length ? ` ${avisoDiferidas(r.deferred)}` : '';
   if (!r.verified) return `La copia quedó incompleta. Puedes reintentar: no se duplicará nada. Tus datos locales siguen intactos.${diferidas}`;
   const base = `se copiaron ${r.jobsCopied} cotizaciones y ${r.vehiclesCopied} vehículos a tu cuenta${r.jobsAlreadyThere ? ` (${r.jobsAlreadyThere} ya estaban)` : ''}.`;
   return r.deferred.length
@@ -168,7 +179,8 @@ export async function migrateLocalToCloud(args: {
   // Clasificación ANTES de cualquier llamada a la base (docs/22 §2.5, paso 1).
   const clasif = (await localQuotes.list()).filter((j) => UUID.test(j.id)).map((j) => clasificarParaCopia(j, opciones));
   const elegibles = clasif.filter(esElegible);
-  const deferred = clasif.filter((c) => !esElegible(c)).map(diferida);
+  const copiadasAntes = new Set(readLog(store)[userId]?.jobs ?? []);
+  const deferred = clasif.filter(c => !esElegible(c) && !copiadasAntes.has(c.job.id)).map(diferida);
   const vehicles = (await localVehicles.list()).filter((v) => UUID.test(v.id));
   const localDefault = await localVehicles.getDefaultId();
 
