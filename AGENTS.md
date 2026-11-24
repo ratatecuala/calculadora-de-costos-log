@@ -35,7 +35,7 @@ Este archivo es la **puerta de entrada operativa** para Claude, ChatGPT, Codex y
 - **GitHub:** fuente de verdad de código, documentación, decisiones e issues.
 - **Trello:** seguimiento visual por fases y entregables, **solo cuando el propietario autorice crearlo/configurarlo**. No duplicar cada issue como una tarjeta.
 - **Se permiten issues grandes y varios issues en paralelo.** No hay un tamaño máximo artificial: se elige según cohesión funcional, dependencias, capacidad de probar y claridad del seguimiento.
-- Antes de paralelizar, identificar responsables, archivos afectados, dependencias y posibles conflictos. Si se solapan archivos, fórmulas, migraciones o contratos, coordinar el orden o trabajar secuencialmente sobre esa parte. **No trabajar dos agentes sobre el mismo archivo o rama a la vez sin coordinación expresa.**
+- Antes de paralelizar, identificar responsables, archivos afectados, dependencias y posibles conflictos. Si se solapan archivos, fórmulas, migraciones o contratos, coordinar el orden o trabajar secuencialmente sobre esa parte. **No trabajar dos agentes sobre el mismo archivo o rama a la vez sin coordinación expresa.** Como máximo **dos agentes secundarios simultáneos**, con integración secuencial; las tareas pequeñas se hacen directamente (§11).
 - Los cambios hechos por otro agente deben inspeccionarse antes de continuar. Cada avance debe dejar evidencia y estado actualizado en su issue.
 - No copiar reglas técnicas de VetPo, LIVIO o Voli que no correspondan a este producto.
 
@@ -64,7 +64,7 @@ La aprobación de **documentación no autoriza programación**, y la de un PR no
 1. Elegir **uno o varios issues autorizados**, comprobar dependencias, prioridad y estado del repositorio. Se pueden ejecutar en paralelo si el trabajo es independiente o la coordinación evita conflictos.
 2. Antes de editar, presentar al propietario en lenguaje simple: **tarea, archivos a tocar, cambio exacto, cómo se probará y qué queda fuera**. Esperar autorización cuando no exista.
 3. Trabajar en **rama propia por frente coherente**. Un issue o PR puede abarcar varios archivos o funcionalidades relacionadas, y varios issues pueden avanzar simultáneamente. **Dividir solo cuando el tamaño, el acoplamiento o el riesgo dificulten revisar, probar, revertir o integrar sin confusiones.** No hacer refactorizaciones ni mejoras «por si acaso»; no agregar dependencias sin justificación.
-4. Ejecutar pruebas pertinentes: casos matemáticos resueltos independientemente, pruebas automatizadas y verificación en **teléfono y escritorio** si se cambia la interfaz (A-49). Registrar también lo que **no pudo** probarse.
+4. Ejecutar pruebas pertinentes: casos matemáticos resueltos independientemente, pruebas automatizadas y verificación en **teléfono y escritorio** si se cambia la interfaz (A-49). Registrar también lo que **no pudo** probarse. Qué pruebas correr en cada momento: §11.3.
 5. Abrir PR, preferentemente **draft** hasta completar la revisión, con **Refs #N** (no `Closes`/`Cierra` automático), resumen, archivos, riesgos, resultados y 3–6 pasos para probar **sin comandos** desde la web cuando sea posible.
 6. Solicitar revisión técnica de ChatGPT cuando cambie motor, seguridad, privacidad, proveedores, costos o arquitectura. Una revisión de IA no sustituye la aprobación del propietario.
 7. **No integrar a `main` hasta que el propietario escriba una aprobación inequívoca para ese PR**. Si el autor es la misma cuenta GitHub, registrar el OK mediante comentario en el PR.
@@ -103,7 +103,7 @@ Si existen alternativas pagadas, mostrar primero la gratuita y sus límites. **N
 Antes de finalizar una sesión:
 1. Verificar el estado real del PR/issue; no declarar terminado algo sin prueba.
 2. Actualizar únicamente los documentos relevantes y registrar decisiones nuevas aprobadas mediante PR.
-3. Indicar en pocas líneas: **hecho, pendiente, bloqueado, siguiente paso y autorización requerida**.
+3. Indicar en pocas líneas: **hecho, pendiente, bloqueado, siguiente paso y autorización requerida** (formato compacto: §11.4).
 4. Dejar un resumen copiable:
 
 ```text
@@ -119,7 +119,7 @@ Siguiente acción:
 
 ## 10. README como fuente de continuidad (regla permanente, A-48)
 
-1. **Cada avance material** (función terminada, decisión, cambio de arquitectura, despliegue, prueba, bloqueo o hito) actualiza [README.md](README.md) **en el mismo PR o commit**. Cuando proceda, también [07 · Decisiones](docs/07-decisiones.md) y los documentos técnicos afectados.
+1. **Cada avance material** (función terminada, decisión, cambio de arquitectura, despliegue, prueba, bloqueo o hito) actualiza [README.md](README.md) **en el mismo PR o commit**. Cuando proceda, también [07 · Decisiones](docs/07-decisiones.md) y los documentos técnicos afectados, sin duplicar lo que ya está en otro documento o issue: enlazarlo (§11.5).
 2. El README debe mostrar siempre, fechado:
    - objetivo;
    - estado real, distinguiendo «funciona», «simulado», «preparado» y «bloqueado»;
@@ -135,5 +135,38 @@ Siguiente acción:
    - deja que lo fusione **solo el propietario**.
 5. No afirmar monitorización automática: la actualización ocurre cuando un agente trabaja en el repositorio.
 6. **Nunca** publicar en el README URLs privadas de staging, secretos, identificadores de cuentas ni datos personales.
+
+## 11. Eficiencia: contexto, paralelismo y pruebas (regla permanente, A-82)
+
+Objetivo: menos tokens y menos tiempo **sin** bajar las pruebas, la seguridad ni la calidad. Esta sección **no cambia** autorizaciones, restricciones ni estados (§2, §4, §5).
+
+1. **Contexto mínimo:**
+   - leer primero el estado resumido (README, «Estado para retomar»), las decisiones vigentes y solo los archivos necesarios;
+   - preferir búsquedas específicas, `git diff` y rangos de líneas;
+   - no releer archivos que no cambiaron ni repetir el historial de decisiones o auditorías;
+   - mantener un resumen operativo breve (estado, commit, tarea, bloqueos y siguiente paso). Al compactar el contexto, conservar decisiones, dependencias y problemas abiertos.
+2. **Paralelismo:**
+   - un agente coordinador y **como máximo dos agentes secundarios** simultáneos;
+   - cada secundario recibe una tarea delimitada, sus archivos y su propio *worktree*, sin el repositorio ni el historial completos;
+   - dos agentes nunca revisan los mismos archivos (§3);
+   - cada secundario entrega un informe breve: archivos, pruebas, hallazgos y commit;
+   - la integración es secuencial y resuelve los conflictos antes de seguir;
+   - una tarea pequeña se hace directamente, sin otro agente.
+3. **Pruebas:**
+   - durante el desarrollo, solo las relacionadas con los archivos cambiados;
+   - **tras integrar varios frentes, siempre la regresión completa**, que no se repite sin un cambio que la justifique;
+   - se repiten ante fallos intermitentes, cambios críticos o inestabilidad;
+   - los controles negativos, las mutaciones y las pruebas de seguridad se mantienen;
+   - **la cobertura nunca baja** para ahorrar;
+   - un cambio solo de documentación no exige correr las suites.
+4. **Resultados compactos:**
+   - informar solo resúmenes y errores relevantes; los registros largos van a archivos temporales locales;
+   - no explicar cada comando;
+   - reportar de inmediato los bloqueos reales y las decisiones que requieren aprobación (§8).
+5. **Documentación y auditorías:**
+   - actualizar solo los documentos afectados, sin duplicar entre README, documentos, issues y comentarios: enlazar las decisiones anteriores;
+   - pedir auditoría independiente al cerrar un bloque significativo o ante un riesgo concreto. **Las auditorías obligatorias de §6.6 se mantienen**;
+   - no abrir ciclos de refactorización o auditoría sin una justificación verificable.
+6. **Prioridades:** lo que acerca la primera versión gratuita, con soluciones sencillas, mantenibles y sin servicios de pago. Nunca a costa de la seguridad, la precisión económica, el aislamiento de usuarios o la consistencia de los datos.
 
 Estas reglas se aplican a todos los agentes; ningún agente puede ampliarse permisos a sí mismo.
