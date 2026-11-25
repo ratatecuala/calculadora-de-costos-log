@@ -45,8 +45,10 @@ Fuentes oficiales para consulta: [Maps Embed directions](https://developers.goog
 
 ## 3. Combustible: Chile / CNE
 
-- Fuente candidata: Comisión Nacional de Energía (Bencina en Línea y API CNE). Verificar endpoint, registro, licencia, cobertura, vigencia y cuota en #20.
-- Mostrar **fuente, fecha, zona y tipo de combustible**, con edición manual.
+- **Verificado el 25-11-2026.** La Comisión Nacional de Energía ofrece acceso gratuito mediante registro a precios de combustibles vehiculares por estación. [Portal oficial de la CNE](https://api.cne.cl/).
+- **Propuesta para #4.** Actualizar una vez al día una referencia nacional en CLP/L para cada producto (bencina 93, 95 y 97 octanos, y petróleo diésel). Usar el producto elegido para el vehículo. Si una ficha solo dice «gasolina», pedir el octanaje. Calcular y guardar las referencias una sola vez para todas las cotizaciones del día.
+- Mostrar producto, fuente, zona y fecha de la referencia. Permitir escribir el precio efectivamente pagado y conservarlo al actualizar los promedios. Cada cotización emitida conserva el importe usado. Si falla la actualización, mostrar la fecha de la última consulta exitosa. Si nunca hubo datos válidos para ese producto, solicitar el precio manual.
+- **Pendiente en #20 antes de activar.** Confirmar condiciones de reutilización, cuotas y campos disponibles. Documentar qué estaciones y modalidades entran al promedio para que sea reproducible. El registro y la primera consulta autenticada dependen de la autorización de #8.
 - El cálculo usa km/rendimiento del usuario o una referencia justificada y etiquetada. No inferir consumo en taco, carga o carretera solo por velocidad.
 - Sin dato confiable de rendimiento, el gasto de combustible queda **incompleto**, no igual a cero.
 
