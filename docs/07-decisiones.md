@@ -520,3 +520,13 @@ Registrada en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/iss
 | §3 y §5: rutas A→B automáticas con Google Routes Essentials como parte obligatoria | 0A es un cotizador con **recorrido manual**; Google Routes sigue apagado (D-10, $0 autorizados) | Las rutas automáticas **no son requisito de la puerta 0**. Se agregan cuando el propietario autorice Google Routes. Mientras tanto, recorrido manual |
 | §5: meta del lanzamiento (uso, regreso, documentos) | La fase 1 define KPI concretos | La meta de docs/01 se mide con los KPI de la fase 1; las métricas de docs/05 §5 son su instrumento |
 | §6: fuera del primer lanzamiento, «GPS de seguimiento», «aplicación nativa» y «calibración avanzada Pro» | Las fases 4–5 los contemplan | **Sin contradicción:** son fases posteriores al primer lanzamiento, cada una con su puerta |
+
+## Decisión del 26-11-2026 (hora de Chile): especialización y coordinación permanente de agentes (A-86)
+
+Registrada en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7181563285). **APROBADA, regla documental y operativa.**
+
+| ID | Decisión | Alcance |
+|---|---|---|
+| A-86 | Deep Research investiga; GPT dirige la estrategia, evalúa evidencia, coordina y audita; Claude Code lidera arquitectura e integración; Codex lidera ingeniería, instrumentos, pruebas y validación técnica. El propietario decide y autoriza. | Reglas permanentes en [AGENTS.md §1 y §3](../AGENTS.md#3-responsabilidades-y-sistema-de-trabajo). No autoriza programación, fórmulas, datos, migraciones, flags, APIs, gastos, despliegues ni merge. |
+
+La investigación externa de fondo se centraliza exclusivamente en **ChatGPT Deep Research**, con autorización previa del propietario, sin duplicarla en Claude o Codex. Estos pueden consultar documentación técnica y comprobar citas concretas para ejecutar tareas autorizadas; cualquier nueva investigación sustantiva se deriva a GPT. Un responsable por entregable, revisión independiente de cambios críticos, GitHub como fuente de verdad y Trello privado como coordinación visual. Se conservan A-82, A-84 y A-85 y sus restricciones. Los roles son una distribución operativa, no una comparación universal de modelos. El flujo y la matriz completos están en AGENTS.md, sin duplicarlos aquí.
