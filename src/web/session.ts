@@ -482,6 +482,25 @@ export class QuoteSession {
     });
   }
 
+  /**
+   * Orígenes que van al borrador: solo los de campos que siguen distintos de su valor inicial (o con un
+   * cero declarado). Así, borrar lo escrito deja la sesión en su línea base y no se ofrece un borrador
+   * vacío (P1-1 de I-1). En la sesión se conservan todos para la emisión.
+   */
+  private originsForDraft(): OrigenesDatos {
+    const s = this.state;
+    const inicial = initialState();
+    const out: OrigenesDatos = {};
+    for (const [k, o] of Object.entries(s.origins) as Array<[CampoEconomico, OrigenDato]>) {
+      const cambiado =
+        k === 'margin' || k === 'surcharges'
+          ? s[k] !== inicial[k]
+          : s.params[k] !== EMPTY_PARAMS[k] || (s.declaredZeros as string[]).includes(k);
+      if (cambiado) out[k] = { ...o };
+    }
+    return out;
+  }
+
   /** Orígenes con los campos indicados fijados por un mismo evento (A-88). */
   private originsWith(keys: readonly CampoEconomico[], origen: OrigenDato): OrigenesDatos {
     const next: OrigenesDatos = { ...this.state.origins };
@@ -505,7 +524,7 @@ export class QuoteSession {
       inputs: s.inputs,
       params: s.params,
       declaredZeros: s.declaredZeros,
-      origins: s.origins,
+      origins: this.originsForDraft(),
       margin: s.margin,
       surcharges: s.surcharges,
       vehicle: s.vehicle,

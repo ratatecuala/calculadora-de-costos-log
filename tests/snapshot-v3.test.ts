@@ -460,4 +460,18 @@ describe('A-88 · caminos de guardado y recuperación (flags de carga apagadas)'
     otra.restoreDraft({ ...recuperado, origins: { noExiste: { tipo: 'usuario', fecha: null }, kmPerL: { tipo: 'inventado', fecha: null }, tolls: { tipo: 'usuario', fecha: 'ayer' } } as never });
     expect(otra.getSnapshot().origins).toEqual({ tolls: { tipo: 'usuario', fecha: null } });
   });
+
+  it('borrar lo escrito vuelve a la línea base: no queda borrador por un origen sin valor (P1-1 de I-1)', () => {
+    const s = new QuoteSession({ requestRoute: vi.fn(async () => { throw new Error('sin red'); }) });
+    expect(s.hasDraftContent()).toBe(false);
+    s.setParams({ kmPerL: 9 });
+    expect(s.hasDraftContent()).toBe(true);
+    s.setParams({ kmPerL: null });
+    expect(s.hasDraftContent()).toBe(false);
+    s.setMargin(0.2);
+    s.setMargin(0.15);
+    expect(s.hasDraftContent()).toBe(false);
+    s.setParams({ helpers: 0 }); // cero declarado: sí es contenido, como antes de A-88
+    expect(s.draftData().origins?.helpers?.tipo).toBe('usuario');
+  });
 });

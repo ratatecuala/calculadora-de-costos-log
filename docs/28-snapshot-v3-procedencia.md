@@ -100,14 +100,17 @@ Límites: cliente 11000 bytes (`MAX_CLOUD_INTERNAL_JSON_BYTES`), base 16384 (`CH
 
 | Prueba | Resultado (26-11, Claude, ejecutadas) |
 |---|---|
-| `tests/snapshot-v3.test.ts` | **24/24** |
-| `npm test` completo | **721/721** (antes 697) |
+| `tests/snapshot-v3.test.ts` | **25/25** |
+| `npm test` completo | **722/722** (antes 697) |
 | `tsc` y `npm run build` | sin errores |
 | Mutaciones | **6/6 detectadas** en la primera entrega: datos internos en la cotización del cliente, volver a emitir v1, borrador que pierde las marcas, ejemplo clasificado como declarado, nube sin validar v3, partidas que ignoran A-38. **6/6** tras la revisión: sin regla A-38 al leer, sin tope UTF-8, fecha de emisión en lugar de la del evento, fecha UTC en lugar de la local, vehículo sin registrar su origen, fecha inventada sin evento |
 | Ensayo PostgreSQL local (§6) | todo OK en `staging` y `todas` |
 | `scripts/e2e-flujo-completo.mjs` (Pixel 7 y PC 1366, sin flags) | **154/154**; la verificación 8 ahora exige v3 con vehículo, tramos declarados y procedencia |
 | `scripts/e2e-integracion.mjs` con la flag / `--sin-flag` | **278/278** / **24/24** (sin flag ahora exige v3 sin carga) |
 | `scripts/e2e-precio-entero.mjs` | **44/44** |
+| `scripts/e2e-numeros.mjs` (con y sin flag) | **900/900** (tras las correcciones de A-90) |
+
+Las e2e de integración detectaron una regresión de las correcciones de A-90: un origen registrado en un campo que luego se vaciaba dejaba un borrador «vacío» (P1-1 de I-1). Se corrigió: al borrador solo van los orígenes de campos que siguen distintos del valor inicial, y se agregó una prueba que la detecta. Tras la corrección: flujo completo 154/154, integración 278/278 y 24/24 sin flag, precio entero 44/44 y números 900/900.
 
 No probado: Safari real, staging real, cuentas reales.
 
