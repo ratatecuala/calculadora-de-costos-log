@@ -437,9 +437,9 @@ export const snapshotV4Schema = z
 | D-M5 | Valores ocultos de partidas excluidas en el snapshot v4 | **Omitirlos** (se conservan solo en la sesión y el borrador). Menos datos y menos superficie de inferencia (D-A4) |
 | D-M6 | Chips de procedencia | **Solo para valores que no escribió el usuario**, más «Sin dato». Detalle al tocar. Sin «porcentaje de confianza» hasta #12 |
 | D-M7 | Desgloses de la detallada (B-1 prorrateo de periodo y horas productivas, B-2 desgaste por componentes, B-3 partidas personalizadas, B-4 conductor) | **Mantener bloqueados.** Pedir casos dorados y asignar el responsable del motor. Mientras tanto, CLP/h y CLP/km con composición declarativa |
-| D-M8 | Dueño del tipo `Modalidad` | Una sola definición en `src/shared/modalidad.ts` (solo tipos y constantes), que `src/shared/campo/` importe. **Acordarlo con Codex mediante GPT** antes de implementar |
+| D-M8 | Dueño del tipo `Modalidad` | **Un solo contrato con #55.** Codex ya publicó un contrato A-89 en `src/shared/campo/` (rama de #55): la app comercial debe reutilizar esa definición o una común acordada, nunca una segunda. Acordarlo con Codex mediante GPT antes de implementar, sin activar flags |
 | D-M9 | Textos de excedente y utilidad | Provisionales: «Te queda para tu trabajo y tus gastos fijos» y «Resultado después de todos los costos y tu meta». Validar en las pruebas de comprensión, sin cambiar el significado |
-| D-M10 | «Otros gastos» desconocido | Por ahora, **no** cambiar el motor: se usan «Sin cambiar» y «declarado». Reevaluar con B-5 si las pruebas de campo muestran confusión |
+| D-M10 | «Otros gastos» desconocido | **Ajustado tras la revisión de GPT:** pedir que el usuario **confirme expresamente** 0 o «desconocido»; el 0 inicial no implica «no aplica» confirmado. Estudiar B-5 con un caso dorado antes de implementar, sin inferir ausencia |
 
 ## 14. Riesgos
 
@@ -454,3 +454,18 @@ export const snapshotV4Schema = z
 | Sobrecarga visual | Chips solo para valores que no escribió el usuario, cobertura plegada y detalle bajo demanda |
 | Inferencia A-38 con la ruta no retenida | v4 hereda la regla de `partidas: null`. D-M5 reduce los parámetros guardados. D-A4 sigue abierta y no se reabre aquí |
 | Precisión afirmada sin método | «Valor único, sin rango ni calibración» hasta que #12 y 0B entreguen incertidumbre |
+
+## 15. Ajustes tras la revisión de GPT (26-11-2026)
+
+[Revisión de GPT sobre `10dd269`](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-7183175628): el diseño se acepta como propuesta, con estos ajustes, que prevalecen sobre §6 y §13 donde difieran:
+
+| Medida | Definición ajustada |
+|---|---|
+| **Costo operativo** | D + W (sin CF). Es lo que mide la simplificada |
+| Remuneración objetivo R | Se suma **aparte**, al costo objetivo o base de precio. **No** es desembolso ni entra en el KPI de #12 |
+| **Costo integral antes de la meta** | D + W + CF (detallada) |
+| **Utilidad sobre la meta** | P − D − W − CF − R |
+
+- Una cifra con una **exclusión voluntaria** nunca se rotula «completa» sin un aviso visible de lo excluido.
+- Un **valor inicial 0** no implica «no aplica» confirmado (ver D-M10).
+- B-1 a B-4 y B-6 quedan diferidos. La fecha comercial UTC (hallazgo de [28 §8](28-snapshot-v3-procedencia.md)) y cualquier cambio de alcance o del motor requieren aprobación del propietario.
