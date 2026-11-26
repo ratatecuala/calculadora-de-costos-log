@@ -57,6 +57,8 @@ Los datos personales (ubicaciones, domicilios, patentes, boletas) quedan **fuera
 
 ### Fase 0 · cuatro bloques en paralelo
 
+**Preparación técnica (A-87, 26-11-2026):** la matriz por componente económico (combustible, TAG, C-1, C-2, rendimiento, desgaste y procedencia), las instrucciones de staging para el propietario, la coordinación con Codex y el orden recomendado están en [26](26-preparacion-fase-0.md). **PROPUESTO:** cada paso pide su aprobación.
+
 **Dependencias:**
 - 0B y 0C pueden avanzar ya, con instrumentos externos.
 - 0C usa los resultados de 0B para comparar el precio sugerido con el mercado.

@@ -530,3 +530,13 @@ Registrada en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/iss
 | A-86 | Deep Research investiga; GPT dirige la estrategia, evalúa evidencia, coordina y audita; Claude Code lidera arquitectura e integración; Codex lidera ingeniería, instrumentos, pruebas y validación técnica. El propietario decide y autoriza. | Reglas permanentes en [AGENTS.md §1 y §3](../AGENTS.md#3-responsabilidades-y-sistema-de-trabajo). No autoriza programación, fórmulas, datos, migraciones, flags, APIs, gastos, despliegues ni merge. |
 
 La investigación externa de fondo se centraliza exclusivamente en **ChatGPT Deep Research**, con autorización previa del propietario, sin duplicarla en Claude o Codex. Estos pueden consultar documentación técnica y comprobar citas concretas para ejecutar tareas autorizadas; cualquier nueva investigación sustantiva se deriva a GPT. Un responsable por entregable, revisión independiente de cambios críticos, GitHub como fuente de verdad y Trello privado como coordinación visual. Se conservan A-82, A-84 y A-85 y sus restricciones. Los roles son una distribución operativa, no una comparación universal de modelos. El flujo y la matriz completos están en AGENTS.md, sin duplicarlos aquí.
+
+## Autorización del 26-11-2026 (hora de Chile): preparación técnica de la fase 0 (A-87)
+
+Registrada literalmente en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7181640658). **APROBADA, solo revisión y documentación.**
+
+| ID | Decisión | Alcance |
+|---|---|---|
+| A-87 | Revisión técnica y documental de siete componentes económicos (combustible #20, TAG #21, C-1, C-2, rendimiento declarado y calibrado, desgaste y gastos fijos, procedencia de los datos), de los pasos pendientes de staging (docs/25) y de la coordinación con Codex. Entrega: matriz, orden recomendado, bloqueos y tareas posibles mientras llegan los informes de Deep Research | Solo documentación pertinente, README y comentarios en los issues existentes. **Prohibido:** investigación externa independiente, inventar datos o coeficientes, código funcional, fórmulas, migraciones, flags, APIs, servicios, despliegues, merge y repetir auditorías resueltas |
+
+Resultado: [26 · Preparación técnica de la fase 0](26-preparacion-fase-0.md) (**PROPUESTO**). También se corrigieron los pasos 1.1 y 1.2 de [25](25-lista-staging-52.md), que no mencionaban las migraciones de I-2 y de precio entero ni el workflow de CI.

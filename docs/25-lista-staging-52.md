@@ -1,5 +1,7 @@
 # 25 · Lista de comprobación: respaldo, simulacro de restauración y verificaciones previas en staging para #52
 
+> **Actualización del 26-11-2026 (A-87):** las instrucciones resumidas para el propietario, en orden, y lo que viene después de #52 (I-2 y precio entero) están en [26 §4](26-preparacion-fase-0.md#4-staging-qué-falta-y-qué-haces-tú). Se corrigieron los pasos 1.1 y 1.2, que estaban desactualizados.
+
 > **Documento preparado; nada de esto se ha ejecutado contra Supabase ni staging.** Lo preparó Claude (A-76 a A-79; registros en #43: [A-77](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7078172931), [A-78](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7118420787) y [A-79](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7120135246)) sin ninguna operación remota. Lo único ejecutado son **pruebas con datos y credenciales ficticios** en una base local (§7).
 
 **Versión 4 · 24-11-2026.** Responde a la [reauditoría de A-78](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7119520646) (1 P1, A-79): la conexión cifraba, pero **no verificaba que el servidor fuera Supabase** (`sslmode=require` por defecto, y se aceptaba incluso `disable`). Ahora:
@@ -114,14 +116,14 @@ El respaldo y el simulacro usan herramientas de Linux. En Windows 11 se ejecutan
 
 - [ ] **1.1 Confirmar lo que NO se hace todavía.**
   - **Quién:** el propietario.
-  - **No se hace:** aplicar la migración, ejecutar `supabase db push` (aplicaría la de #52, que ya está en `supabase/migrations/`), encender flags, desplegar ni hacer merge del PR #34.
-  - **Bien si:** en el panel de Supabase, *Database → Migrations*, siguen solo las 3 versiones del 18-11 (`20261118000315`, `20261118000924` y `20261118022422`), **sin** `20261122120000`.
-  - **Si no:** si aparece `20261122120000`, detente y avisa. No la reviertas por tu cuenta.
+  - **No se hace:** aplicar migraciones, ejecutar `supabase db push`, encender flags, desplegar ni hacer merge del PR #34. Ojo: `supabase db push` aplicaría **las cuatro** migraciones locales que ya están en `supabase/migrations/`: #52 (`20261122120000`), I-2 (`20261125120000` y `20261125120100`) y precio entero (`20261125130000`).
+  - **Bien si:** en el panel de Supabase, *Database → Migrations*, siguen solo las 3 versiones del 18-11 (`20261118000315`, `20261118000924` y `20261118022422`), **sin** ninguna de las cuatro posteriores.
+  - **Si no:** si aparece cualquiera de ellas, detente y avisa. No la reviertas por tu cuenta.
 
 - [ ] **1.2 Confirmar que nada aplica migraciones solo.**
   - **Quién:** el propietario.
   - **Qué revisar:**
-    - el repositorio no tiene `.github/workflows/` (comprobado por Claude el 22-11);
+    - el único flujo automático del repositorio es `.github/workflows/a83.yml` (desde A-83). Claude lo revisó el 26-11: corre pruebas en un PostgreSQL desechable dentro de GitHub, con permiso de solo lectura, sin secretos y **sin** conectarse a Supabase;
     - en el panel de Supabase, la **integración con GitHub / Branching** del proyecto de staging debe estar **desactivada** o desconectada de este repositorio (**POR CONFIRMAR**: Claude no ve el panel);
     - nadie más tiene instrucciones de correr `supabase db push`.
   - **Si no:** si la integración está activa, detente y avisa.
