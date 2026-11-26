@@ -1,6 +1,6 @@
 # 34 · Worker privado `medicion-privada` (A-91 Frente B)
 
-**Estado (26-11-2026, hora de Chile):** código **preparado y probado en local**; **no desplegado**. El despliegue espera un token de Cloudflare exclusivo para este entorno, que el propietario debe guardar en la configuración del entorno de la nube (nunca en el chat ni en el repositorio). Autorización: [A-91 en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7183824623). Propuesta original: [31 §7](31-herramienta-medicion-implementacion.md).
+**Estado (26-11-2026, hora de Chile):** **desplegado** en la cuenta del propietario (plan Workers Free confirmado por él) a las 04:21, desde `77e5c31` (CI de #57 en verde). La dirección privada **no se publica** en el repositorio. Token exclusivo del propietario, limitado a este Worker y con caducidad de 7 días, inyectado por el proxy del entorno (nunca visible para el agente). El despliegue se hizo con la API REST de scripts (`PUT …/workers/scripts/medicion-privada`), sin tocar otros Workers. Contraseña temporal solo para las pruebas; el propietario la reemplaza por la definitiva en el panel (§6). Autorización: [A-91 en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7183824623). Propuesta original: [31 §7](31-herramienta-medicion-implementacion.md).
 
 ## 1. Qué es
 
@@ -39,6 +39,14 @@ Un Worker de Cloudflare **nuevo y separado** que sirve solo el build de la herra
 - Sobre el HEAD integrado (contrato de Codex y cierre de A-91, `ea767b1` + este Worker): regresión `npm test` **941/941**; el **e2e completo de la herramienta a través del Worker local con contraseña** (`MEDICION_AUTH`, Pixel 7 y PC): **82 comprobaciones, 0 fallas**, incluidos sin conexión, exportación, importación con la CLI de Codex y respaldo todo o nada.
 - **No ejecutado:** despliegue real, plan de la cuenta, teléfono físico. Las pruebas unitarias del Worker corren en la CI de #57 con `npm test`; la comprobación con `wrangler dev` todavía no está en esa CI (pedido para Codex, dueño del workflow).
 
+## 4.1 Pruebas sobre el Worker desplegado (Claude, 26-11-2026)
+
+- `probar-acceso.mjs` contra la dirección privada: sin credenciales, `/`, `/index.html`, `/sw.js`, los dos assets y una ruta inexistente → **401**; POST y contraseña incorrecta → 401. Con credenciales en Chromium (Pixel 7): la app carga, el service worker toma el control, IndexedDB conserva un registro y la app vuelve a abrir **sin conexión**. 0 peticiones a otros orígenes. Cabeceras: HSTS, `noindex`, `no-referrer`, `private, no-store`.
+- e2e completo de la herramienta contra la dirección privada con contraseña: **82 comprobaciones, 0 fallas** (Pixel 7 y PC), incluidos sin conexión, exportación, importación del paquete con la CLI de Codex y respaldo todo o nada.
+- La redirección HTTP → HTTPS no se pudo comprobar desde el entorno (sin salida HTTP); la cubre la prueba unitaria.
+- Configuración comprobada por la API: un solo secreto (`MEDICION_BASIC_AUTH`), sin otros bindings, sin observabilidad ni logpush.
+- **Pendiente:** teléfono físico del propietario y cambio a su contraseña definitiva.
+
 ## 5. Procedimiento de despliegue (para la sesión que tenga el token)
 
 Requisitos previos (A-91): observaciones de GPT corregidas, integración con Codex completa y **CI independiente de #57 en verde** sobre el HEAD a desplegar.
@@ -52,7 +60,11 @@ Requisitos previos (A-91): observaciones de GPT corregidas, integración con Cod
 
 **Revertir:** `npx wrangler delete --config workers/medicion-privada/wrangler.jsonc` (borra el Worker y su secreto) y revocar el token en Cloudflare.
 
-## 6. Primera prueba desde el teléfono (para el propietario)
+## 6. Contraseña definitiva (la configura el propietario)
+
+En el panel de Cloudflare: Workers & Pages → `medicion-privada` → Settings → Variables and Secrets → `MEDICION_BASIC_AUTH` → editar. Valor: `usuario:contraseña` (el usuario sin «:»; contraseña larga, idealmente de un gestor de contraseñas). Guardar y desplegar. La contraseña temporal deja de servir en ese momento. Si el valor no tiene «:», el Worker responde 503 y no abre nada.
+
+## 7. Primera prueba desde el teléfono (para el propietario)
 
 1. Abre la dirección privada en Chrome del teléfono y escribe el usuario y la contraseña cuando lo pida.
 2. Menú ⋮ → «Agregar a la pantalla principal», para abrirla como una app.

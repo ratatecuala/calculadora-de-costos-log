@@ -457,7 +457,11 @@ async function recorrido(browser, nombre, opciones, camino) {
   await context.close();
 }
 
-const browser = await chromium.launch();
+// Un destino remoto (Worker privado) se alcanza por el proxy del entorno, si existe; localhost nunca.
+const proxyRemoto = process.env.HTTPS_PROXY && !/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(base)
+  ? { server: process.env.HTTPS_PROXY, bypass: 'localhost,127.0.0.1' }
+  : undefined;
+const browser = await chromium.launch(proxyRemoto ? { proxy: proxyRemoto } : {});
 try {
   for (const [nombre, opciones, camino] of tamaños) {
     try {
