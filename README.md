@@ -1,5 +1,7 @@
 # Calculadora y cotizador de fletes — nombre pendiente
 
+> **Tercera ronda (26-11-2026):** [consolidación y auditoría GPT](docs/33-tercera-ronda-fase-0.md). #55/#56 CI verificadas; #57 integración y acceso privado pendientes; #12 objetivos iniciales aprobados con calendario flexible. No autoriza despliegue.
+
 > **Segunda ronda (26-11-2026):** [consolidación y revisión GPT](docs/30-segunda-ronda-fase-0.md). A-88 v3 en rama, CI verde verificada; #55/#56 requieren correcciones y pruebas; TAG #21 investigado sin integración. D-1–D-7 y siguiente implementación pendientes de autorización.
 
 > **A-89 — dirección aprobada, no implementada:** modalidad simplificada (predeterminada, costo operativo del viaje) y detallada (opcional, costo económico integral), ambas con el mismo motor, cotizaciones e historial. [Registro](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7182307655).
