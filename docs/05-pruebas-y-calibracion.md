@@ -36,6 +36,8 @@
 
 ## 4. Registros manuales de viajes y combustible
 
+> **A-85:** estos registros son el instrumento de la **fase 0B** (validación económica). Los criterios propuestos de [#12](https://github.com/ratatecuala/calculadora-de-costos-log/issues/12), pendientes de aprobación, el método de variación por clase comparable y el tamaño del intervalo por litros consumidos están en [08 · 0B](08-hoja-de-ruta.md#fase-0--cuatro-bloques-en-paralelo).
+
 El registro **manual** es gratis; la lectura automática de fotografías y análisis avanzado son futuros.
 
 - Capturar odómetro inicial/final o km medidos por el usuario, tiempos y litros realmente repostados.
@@ -82,6 +84,8 @@ npm run campo -- datos/pruebas-campo/escenarios.csv
 Peso, fragilidad, pisos y ascensor pueden orientar el tiempo y personal supuestos. El motor vigente no agrega un cobro automático por esas características.
 
 ## 5. Validación con transportistas reales
+
+> **A-85:** estas métricas son el instrumento de la **fase 1** (validación comercial). La validación experimental previa al piloto (0B y 0C) es otra cosa, y las simulaciones no cuentan como demanda ([08](08-hoja-de-ruta.md)).
 
 **Hipótesis a validar:** usuarios que calculan un flete y vuelven a usar la aplicación para cotizaciones reales.
 

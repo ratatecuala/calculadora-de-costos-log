@@ -461,9 +461,9 @@ Registrada literalmente en [#43](https://github.com/ratatecuala/calculadora-de-c
 
 El propietario [autorizó estas dos mejoras en el PR #34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-7146430428), sobre `93a7b9c`. El ejemplo pide permiso si sustituye costos ingresados. Con un cálculo completo puede copiarse el precio sugerido mostrado al campo final, con confirmación si reemplaza otro valor. Cancelar conserva la cotización. Se mantienen las reglas A-81/A-83.
 
-## Decisión del 26-11-2026: desarrollo por fases con puertas de aprobación (A-84)
+## Decisión del 25-11-2026 (hora de Chile): desarrollo por fases con puertas de aprobación (A-84)
 
-Registrada en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7179239951). **APROBADA.** Las fases, los KPI, la medición y los criterios de cada puerta están en [08 · Fases y puertas](08-hoja-de-ruta.md#fases-y-puertas-de-aprobación-a-84).
+Registrada en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7179239951). **APROBADA.** Las fases, los KPI, la medición y los criterios de cada puerta están en [08 · Fases y puertas](08-hoja-de-ruta.md#fases-y-puertas-de-aprobación-a-84-revisada-por-a-85).
 
 | ID | Decisión | Alcance |
 |---|---|---|
@@ -486,3 +486,37 @@ Registrada en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/iss
    - la inversión que podría autorizarse (DATO FALTANTE);
    - quién decide: **el propietario**.
 8. **Datos del Chery:** se permite recolectarlos solo para experimentación. Nunca se publican datos personales (ubicaciones, domicilios ni placa), y el cotizador no se modifica por ellos.
+
+## Decisión del 25-11-2026 (hora de Chile): revisión de A-84, fase 0 en cuatro bloques (A-85)
+
+Registrada en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7181211142). **APROBADA, solo documentación.** El detalle está en [08 · Fases](08-hoja-de-ruta.md#fases-y-puertas-de-aprobación-a-84-revisada-por-a-85).
+
+| ID | Decisión | Alcance |
+|---|---|---|
+| A-85 | **Posicionamiento como hipótesis por validar:** herramienta de **control económico** para transportistas independientes; el cotizador es una consecuencia de conocer los costos.<br>**Fase 0 en cuatro bloques en paralelo:**<br>• **0A:** MVP funcional;<br>• **0B:** validación económica y calibración;<br>• **0C:** competitividad y posicionamiento;<br>• **0D:** seguridad, experiencia y preparación del piloto.<br>La **puerta 0 exige evidencia económica (0B) y comercial (0C)** | Solo documentación. No programar, no cambiar fórmulas, no migrar, no activar flags, no contratar servicios, no desplegar ni fusionar |
+
+**Reglas obligatorias (se suman a las de A-84):**
+1. **No prometer** ganancias reales ni exactitud sin evidencia. El posicionamiento es una hipótesis hasta validarla en 0C y en la fase 1.
+2. **Criterios de calibración de #12:** son la propuesta vigente, **pendiente de aprobación**. Ninguna categoría se calibra con datos de otra.
+3. **Variación del consumo:**
+   - solo entre intervalos de una misma **clase comparable** (recorrido × carga × aire acondicionado);
+   - con **n ≥ 3** por clase, informando el coeficiente de variación y la desviación máxima;
+   - el tamaño del intervalo se fija por **litros consumidos** frente al error de llenado; 300 km es solo una referencia para autos.
+4. **Benchmark de mercado:** independiente, con fuente y fecha. **Nunca** se ajustan costos, fórmulas ni márgenes para igualar a la competencia. Cualquier consulta directa a terceros se aprueba antes, para no engañar.
+5. **Instrumentos externos** (TRIP, boletas, cartola TAG, GPX, planillas, OBD-II propio) se usan **antes** de construir módulos. Los datos personales quedan fuera del repositorio.
+6. **Valor del GPS:** se mide en pesos (la diferencia de costo frente a TRIP y reloj) y frente al costo de construirlo (A-84, regla 5, sigue vigente).
+7. **Reevaluación de la fase 0:**
+   - si 0B no cumple en una partida, esa partida se presenta como declarada o parcial;
+   - si 0C no respalda el posicionamiento o la competitividad, se revisa la hipótesis antes del piloto;
+   - tras un número de iteraciones (DATO FALTANTE), decide el propietario.
+8. **Fechas en hora de Chile.** A-84 se corrige al **25-11-2026**: se registró el 26-11 a las 00:54 UTC, que son las 21:54 del 25-11 en Santiago.
+9. **Trello:** el tablero privado de la fase 0 coordina visualmente; **GitHub es la fuente de verdad técnica**. Su enlace no se publica en el repositorio.
+
+**Contradicciones con [01 · Alcance](01-alcance.md), resueltas por la decisión más reciente del propietario (AGENTS.md §1.5):**
+
+| docs/01 | Conflicto con A-84 | Resolución |
+|---|---|---|
+| §5: el lanzamiento incluye «registro manual de viajes reales y cargas de combustible» | A-84 dejaba el cierre del servicio en la fase 2 y las cargas en la fase 3 | **El registro manual se hace en la fase 0B con instrumentos externos y planillas** (evidencia para la puerta 0). El **módulo en la app** (conciliación y cargas) es de las fases 2 y 3, con su puerta |
+| §3 y §5: rutas A→B automáticas con Google Routes Essentials como parte obligatoria | 0A es un cotizador con **recorrido manual**; Google Routes sigue apagado (D-10, $0 autorizados) | Las rutas automáticas **no son requisito de la puerta 0**. Se agregan cuando el propietario autorice Google Routes. Mientras tanto, recorrido manual |
+| §5: meta del lanzamiento (uso, regreso, documentos) | La fase 1 define KPI concretos | La meta de docs/01 se mide con los KPI de la fase 1; las métricas de docs/05 §5 son su instrumento |
+| §6: fuera del primer lanzamiento, «GPS de seguimiento», «aplicación nativa» y «calibración avanzada Pro» | Las fases 4–5 los contemplan | **Sin contradicción:** son fases posteriores al primer lanzamiento, cada una con su puerta |

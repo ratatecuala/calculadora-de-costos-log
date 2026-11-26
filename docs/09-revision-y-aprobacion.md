@@ -4,7 +4,15 @@ No necesitas programar ni ejecutar comandos. Todo se hace desde la web de GitHub
 
 ## Estado actual de las aprobaciones
 
-> **Estado vigente (20-11-2026):** las decisiones aprobadas por escrito llegan hasta **A-68** ([07](07-decisiones.md)); A-21 a A-29 y A-31 a A-46 siguen pendientes de ratificación escrita. Supabase está aprobado en plan gratuito para el staging (A-52). Cuando el autor del PR es tu misma cuenta, Claude registra literalmente tu aprobación en un comentario (AGENTS.md §6.7). **Todavía no hay CI ni vista previa automática por PR:** las pruebas las ejecuta Claude y sus resultados se informan en el PR o la issue; los pasos 2 y 3 del ciclo describen lo previsto. El párrafo siguiente es el estado del 16-11 (histórico).
+> **Estado vigente (25-11-2026, hora de Chile):**
+> - Las decisiones aprobadas llegan hasta **A-85** ([07](07-decisiones.md)). A-82 (protocolo de eficiencia) está en [AGENTS.md §11](../AGENTS.md); A-21 a A-29 y A-31 a A-46 siguen pendientes de ratificación escrita.
+> - Cada avance de fase pasa por una **puerta de aprobación** tuya ([08](08-hoja-de-ruta.md)).
+> - **Ya hay CI:** el workflow [`a83.yml`](../.github/workflows/a83.yml) corre en los PR hacia `main` las pruebas unitarias, la compilación y los ensayos de precio entero e I-2 con PostgreSQL 17 desechable. Las pruebas de navegador y de staging las sigue ejecutando un agente y se informan en el PR o el issue.
+> - El seguimiento visual de la fase 0 está en un tablero privado de Trello; GitHub sigue siendo la fuente de verdad.
+>
+> El párrafo siguiente es el estado del 20-11 (histórico):
+>
+> **Estado del 20-11-2026 (histórico):** las decisiones aprobadas por escrito llegan hasta **A-68** ([07](07-decisiones.md)); A-21 a A-29 y A-31 a A-46 siguen pendientes de ratificación escrita. Supabase está aprobado en plan gratuito para el staging (A-52). Cuando el autor del PR es tu misma cuenta, Claude registra literalmente tu aprobación en un comentario (AGENTS.md §6.7). **Todavía no hay CI ni vista previa automática por PR:** las pruebas las ejecuta Claude y sus resultados se informan en el PR o la issue; los pasos 2 y 3 del ciclo describen lo previsto. El párrafo siguiente es el estado del 16-11 (histórico).
 
 La documentación del **PR #34** refleja el **alcance actualizado**. La **dirección visual v4 blanco/azul/grafito y las muestras de inicio/calculadora** están aprobadas por el propietario. El 16-11-2026 el propietario comunicó a Claude, por chat, la aprobación de la dirección v4 completa y de los criterios funcionales A-21 a A-29; **falta ratificarlos con un comentario en el PR #34** (ver [07](07-decisiones.md)). El **backlog se actualizó** ese día (ver [08](08-hoja-de-ruta.md)). Siguen pendientes **nombre comercial, aprobación de la arquitectura propuesta (proveedor de cuentas, Supabase #35) y límites de API**. Ver [guía UX v4](10-diseno-ux.md). Aprobar un documento no autoriza código, cuentas, despliegues, suscripciones ni cargos. 
 

@@ -4,6 +4,11 @@
 
 > **Estado vigente (20-11-2026, hasta `2f8e112`):** el alcance de esta página sigue vigente con los cambios de A-31 a A-45 (Google Routes Essentials, sin mapa integrado, «Mi vehículo»). La calculadora, el cotizador, el PDF, el historial y las cuentas **funcionan** en local y en un staging privado gratuito; las rutas son **simuladas** y no hay producción. El **cotizador ampliado** (inventario de carga, recursos, catálogo, costo según carga, IVA en dos opciones y rutas reales) se planifica en [19](19-plan-cotizador-ampliado.md): inventario y recursos ya están en «Cotizar» para el modo sin cuenta, **detrás de una flag apagada** y sin cambiar el costo ([22](22-diseno-integracion-cotizador.md)). La arquitectura vigente está en [02 §9](02-arquitectura.md).
 
+> **Actualización (A-84 y A-85, 25-11-2026):** el producto avanza por fases con puertas de aprobación ([08](08-hoja-de-ruta.md#fases-y-puertas-de-aprobación-a-84-revisada-por-a-85)). El posicionamiento propuesto, por validar, es una **herramienta de control económico** cuyo cotizador surge de conocer los costos.
+> - En §5, el registro manual de viajes y cargas se hace primero en la **fase 0B**, con instrumentos externos y planillas; el módulo en la app corresponde a las fases 2 y 3.
+> - Las rutas automáticas con Google Routes **no son requisito de la puerta 0**: mientras D-10 no se autorice, se usa el recorrido manual.
+> - El detalle de estas contradicciones resueltas está en [07 · A-85](07-decisiones.md).
+
 ## 1. Qué se construye primero
 
 Una herramienta web **gratuita para cotizar fletes y mudanzas pequeñas o medianas en Chile**, orientada a transportistas que utilizan auto, camioneta, furgón u otro vehículo liviano de trabajo. **Camiones de alto tonelaje quedan fuera del alcance inicial.** La inclusión y reglas específicas de motocicletas y camiones livianos necesitan validación técnica.

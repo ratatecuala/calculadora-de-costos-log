@@ -1,43 +1,135 @@
 # 08 · Hoja de ruta y backlog
 
-## Fases y puertas de aprobación (A-84)
+## Fases y puertas de aprobación (A-84, revisada por A-85)
 
-Decisión y reglas obligatorias: [07 · A-84](07-decisiones.md). **Ninguna fase se autoriza sola:** cumplir sus KPI solo permite **pedir** el avance, y decide el propietario. Los **presupuestos máximos y plazos son DATO FALTANTE** hasta que los fije el propietario. Los umbrales son **iniciales** y se pueden ajustar con datos, también con aprobación.
+Decisiones y reglas obligatorias: [07 · A-84 y A-85](07-decisiones.md). Fechas en **hora de Chile**.
+- **Nada se autoriza solo:** cumplir los KPI de una fase solo permite **pedir** el avance, y decide el propietario.
+- **Presupuestos máximos, plazos y umbrales no aprobados son DATO FALTANTE** hasta que el propietario los fije.
 
 **Tipos de KPI:**
-- **T (técnico):** funciona;
-- **C (comercial):** se usa y genera valor;
+- **T (técnico):** funciona.
+- **E (económico):** el costo estimado se acerca al real medido.
+- **C (comercial):** se usa, genera valor y es competitivo.
 - **F (financiero):** conviene seguir invirtiendo.
 
 Las simulaciones y las pruebas automatizadas **solo** cuentan como T.
 
+### Hipótesis de posicionamiento (A-85, por validar)
+
+Una herramienta de **control económico** para transportistas independientes. Preguntas guía:
+- «¿Estás ganando dinero con tus fletes o solamente cubriendo gastos?»
+- «¿Sabes cuánto te cuesta cada kilómetro?»
+- «¿Estás cobrando lo suficiente por transportar carga?»
+- «¿Cuánto gastas en combustible, desgaste y TAG?»
+
+El cotizador es una consecuencia de conocer los costos. **Es una hipótesis:** no se prometen ganancias ni exactitud sin evidencia. Se valida en 0C y en la fase 1.
+
+### Tres tipos de validación (no se confunden)
+
+| Tipo | Cuándo | Quién y con qué | Qué demuestra | Qué NO demuestra |
+|---|---|---|---|---|
+| **Experimental previa al piloto** | Fase 0 (0B y 0C) | El propietario y pocos transportistas cercanos, con mediciones reales, instrumentos externos y entrevistas | Si el costo estimado se acerca al real y si el precio resultante es plausible frente al mercado | Demanda ni uso sostenido |
+| **Comercial** | Fase 1 | Transportistas reales usando el producto | Uso, retención y valor percibido | La precisión de módulos futuros |
+| **De funciones futuras** | Fases 2–5 | Cada módulo, después de su puerta | Que el módulo agrega valor medible | — |
+
+**Instrumentos externos permitidos antes de construir módulos (A-85):**
+- TRIP y odómetro, cronómetro y boletas de combustible;
+- cartola o comprobantes de TAG;
+- apps gratuitas de terceros que exporten GPX;
+- planillas (`npm run campo`, docs/05 §4);
+- un lector OBD-II ya disponible, si existe.
+
+Los datos personales (ubicaciones, domicilios, patentes, boletas) quedan **fuera del repositorio** (`calibracion/`, excluida de Git). **No se contrata ningún servicio** sin autorización.
+
 ### Resumen
 
-| Fase | Qué se construye o valida | Estado (26-11-2026) |
+| Fase | Qué se construye o valida | Estado (25-11-2026) |
 |---|---|---|
-| 0 · MVP funcional | Cotizador manual, seguridad, pruebas y staging | **En curso** (#52, I-2 local y H1 hechos; faltan los pasos de staging de [25](25-lista-staging-52.md)) |
-| 1 · Validación comercial | Uso por transportistas reales | No iniciada. Requiere la puerta 0 |
-| 2 · Rentabilidad por viaje | Cierre del servicio: presupuestado, estimado con el recorrido real y gastos comprobados | No iniciada |
-| 3 · Rendimiento personalizado | Registro de cargas de combustible y calibración de km/L | **Solo recolección experimental** con el Chery (A-84, regla 8) |
-| 4 · GPS opcional | Distancia, tiempos y detenciones con el teléfono | No iniciada |
-| 5 · Premium / OBD-II | Telemetría y dispositivo opcional | No iniciada |
+| **0A** · MVP funcional | Cotizador manual y su flujo completo | **Avanzado:** funciona en local; #52, I-2 paso 1, H1 y precio entero en la base hechos **en local** |
+| **0B** · Validación económica y calibración | Costo estimado frente a costo medido, por partida | **Recolección iniciada** (pruebas del Chery); criterios de #12 **pendientes de aprobación** |
+| **0C** · Competitividad y posicionamiento | *Benchmark* de precios y prueba de la hipótesis de posicionamiento | No iniciado |
+| **0D** · Seguridad, experiencia y piloto | Staging, privacidad, dispositivos reales y plan del piloto | **Bloqueado** en los pasos de staging de [25](25-lista-staging-52.md) y A-59 |
+| 1 · Validación comercial | Uso por transportistas reales | Requiere la puerta 0 |
+| 2 · Rentabilidad por viaje | Módulo de cierre del servicio en la app | Futura |
+| 3 · Rendimiento personalizado | Módulo de cargas y calibración en la app | Futura (los datos se recolectan en 0B) |
+| 4 · GPS opcional | Distancia, tiempos y detenciones con el teléfono | Futura |
+| 5 · Premium / OBD-II | Telemetría y dispositivo opcional | Futura |
 
-### Fase 0 · MVP funcional
+### Fase 0 · cuatro bloques en paralelo
 
+**Dependencias:**
+- 0B y 0C pueden avanzar ya, con instrumentos externos.
+- 0C usa los resultados de 0B para comparar el precio sugerido con el mercado.
+- 0D depende de 0A para las pruebas en dispositivos y de las autorizaciones de staging.
+- La puerta 0 exige los cuatro.
+
+**0A · MVP funcional**
 - **KPI T:**
+  - flujo completo vehículo → recorrido manual → costos → precio → documento → PDF y WhatsApp;
   - 0 P0/P1 abiertos en la última auditoría independiente;
-  - e2e en verde **en staging**, con la suite de cuentas 59/59 y el flujo completo;
-  - respaldo real y simulacro hechos (docs/25);
-  - #52 aplicada con A-59;
-  - probado en **un iPhone y un Android reales**.
-- **Requisito legal:** aviso de privacidad publicado (#17) **antes** de recibir datos de usuarios reales, con los requisitos verificados en fuentes oficiales (A-84, regla 6).
-- **Medición:** informes de auditoría en GitHub, resultados de las suites en staging y la lista de docs/25.
-- **Puerta 0:**
-  - **evidencia:** lo anterior;
-  - **podría autorizarse:** abrir el piloto a usuarios invitados (dónde se ejecuta es una **decisión pendiente**: hoy el staging es privado y no hay producción autorizada);
-  - **inversión:** DATO FALTANTE;
-  - **decide:** el propietario.
-- **Abandono:** no aplica (es la base del producto). Ante bloqueos se corrige el alcance.
+  - pruebas automatizadas y CI en verde.
+- **Medición:** informes de auditoría en GitHub y resultados de CI ([09](09-revision-y-aprobacion.md)).
+
+**0B · Validación económica y calibración**
+- **Qué se mide por servicio o viaje real** (planilla de campo, con fuente y dato faltante explícitos):
+  - **distancia:** TRIP con resolución de 0,1 km;
+  - **tiempos:** marcha, espera y carga/descarga, por separado;
+  - **combustible:** lleno a lleno, con la fórmula de docs/05 §4;
+  - **TAG:** cartola o comprobante de la concesionaria;
+  - **desgaste:** gastos reales de neumáticos, aceite y mantención en un periodo, divididos por los km del periodo. Es **ESTIMADO** con su fuente, y el horizonte de medición es DATO FALTANTE;
+  - **carga:** tipo y peso aproximado;
+  - **recursos:** ayudantes pagados y minutos.
+- **Criterios de calibración de [#12](https://github.com/ratatecuala/calculadora-de-costos-log/issues/12)** (**PROPUESTOS, pendientes de aprobación**; ninguna categoría se calibra con datos de otra):
+  - distancia ≤ 3 % en el 90 % de los viajes;
+  - tiempo de conducción ≤ 15 % o ±10 min;
+  - consumo ≤ 10 % en autos y ≤ 15 % en vehículos de carga, con 3 o más vehículos por categoría;
+  - peajes 100 % detectados;
+  - motor 100 % coincidente con la planilla independiente;
+  - comprensión 4 de 5;
+  - muestra mínima: 30 viajes en auto y 10 por categoría de carga.
+- **Método de variación del consumo** (corrige A-84):
+  1. Agrupar los intervalos lleno a lleno en **clases comparables**: tipo de recorrido predominante (urbano, autopista o mixto) × carga (sin, parcial o completa) × aire acondicionado (sí o no). Nunca se mezclan clases.
+  2. En cada clase se informan n, media de km/L, desviación estándar, **coeficiente de variación** (desviación ÷ media) y desviación máxima respecto de la media.
+  3. Solo se evalúa una clase con **n ≥ 3** intervalos. Con menos, queda «insuficiente», no aprobada.
+  4. El umbral (≤ 10 % autos, ≤ 15 % carga, de #12) es **por aprobar**.
+- **Tamaño del intervalo** (corrige los 300 km de A-84):
+  - el criterio es el **combustible consumido**, no la distancia: cada intervalo debe consumir suficientes litros para que el error de llenado (DATO FALTANTE, por medir repitiendo llenados en la misma bomba) sea a lo sumo la mitad de la tolerancia de la clase;
+  - 300 km es solo una **referencia** para autos (#12), no una regla universal: un camión puede consumir mucho en menos km, y un auto eficiente necesita más.
+- **KPI E:** la diferencia entre el costo estimado por el motor y el costo medido, **por partida** (combustible, TAG, tiempos, desgaste y recursos), dentro de los umbrales aprobados para cada categoría ensayada.
+
+**0C · Competitividad y posicionamiento**
+- ***Benchmark* independiente de precios de mercado:**
+  - fuentes públicas fechadas (tarifas publicadas, plataformas y anuncios de fletes) y entrevistas a transportistas;
+  - se registran la fuente, la fecha, el tipo de servicio, los km, la carga y los ayudantes;
+  - cualquier método de consulta directa a terceros se decide antes con el propietario, para no engañar a nadie;
+  - las condiciones de uso de cada fuente se revisan antes de copiar datos.
+- **Regla:** el *benchmark* **informa**; **nunca** se ajustan costos, fórmulas ni márgenes para igualar a la competencia. Si el precio sugerido queda sobre el mercado, se analiza la causa: el costo real, un supuesto o un posicionamiento distinto.
+- **Posicionamiento:** entrevistas con transportistas sobre las preguntas guía. El número y el guion son DATO FALTANTE.
+- **KPI C (experimental):**
+  - la distancia entre el precio sugerido y el rango de mercado en los casos ensayados (umbral DATO FALTANTE);
+  - el porcentaje de entrevistados que reconoce el problema de control de costos (umbral DATO FALTANTE).
+
+**0D · Seguridad, experiencia y preparación del piloto**
+- Respaldo real y simulacro (docs/25), #52 en staging (A-59) y la decisión sobre I-2 en staging, cada uno con su autorización.
+- Suites e2e con cuentas en staging (59/59 y flujo completo), y pruebas en **un iPhone y un Android reales**.
+- **Privacidad:** aviso (#17) con los requisitos y la vigencia de la Ley 21.719 **verificados en fuentes oficiales** antes de recibir datos de usuarios reales (A-84, regla 6).
+- Plan del piloto: dónde se ejecuta (**decisión pendiente**: hoy el staging es privado y no hay producción autorizada), consentimiento, soporte y retiro de datos.
+
+**Puerta 0:**
+- **Evidencia requerida:**
+  - 0A completo;
+  - informe de **0B** con los KPI E por partida y categoría, frente a los umbrales **aprobados**;
+  - informe de **0C** (*benchmark* y posicionamiento);
+  - 0D completo.
+
+  **Sin la evidencia económica y comercial no se abre el piloto.**
+- **Podría autorizarse:** el piloto de la fase 1, con una inversión DATO FALTANTE.
+- **Decide:** el propietario.
+
+**Criterio de reevaluación de la fase 0** (corrige «no aplica» de A-84):
+- **Si 0B no cumple** en una partida, esa partida se muestra como **declarada o parcial**, no como estimada con precisión. Se corrige el supuesto o se acota el alcance, sin cambiar fórmulas sin la aprobación de A-50.
+- **Si 0C muestra** precios sugeridos sistemáticamente fuera del rango de mercado sin una causa explicable, o un posicionamiento que no resuena, se revisa la hipótesis antes del piloto.
+- **Si tras un número de iteraciones** (DATO FALTANTE) no se cumple, el propietario decide entre replantear, pausar o reducir el producto a calculadora de costos sin precio sugerido.
 
 ### Fase 1 · Validación comercial
 
@@ -45,87 +137,79 @@ Las simulaciones y las pruebas automatizadas **solo** cuentan como T.
   - ≥ 10 transportistas reales;
   - ≥ 30 cotizaciones reales **completadas** (documento emitido o enviado por WhatsApp);
   - ≥ 80 % completadas **sin ayuda**;
-  - **retención:** ≥ 40 % vuelve a cotizar en 2–4 semanas.
-- **KPI F:** costo de operación y soporte del piloto dentro del presupuesto (DATO FALTANTE).
+  - **retención:** ≥ 40 % vuelve a cotizar en 2–4 semanas;
+  - percepción de valor sobre el control de costos, por encuesta breve.
+- **KPI F:** costo de operación y soporte dentro del presupuesto (DATO FALTANTE).
 - **Medición:**
-  - conteos en la base sin analítica invasiva (cuentas, cotizaciones emitidas y fechas);
-  - «sin ayuda», por observación o una encuesta breve;
+  - conteos en la base sin analítica invasiva;
+  - «sin ayuda», por observación o encuesta;
   - las simulaciones no cuentan.
 - **Puerta 1:**
-  - **evidencia:** los KPI medidos y el resumen de comentarios;
-  - **podría autorizarse:** el presupuesto de mejoras y la fase 2;
-  - **inversión y plazo:** DATO FALTANTE;
+  - **evidencia:** los KPI y los comentarios;
+  - **podría autorizarse:** el presupuesto de mejoras y la fase 2 (DATO FALTANTE);
   - **decide:** el propietario.
-- **Abandono:** si no se alcanzan los KPI en el plazo (DATO FALTANTE), se corrige el producto y se repite una vez, o se replantea la propuesta antes de invertir más.
+- **Abandono:** si no se alcanza en el plazo (DATO FALTANTE), se corrige y se repite una vez, o se replantea la propuesta.
 
-### Fase 2 · Rentabilidad por viaje
+### Fase 2 · Rentabilidad por viaje (módulo en la app)
 
-- **Qué:** cierre manual del servicio (km del odómetro, minutos, TAG y pagos reales) y conciliación por partida:
+- **Qué:** cierre del servicio **en la app** y conciliación por partida:
   - presupuestado: el snapshot;
-  - estimado con el recorrido real: el mismo motor con los km y minutos reales;
+  - estimado con el recorrido real: el mismo motor;
   - comprobado: con respaldo.
 
-  Cada partida tiene **una sola fuente**: comprobado si existe; si no, estimado. Así se evita contarla dos veces.
+  **Una sola fuente por partida.** En la fase 0 esto se hace con planillas (0B); aquí se construye en el producto.
 - **KPI T:** conciliación sin doble conteo, cubierta por pruebas y casos dorados.
 - **KPI C:**
   - ≥ 20 servicios reales registrados;
-  - ≥ 80 % con datos suficientes para evaluar el costo;
+  - ≥ 80 % con datos suficientes;
   - ≥ 50 % de los usuarios del piloto cierra al menos 2 servicios.
-- **Medición:** registros de cierre en la base y su completitud por campo.
 - **Puerta 2:**
-  - **evidencia:** los KPI y ejemplos anonimizados de diferencias entre lo presupuestado y lo real;
-  - **podría autorizarse:** la fase 3 y mejoras de conciliación;
-  - **inversión:** DATO FALTANTE;
+  - **evidencia:** los KPI y ejemplos anonimizados;
+  - **podría autorizarse:** la fase 3 (DATO FALTANTE);
   - **decide:** el propietario.
-- **Abandono:** si menos de la mitad de los usuarios cierra servicios, se simplifica el cierre o se descarta el módulo.
+  - **Abandono:** si menos de la mitad cierra servicios, se simplifica el cierre o se descarta el módulo.
 
-### Fase 3 · Rendimiento personalizado
+### Fase 3 · Rendimiento personalizado (módulo en la app)
 
-- **Qué:** registro de cargas por vehículo (fecha, odómetro, litros, monto y si se llenó el estanque). El km/L calibrado se **sugiere**, nunca se aplica solo.
-- **KPI T:**
-  - ≥ 5 intervalos de estanque lleno por vehículo piloto, cada uno de ≥ 300 km;
-  - variación ≤ 10 % **solo entre intervalos comparables** (mismo tipo de recorrido, carga y aire acondicionado; A-84, regla 4).
+- **Qué:** registro de cargas **en la app**. El km/L calibrado se **sugiere**, nunca se aplica solo.
+- **KPI T:** las clases comparables cumplen el umbral aprobado, con el método de 0B (n ≥ 3 por clase y criterio de litros consumidos).
 - **KPI C:** al menos 3 vehículos **de trabajo** (camioneta, furgón y camión liviano). El Chery valida el método, no los valores de vehículos de carga.
-- **Medición:** planillas de campo fuera del repositorio cuando contengan datos personales (`scripts/campo/`).
 - **Puerta 3:**
-  - **evidencia:** la serie de intervalos por tipo de recorrido y el error frente al km/L declarado;
-  - **podría autorizarse:** el desarrollo de la calibración en la app;
-  - **inversión:** DATO FALTANTE;
+  - **evidencia:** la serie por clase y el error frente al km/L declarado;
+  - **podría autorizarse:** desarrollar la calibración (DATO FALTANTE);
   - **decide:** el propietario.
-- **Abandono:** si la variación entre intervalos comparables supera el umbral, o si calibrar no cambia el costo de forma relevante, se queda con el km/L declarado.
+  - **Abandono:** si no se cumple, o si calibrar no cambia el costo de forma relevante, se mantiene el km/L declarado.
 
 ### Fase 4 · GPS opcional
 
 - **KPI T:**
-  - **continuidad ≥ 95 % del recorrido mientras se usa Waze** (A-84, regla 5);
-  - error de distancia ≤ 5 % frente al TRIP en ≥ 80 % de al menos 20 viajes de prueba;
-  - consumo de batería aceptable.
-- **KPI de valor:** el GPS cambia la conclusión de costo o precio en un porcentaje mínimo de viajes (umbral: DATO FALTANTE).
-- **Medición:** pruebas reales en teléfonos y comparación con el TRIP. Ninguna promesa de funcionamiento en segundo plano sin evidencia.
+  - continuidad ≥ 95 % del recorrido **mientras se usa Waze** (A-84, regla 5);
+  - error de distancia ≤ 5 % frente al TRIP en ≥ 80 % de al menos 20 viajes;
+  - batería aceptable.
+- **KPI de valor económico** (corrige A-84): por viaje, la **diferencia en pesos y en % del costo** entre el costo calculado con datos del GPS y el calculado con TRIP y reloj. El GPS se justifica solo si:
+  - esa diferencia supera un umbral de relevancia (DATO FALTANTE);
+  - la mejora esperada, multiplicada por los viajes, supera el costo de construirlo y mantenerlo (KPI F).
 - **Puerta 4:**
-  - **evidencia:** el informe de continuidad, el error y la batería;
-  - **podría autorizarse:** el prototipo dentro del producto, o evaluar alternativas como una app nativa (con costos de tienda);
-  - **inversión:** DATO FALTANTE;
+  - **evidencia:** el informe de continuidad, error, batería y valor;
+  - **podría autorizarse:** el prototipo o alternativas, como una app nativa con costos de tienda (DATO FALTANTE);
   - **decide:** el propietario.
-- **Abandono:** si la web no alcanza la continuidad con Waze en uso, se documenta como limitación y no se construye la versión web.
+  - **Abandono:** si la web no logra la continuidad con Waze, queda como limitación documentada y no se construye la versión web.
 
 ### Fase 5 · Premium / OBD-II
 
-- **KPI C:** demanda **comprometida** (preventa o carta de intención), no solo interés declarado.
-- **KPI T:**
-  - PID de consumo verificados en los vehículos más comunes del piloto;
-  - camino técnico para iPhone (sin Web Bluetooth: app nativa).
+- **KPI C:** demanda **comprometida** (preventa o carta de intención).
+- **KPI T:** PID de consumo verificados en los vehículos del piloto, y un camino técnico para iPhone (app nativa).
 - **KPI F:** margen positivo por dispositivo, incluidos soporte y logística.
 - **Puerta 5:**
   - **evidencia:** los tres KPI;
-  - **podría autorizarse:** la inversión en hardware o una alianza;
-  - **inversión:** DATO FALTANTE;
+  - **podría autorizarse:** la inversión en hardware o una alianza (DATO FALTANTE);
   - **decide:** el propietario.
-- **Abandono:** sin demanda comprometida o sin margen, no se avanza.
+  - **Abandono:** sin demanda comprometida o sin margen, no se avanza.
 
-### Paralelismo permitido
+### Paralelismo y coordinación
 
-Las fases pueden **recolectar datos** en paralelo sin desarrollar. Por ejemplo, las cargas del Chery (fase 3) mientras se cierra la fase 0. **Desarrollar** una fase siempre exige su puerta.
+- Las fases pueden **recolectar datos** en paralelo sin desarrollar (por ejemplo, 0B y la serie de cargas de la fase 3). **Desarrollar** exige la puerta.
+- **Seguimiento visual:** un tablero privado de Trello de la fase 0 (A-85), para el propietario, Claude, Codex y GPT. **GitHub es la fuente de verdad técnica.** El enlace del tablero no se publica en el repositorio.
 
 ## Estado vigente (20-11-2026, hasta `2f8e112`)
 
