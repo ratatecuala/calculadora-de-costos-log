@@ -4,8 +4,9 @@ No necesitas programar ni ejecutar comandos. Todo se hace desde la web de GitHub
 
 ## Estado actual de las aprobaciones
 
-> **Estado vigente (25-11-2026, hora de Chile):**
-> - Las decisiones aprobadas llegan hasta **A-85** ([07](07-decisiones.md)). A-82 (protocolo de eficiencia) está en [AGENTS.md §11](../AGENTS.md); A-21 a A-29 y A-31 a A-46 siguen pendientes de ratificación escrita.
+> **Estado vigente (26-11-2026, hora de Chile):**
+> - Las decisiones aprobadas llegan hasta **A-86** ([07](07-decisiones.md)). A-82 (protocolo de eficiencia) está en [AGENTS.md §11](../AGENTS.md); A-21 a A-29 y A-31 a A-46 siguen pendientes de ratificación escrita.
+> - A-86 fija los roles permanentes: Deep Research investiga, GPT evalúa y coordina, Claude y Codex implementan tareas autorizadas; el propietario decide. Ver [AGENTS.md §3](../AGENTS.md#3-responsabilidades-y-sistema-de-trabajo).
 > - Cada avance de fase pasa por una **puerta de aprobación** tuya ([08](08-hoja-de-ruta.md)).
 > - **Ya hay CI:** el workflow [`a83.yml`](../.github/workflows/a83.yml) corre en los PR hacia `main` las pruebas unitarias, la compilación y los ensayos de precio entero e I-2 con PostgreSQL 17 desechable. Las pruebas de navegador y de staging las sigue ejecutando un agente y se informan en el PR o el issue.
 > - El seguimiento visual de la fase 0 está en un tablero privado de Trello; GitHub sigue siendo la fuente de verdad.
