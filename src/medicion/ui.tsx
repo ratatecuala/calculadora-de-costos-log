@@ -12,10 +12,12 @@ export interface Contexto {
   recargar: () => Promise<void>;
   elegirVehiculo: (id: string) => void;
   irA: (tab: Tab) => void;
+  /** Abre el alta guiada (nuevo vehículo o editar uno, sin perder lo que no pregunta). */
+  abrirAlta: (previo: VehiculoMedicion | null) => void;
   /** Mensaje breve en la página (nunca `alert`). */
   avisar: (texto: string) => void;
 }
-export type Tab = 'viaje' | 'combustible' | 'historial' | 'vehiculo';
+export type Tab = 'inicio' | 'viaje' | 'combustible' | 'historial' | 'vehiculo' | 'ayuda';
 
 export const Ctx = createContext<Contexto | null>(null);
 export function useCtx(): Contexto {

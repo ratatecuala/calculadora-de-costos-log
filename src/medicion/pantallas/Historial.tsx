@@ -9,11 +9,12 @@ import { LEYENDA_OBJETIVOS, OBJETIVOS_12, resumenObjetivos, type ResumenObjetivo
 import { cargasCsv, comparacionCsv, viajesCsv } from '../exportar';
 import type { Uso, Viaje } from '../modelo';
 import { esAnterior } from '../modelo';
-import { exportarRespaldo, fusionarRespaldo, guardarPresupuesto, leerRespaldo, type Respaldo } from '../repositorio';
+import { exportarRespaldo, guardarPresupuesto } from '../repositorio';
 import { anular, huellaCorta } from '../sello';
 import { diasDesde, isoLocal } from '../tiempo';
 import { Confirmar, descargar, fechaHoraLegible, fmt, fmtClp, useCtx } from '../ui';
 import { FichaViaje } from './Ficha';
+import { ImportarCopia } from './Respaldo';
 
 const CSV = 'text/csv;charset=utf-8';
 const JSON_T = 'application/json;charset=utf-8';
@@ -28,9 +29,8 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
   const [motivo, setMotivo] = useState('');
   const [conFotos, setConFotos] = useState(false);
   const [borrar, setBorrar] = useState(false);
-  const [resultado, setResultado] = useState<string | null>(null);
+  const [paquete, setPaquete] = useState<string | null>(null);
   const [objetivos, setObjetivos] = useState<ResumenObjetivos | null>(null);
-  const [pendiente, setPendiente] = useState<{ respaldo: Respaldo; conflictos: string[] } | null>(null);
 
   if (ficha) return <FichaViaje viajeId={ficha} onVolver={() => setFicha(null)} />;
 
@@ -44,23 +44,6 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
   const alias = aliasPresentacion(d.viajes.map((v) => ({ id: v.id, alias: v.codigo })));
   const aliasVeh = aliasPresentacion(d.vehiculos.map((v) => ({ id: v.id, alias: v.alias })));
 
-  const importar = async (r: Respaldo, reemplazarMasRecientes: boolean) => {
-    try {
-      const res = await fusionarRespaldo(a, r, { reemplazarMasRecientes });
-      if (!res.escrito) {
-        setPendiente({ respaldo: r, conflictos: res.conflictos });
-        setResultado(`No se importó nada: ${res.conflictos.length} conflicto(s). Revisa la lista y decide.`);
-        return;
-      }
-      setPendiente(null);
-      await recargar();
-      setResultado(`Importado: ${res.agregados} nuevos, ${res.actualizados} actualizados, ${res.iguales} sin cambios.`);
-    } catch (err) {
-      setPendiente(null);
-      setResultado(err instanceof Error ? err.message : 'No se pudo importar; no se escribió nada.');
-    }
-  };
-
   const exportarCopia = async () => {
     const r = await exportarRespaldo(a, isoLocal(), conFotos);
     descargar(`respaldo-medicion-${hoy}.json`, JSON.stringify(r), JSON_T);
@@ -72,7 +55,7 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
   return (
     <>
       <section className="m-tarjeta" aria-label="Viajes">
-        <h2>Historial</h2>
+        <h2>Mis viajes</h2>
         <div className="m-fila m-envolver">
           <select aria-label="Filtrar por vehículo" value={fVeh} onChange={(e) => setFVeh(e.target.value)}>
             <option value="">Todos los vehículos</option>
@@ -110,6 +93,33 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
         </ul>
       </section>
 
+      <section className="m-tarjeta" aria-label="Copia de seguridad">
+        <h2>Copia de seguridad</h2>
+        <p data-ultima-copia className={recordar ? 'm-aviso' : undefined}>
+          {dias === null ? 'Todavía no guardas una copia.' : `Última copia hace ${dias} día${dias === 1 ? '' : 's'}.`} Tus datos están solo en este teléfono: si borras los datos del navegador o lo pierdes, se pierden. Guarda una copia de vez en cuando.
+        </p>
+        <label className="m-check">
+          <input type="checkbox" checked={conFotos} onChange={(e) => setConFotos(e.target.checked)} />
+          Incluir las fotos que guardaste (por defecto no)
+        </label>
+        <div className="m-fila m-envolver">
+          <button type="button" className="m-btn m-btn-primario" data-respaldo-exportar onClick={exportarCopia}>
+            Guardar copia
+          </button>
+        </div>
+        <ImportarCopia />
+      </section>
+
+      <details className="m-avanzado" data-avanzado="historial">
+        <summary>Opciones avanzadas</summary>
+        <p className="m-nota">Para revisar la medición en detalle: presupuestos sellados, objetivos internos, archivos para Excel y para la herramienta de análisis.</p>
+        <section className="m-tarjeta" aria-label="Almacenamiento">
+          <h2>Almacenamiento</h2>
+          <p className="m-nota" data-persistencia>
+          Almacenamiento persistente: {persistente === true ? 'concedido' : persistente === false ? 'no concedido por el navegador' : 'no disponible'}. Sin conexión:{' '}
+          {'serviceWorker' in navigator && navigator.serviceWorker.controller ? 'listo' : 'se activa al abrir la versión compilada con conexión'}.
+        </p>
+        </section>
       <section className="m-tarjeta" aria-label="Presupuestos sellados">
         <h2>Presupuestos sellados</h2>
         <p className="m-nota">Un presupuesto sellado no se edita. Para corregirlo, elígelo en «Viaje» y usa «Corregir»: se sella uno nuevo y este queda anulado.</p>
@@ -237,7 +247,7 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
               try {
                 const { paquete, excluidos } = await paqueteMedicion(datos);
                 descargar('paquete-medicion.json', JSON.stringify(paquete, null, 2), JSON_T);
-                setResultado(excluidos.length ? `Paquete con ${paquete.viajes.length} viaje(s). Fuera del paquete: ${excluidos.map((x) => `${x.codigo} (${x.motivo})`).join('; ')}.` : `Paquete con ${paquete.viajes.length} viaje(s).`);
+                setPaquete(excluidos.length ? `Paquete con ${paquete.viajes.length} viaje(s). Fuera del paquete: ${excluidos.map((x) => `${x.codigo} (${x.motivo})`).join('; ')}.` : `Paquete con ${paquete.viajes.length} viaje(s).`);
               } catch (e) {
                 avisar(e instanceof Error ? e.message : 'No se pudo armar el paquete');
               }
@@ -246,75 +256,10 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
             Paquete para la CLI (paquete-medicion.json)
           </button>
         </div>
-      </section>
-
-      <section className="m-tarjeta" aria-label="Copia de seguridad">
-        <h2>Copia de seguridad</h2>
-        <p data-ultima-copia className={recordar ? 'm-aviso' : undefined}>
-          {dias === null ? 'Nunca has exportado una copia.' : `Última copia hace ${dias} día${dias === 1 ? '' : 's'}.`} Los datos viven solo en este navegador: si borras sus datos o pierdes el teléfono, se pierden.
-        </p>
-        <p className="m-nota" data-persistencia>
-          Almacenamiento persistente: {persistente === true ? 'concedido' : persistente === false ? 'no concedido por el navegador' : 'no disponible'}. Sin conexión:{' '}
-          {'serviceWorker' in navigator && navigator.serviceWorker.controller ? 'listo' : 'se activa al abrir la versión compilada con conexión'}.
-        </p>
-        <label className="m-check">
-          <input type="checkbox" checked={conFotos} onChange={(e) => setConFotos(e.target.checked)} />
-          Incluir fotos conservadas (por defecto no)
-        </label>
-        <div className="m-fila m-envolver">
-          <button type="button" className="m-btn m-btn-primario" data-respaldo-exportar onClick={exportarCopia}>
-            Exportar copia
-          </button>
-          <label className="m-btn m-btn-sec m-foto">
-            Importar copia (fusiona sin duplicar)
-            <input
-              type="file"
-              accept="application/json,.json"
-              data-respaldo-importar
-              onChange={async (e) => {
-                const f = e.target.files?.[0];
-                e.target.value = '';
-                if (!f) return;
-                try {
-                  await importar(leerRespaldo(await f.text()), false);
-                } catch (err) {
-                  setResultado(err instanceof Error ? err.message : 'No se pudo importar; no se escribió nada.');
-                }
-              }}
-            />
-          </label>
-        </div>
-        {resultado ? (
-          <p className="m-info" role="status" data-resultado-importar>
-            {resultado}
+        {paquete ? (
+          <p className="m-info" role="status" data-resultado-paquete>
+            {paquete}
           </p>
-        ) : null}
-        {pendiente ? (
-          <div className="m-confirmar" data-conflictos>
-            <ul className="m-avisos">
-              {pendiente.conflictos.map((c) => (
-                <li key={c} className="m-aviso">
-                  {c}
-                </li>
-              ))}
-            </ul>
-            <p className="m-nota">Los presupuestos sellados nunca se reemplazan. Para los demás registros puedes conservar lo de este dispositivo (no importar) o tomar la versión editada más recientemente.</p>
-            <div className="m-fila m-envolver">
-              <button type="button" className="m-btn m-btn-sec" data-importar-recientes onClick={() => void importar(pendiente.respaldo, true)}>
-                Importar tomando la versión más reciente
-              </button>
-              <button
-                type="button"
-                className="m-btn"
-                onClick={() => {
-                  setPendiente(null);
-                  setResultado('Importación cancelada: no se escribió nada.');
-                }}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
         ) : null}
       </section>
 
@@ -339,6 +284,7 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
           </button>
         )}
       </section>
+      </details>
     </>
   );
 }

@@ -1,20 +1,19 @@
-/** Vehículo de medición (D-4: perfil propio, sin patente) y ajustes de avisos (D-6: vacíos por defecto). */
+/**
+ * «Vehículo» (A-92): resumen en palabras simples, «Cambiar datos» (vuelve al alta guiada) y, plegadas en
+ * «Opciones avanzadas», las resoluciones, la procedencia y los valores por defecto técnicos, más los avisos
+ * (D-6: vacíos por defecto). Perfil propio, sin patente (D-4).
+ */
 import { useState } from 'react';
 import { procedencia, type ClaseDato } from '../../shared/procedencia';
-import type { Ajustes, Combustible, DatoMedicion, FuentePrecio, TipoVehiculo, VehiculoMedicion } from '../modelo';
-import { FORMATO_REGISTRO, nuevoId } from '../modelo';
+import { ETIQUETA_COMBUSTIBLE, ETIQUETA_TIPO, nombreVehiculo } from '../alta';
+import { IconoVehiculo } from '../ilustraciones';
+import type { Ajustes, DatoMedicion, FuentePrecio, LecturaTablero, VehiculoMedicion } from '../modelo';
 import { CLASE_DE_FUENTE_PRECIO } from '../presupuesto';
-import { siguienteAlias } from '../repositorio';
 import { isoLocal } from '../tiempo';
-import { aTexto, CampoNumero, parseNumero, useCtx } from '../ui';
+import { aTexto, CampoNumero, fmt, parseNumero, useCtx } from '../ui';
 
-const TIPOS: [TipoVehiculo, string][] = [
-  ['auto', 'Auto'],
-  ['camioneta', 'Camioneta'],
-  ['furgon', 'Furgón'],
-  ['camion_liviano', 'Camión liviano'],
-  ['otro', 'Otro'],
-];
+const TABLERO: Record<LecturaTablero, string> = { decimal: 'con decimal', entero: 'solo enteros', no_tiene: 'no tiene', no_se: 'no lo sabes' };
+const ORIGEN: Record<string, string> = { declarado: 'lo dices tú', medido: 'medido con tus recargas', comprobado: 'con documento', estimado: 'estimado', simulado: 'simulado' };
 const CLASES_DEFECTO: [ClaseDato, string][] = [
   ['declarado', 'Lo sé yo (declarado)'],
   ['medido', 'Medido (lleno a lleno)'],
@@ -25,18 +24,16 @@ const CLASES_DEFECTO: [ClaseDato, string][] = [
 type CampoDef = 'kmL' | 'desgasteKm' | 'fijoHora' | 'trabajoHora';
 const DEFS: [CampoDef, string, string][] = [
   ['kmL', 'Rendimiento', 'km/L'],
-  ['desgasteKm', 'Desgaste', '$/km'],
-  ['trabajoHora', 'Lo que quieres ganar', '$/h'],
-  ['fijoHora', 'Gastos fijos (opcional, modalidad detallada)', '$/h'],
+  ['desgasteKm', 'Desgaste por kilómetro', '$/km'],
+  ['trabajoHora', 'Remuneración objetivo (solo simulaciones)', '$/h'],
+  ['fijoHora', 'Gastos fijos por hora (solo simulación detallada)', '$/h'],
 ];
 
-function FormVehiculo({ inicial, onListo }: { inicial: VehiculoMedicion | null; onListo: () => void }) {
-  const { a, d, recargar, elegirVehiculo, avisar } = useCtx();
-  const [tipo, setTipo] = useState<TipoVehiculo>(inicial?.tipoVehiculo ?? 'auto');
-  const [comb, setComb] = useState<Combustible>(inicial?.combustible ?? 'gasolina');
+/** Opciones avanzadas: valores técnicos. Conserva todo lo demás del vehículo (perfil, tipo, alias). */
+function FormAvanzado({ inicial }: { inicial: VehiculoMedicion }) {
+  const { a, recargar, avisar } = useCtx();
   const [resTrip, setResTrip] = useState(aTexto(inicial?.resolucionTripKm ?? null));
   const [resOdo, setResOdo] = useState(aTexto(inicial?.resolucionOdometroKm ?? null));
-  const [cap, setCap] = useState(aTexto(inicial?.capacidadEstanqueL ?? null));
   const [resLitros, setResLitros] = useState(aTexto(inicial?.resolucionLitros ?? null));
   const [precio, setPrecio] = useState(aTexto(inicial?.porDefecto.precioLitro.valor ?? null));
   const [fuente, setFuente] = useState<FuentePrecio>(inicial?.porDefecto.precioLitro.fuentePrecio ?? 'boleta');
@@ -56,71 +53,64 @@ function FormVehiculo({ inicial, onListo }: { inicial: VehiculoMedicion | null; 
   const guardar = async () => {
     const ahora = isoLocal();
     const hoy = ahora.slice(0, 10);
-    const dato = (texto: string, clase: ClaseDato): DatoMedicion => {
+    const dato = (texto: string, clase: ClaseDato, previo?: DatoMedicion): DatoMedicion => {
       const v = parseNumero(texto);
+      // Sin cambios: se conserva el dato tal cual (con su procedencia y detalle).
+      if (previo && previo.valor === v && (v === null || previo.procedencia.clase === clase)) return previo;
       return v === null || v < 0 ? { valor: null, procedencia: procedencia('faltante', 'vehiculo') } : { valor: v, procedencia: procedencia(clase, 'vehiculo', null, hoy) };
     };
     const p = parseNumero(precio);
+    const kmL = dato(vals.kmL, clases.kmL, inicial.porDefecto.kmL);
+    const rTrip = parseNumero(resTrip);
+    const rOdo = parseNumero(resOdo);
     const veh: VehiculoMedicion = {
-      id: inicial?.id ?? nuevoId(),
-      formato: FORMATO_REGISTRO,
-      alias: inicial?.alias ?? siguienteAlias(d.vehiculos),
-      tipoVehiculo: tipo,
-      combustible: comb,
-      resolucionTripKm: parseNumero(resTrip),
-      resolucionOdometroKm: parseNumero(resOdo),
+      ...inicial,
+      resolucionTripKm: rTrip,
+      resolucionOdometroKm: rOdo,
       resolucionLitros: parseNumero(resLitros),
-      capacidadEstanqueL: parseNumero(cap),
       porDefecto: {
-        precioLitro: {
-          ...(p === null || p < 0 ? { valor: null, procedencia: procedencia('faltante', 'vehiculo') } : { valor: p, procedencia: procedencia(CLASE_DE_FUENTE_PRECIO[fuente], 'vehiculo', null, hoy) }),
-          fuentePrecio: p === null ? null : fuente,
-        },
-        kmL: dato(vals.kmL, clases.kmL),
-        desgasteKm: dato(vals.desgasteKm, clases.desgasteKm),
-        fijoHora: dato(vals.fijoHora, clases.fijoHora),
-        trabajoHora: dato(vals.trabajoHora, clases.trabajoHora),
+        precioLitro:
+          p === inicial.porDefecto.precioLitro.valor && (p === null || fuente === inicial.porDefecto.precioLitro.fuentePrecio)
+            ? inicial.porDefecto.precioLitro
+            : {
+                ...(p === null || p < 0 ? { valor: null, procedencia: procedencia('faltante', 'vehiculo') } : { valor: p, procedencia: procedencia(CLASE_DE_FUENTE_PRECIO[fuente], 'vehiculo', null, hoy) }),
+                fuentePrecio: p === null ? null : fuente,
+              },
+        kmL,
+        desgasteKm: dato(vals.desgasteKm, clases.desgasteKm, inicial.porDefecto.desgasteKm),
+        fijoHora: dato(vals.fijoHora, clases.fijoHora, inicial.porDefecto.fijoHora),
+        trabajoHora: dato(vals.trabajoHora, clases.trabajoHora, inicial.porDefecto.trabajoHora),
       },
-      creadoEl: inicial?.creadoEl ?? ahora,
+      // Si el rendimiento cambió aquí, la respuesta del alta deja de describirlo.
+      // Si cambió aquí un valor que el alta describe, esa respuesta deja de valer (queda sin responder).
+      ...(inicial.perfil
+        ? {
+            perfil: {
+              ...inicial.perfil,
+              consumo: kmL.valor !== inicial.porDefecto.kmL.valor ? null : inicial.perfil.consumo,
+              trip: rTrip !== inicial.resolucionTripKm ? null : inicial.perfil.trip,
+              odometro: rOdo !== inicial.resolucionOdometroKm ? null : inicial.perfil.odometro,
+            },
+          }
+        : {}),
       editadoEl: ahora,
     };
     await a.guardar('vehiculos', veh);
-    elegirVehiculo(veh.id);
     await recargar();
-    avisar(`Vehículo ${veh.alias} guardado`);
-    onListo();
+    avisar('Detalles técnicos guardados');
   };
 
   return (
-    <section className="m-tarjeta" aria-label="Datos del vehículo">
-      <h2>{inicial ? `Editar ${inicial.alias}` : 'Nuevo vehículo'}</h2>
-      <p className="m-nota">Sin patente ni datos personales: el vehículo se identifica con un alias (veh-001).</p>
+    <section className="m-tarjeta" aria-label="Detalles técnicos del vehículo">
+      <h2>Detalles técnicos</h2>
+      <p className="m-nota">Solo si los conoces. Lo que dejes vacío queda como «no se sabe», nunca como cero.</p>
       <div className="m-grilla">
-        <label className="m-campo">
-          <span>Tipo</span>
-          <select value={tipo} onChange={(e) => setTipo(e.target.value as TipoVehiculo)} id="veh-tipo">
-            {TIPOS.map(([k, t]) => (
-              <option key={k} value={k}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="m-campo">
-          <span>Combustible</span>
-          <select value={comb} onChange={(e) => setComb(e.target.value as Combustible)}>
-            <option value="gasolina">Gasolina</option>
-            <option value="diesel">Diésel</option>
-            <option value="otro">Otro</option>
-          </select>
-        </label>
-        <CampoNumero id="veh-res-trip" etiqueta="Resolución del TRIP" valor={resTrip} onCambio={setResTrip} sufijo="km" ayuda="Lo que avanza el último dígito (p. ej., 0,1). Vacío si no tiene TRIP." />
-        <CampoNumero id="veh-res-odo" etiqueta="Resolución del odómetro" valor={resOdo} onCambio={setResOdo} sufijo="km" />
-        <CampoNumero id="veh-res-litros" etiqueta="Resolución de los litros del surtidor (opcional)" valor={resLitros} onCambio={setResLitros} sufijo="L" ayuda="Por ejemplo 0,01. Si no la sabes, déjala vacía." />
-        <CampoNumero id="veh-cap"etiqueta="Capacidad del estanque (opcional)" valor={cap} onCambio={setCap} sufijo="L" ayuda="Solo para avisar si una carga la supera." />
+        <CampoNumero id="veh-res-trip" etiqueta="Resolución del TRIP" valor={resTrip} onCambio={setResTrip} sufijo="km" ayuda="Lo que avanza el último dígito: 0,1 si muestra decimal, 1 si solo enteros." />
+        <CampoNumero id="veh-res-odo" etiqueta="Resolución del kilometraje total" valor={resOdo} onCambio={setResOdo} sufijo="km" />
+        <CampoNumero id="veh-res-litros" etiqueta="Resolución de los litros del surtidor" valor={resLitros} onCambio={setResLitros} sufijo="L" ayuda="Por ejemplo 0,01. Si no la sabes, déjala vacía." />
       </div>
-      <h3>Valores por defecto del presupuesto (opcionales)</h3>
-      <p className="m-nota">Lo que dejes vacío queda como dato faltante, nunca como cero. No se piden SOAP, permisos, seguros ni gastos anuales.</p>
+      <h3>Valores que se proponen al estimar un viaje</h3>
+      <p className="m-nota">No se piden SOAP, permisos, seguros ni gastos anuales.</p>
       <div className="m-grilla">
         <CampoNumero id="veh-precio" etiqueta="Precio del combustible" valor={precio} onCambio={setPrecio} sufijo="$/L" />
         <label className="m-campo">
@@ -148,14 +138,9 @@ function FormVehiculo({ inicial, onListo }: { inicial: VehiculoMedicion | null; 
           </div>
         ))}
       </div>
-      <div className="m-fila">
-        <button type="button" className="m-btn m-btn-primario m-grande" onClick={guardar}>
-          Guardar vehículo
-        </button>
-        <button type="button" className="m-btn" onClick={onListo}>
-          Cancelar
-        </button>
-      </div>
+      <button type="button" className="m-btn m-btn-primario" onClick={guardar}>
+        Guardar detalles técnicos
+      </button>
     </section>
   );
 }
@@ -185,9 +170,7 @@ function FormAjustes() {
   return (
     <section className="m-tarjeta" aria-label="Avisos">
       <h2>Avisos (opcionales)</h2>
-      <p className="m-nota">
-        Vacíos por defecto: mientras estén vacíos, el aviso no existe. No hay valores sugeridos porque no tienen fuente (DATO FALTANTE). Los avisos nunca bloquean.
-      </p>
+      <p className="m-nota">Mientras estén vacíos, el aviso no existe. No te sugerimos valores. Los avisos nunca bloquean nada.</p>
       <div className="m-grilla">
         <CampoNumero id="aj-vel" etiqueta="Velocidad media implícita mayor que" valor={vel} onCambio={setVel} sufijo="km/h" />
         <CampoNumero id="aj-desv" etiqueta="Km observados difieren del previsto en más de" valor={desv} onCambio={setDesv} sufijo="%" />
@@ -201,32 +184,78 @@ function FormAjustes() {
   );
 }
 
+function Fila({ t, v }: { t: string; v: string }) {
+  return (
+    <div>
+      <dt>{t}</dt>
+      <dd>{v}</dd>
+    </div>
+  );
+}
+
 export function PantallaVehiculo() {
-  const { d, veh, elegirVehiculo } = useCtx();
-  const [editando, setEditando] = useState<VehiculoMedicion | 'nuevo' | null>(d.vehiculos.length === 0 ? 'nuevo' : null);
-  if (editando) return <FormVehiculo inicial={editando === 'nuevo' ? null : editando} onListo={() => setEditando(null)} />;
+  const { d, veh, elegirVehiculo, abrirAlta } = useCtx();
+  if (!veh) return <p className="m-nota">Elige un vehículo en el inicio.</p>;
+  const p = veh.perfil;
+  const kmL = veh.porDefecto.kmL;
+  const noSe = 'no lo sabemos';
   return (
     <>
-      <section className="m-tarjeta" aria-label="Vehículos">
-        <h2>Vehículos</h2>
-        <ul className="m-lista">
-          {d.vehiculos.map((v) => (
-            <li key={v.id} className={veh?.id === v.id ? 'm-item m-sel' : 'm-item'}>
-              <button type="button" className="m-item-btn" onClick={() => elegirVehiculo(v.id)}>
-                <strong>{v.alias}</strong> · {TIPOS.find(([k]) => k === v.tipoVehiculo)?.[1]} · {v.combustible}
-                {veh?.id === v.id ? ' ✓' : ''}
-              </button>
-              <button type="button" className="m-btn m-btn-sec" onClick={() => setEditando(v)}>
-                Editar
-              </button>
-            </li>
-          ))}
-        </ul>
-        <button type="button" className="m-btn m-btn-primario" onClick={() => setEditando('nuevo')}>
-          + Agregar vehículo
+      <h1 className="m-titulo">Mi vehículo</h1>
+      <section className="m-tarjeta m-resumen-veh" aria-label="Resumen del vehículo" data-resumen-vehiculo>
+        <div className="m-fila">
+          <IconoVehiculo tipo={veh.tipoVehiculo} />
+          <div>
+            <h2>{nombreVehiculo(veh)}</h2>
+            <p className="m-nota">{ETIQUETA_TIPO[veh.tipoVehiculo]}</p>
+          </div>
+        </div>
+        <dl className="m-datos">
+          <Fila t="Motor" v={p?.motor ?? noSe} />
+          <Fila t="Combustible" v={veh.combustible ? ETIQUETA_COMBUSTIBLE[veh.combustible] : noSe} />
+          <Fila t="TRIP" v={p?.trip ? TABLERO[p.trip] : veh.resolucionTripKm !== null ? `avanza de a ${fmt(veh.resolucionTripKm, ' km')}` : noSe} />
+          <Fila t="Kilometraje total" v={p?.odometro ? TABLERO[p.odometro] : veh.resolucionOdometroKm !== null ? `avanza de a ${fmt(veh.resolucionOdometroKm, ' km')}` : noSe} />
+          <Fila
+            t="Rendimiento"
+            v={
+              kmL.valor === null
+                ? 'aún no lo sabemos: se medirá con tus recargas'
+                : p?.consumo?.unidad === 'L/100km' && p.consumo.valor !== null
+                  ? `${fmt(p.consumo.valor, ' L/100 km')} (${ORIGEN[kmL.procedencia.clase] ?? kmL.procedencia.clase})`
+                  : `${fmt(kmL.valor, ' km/L')} (${ORIGEN[kmL.procedencia.clase] ?? kmL.procedencia.clase})`
+            }
+          />
+        </dl>
+        <button type="button" className="m-btn m-btn-primario" onClick={() => abrirAlta(veh)}>
+          Cambiar datos
         </button>
       </section>
-      <FormAjustes />
+      {d.vehiculos.length > 1 ? (
+        <section className="m-tarjeta" aria-label="Otros vehículos">
+          <h2>Tus vehículos</h2>
+          <ul className="m-lista">
+            {d.vehiculos.map((v) => (
+              <li key={v.id} className={veh.id === v.id ? 'm-item m-sel' : 'm-item'}>
+                <button type="button" className="m-item-btn" onClick={() => elegirVehiculo(v.id)}>
+                  <strong>{nombreVehiculo(v)}</strong>
+                  {veh.id === v.id ? ' ✓ en uso' : ''}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      <button type="button" className="m-btn m-btn-sec" onClick={() => abrirAlta(null)}>
+        + Agregar otro vehículo
+      </button>
+      <details className="m-avanzado" data-avanzado="vehiculo">
+        <summary>Opciones avanzadas</summary>
+        <p className="m-nota">
+          Código interno del vehículo: <code>{veh.alias}</code> (se usa en los archivos, nunca la patente).
+        </p>
+        <FormAvanzado key={veh.id + veh.editadoEl} inicial={veh} />
+        <FormAjustes />
+      </details>
     </>
   );
 }

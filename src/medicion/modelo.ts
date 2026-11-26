@@ -46,7 +46,8 @@ export interface VehiculoMedicion {
   /** Alias `veh-NNN`. Sin patente ni datos personales. */
   alias: string;
   tipoVehiculo: TipoVehiculo;
-  combustible: Combustible;
+  /** `null` = no se sabe (A-92: nunca se supone). */
+  combustible: Combustible | null;
   /** Resolución del TRIP (p. ej., 0,1 km). `null` = no tiene TRIP o no se sabe. */
   resolucionTripKm: number | null;
   /** Resolución del odómetro (p. ej., 1 km). */
@@ -56,8 +57,33 @@ export interface VehiculoMedicion {
   /** Capacidad del estanque en litros (opcional; solo para avisar). */
   capacidadEstanqueL: number | null;
   porDefecto: PorDefectoVehiculo;
+  /** Metadatos locales del alta guiada (A-92). Opcional: los vehículos anteriores no lo tienen. Nunca se sella. */
+  perfil?: PerfilVehiculo;
   creadoEl: string;
   editadoEl: string;
+}
+
+/** Qué muestra un contador del tablero: con decimal (0,1 km), solo enteros (1 km), no existe o no se sabe. */
+export type LecturaTablero = 'decimal' | 'entero' | 'no_tiene' | 'no_se';
+export type UnidadConsumo = 'km/L' | 'L/100km';
+export type FormaConsumo = 'rendimiento' | 'tablero' | 'sin_indicador' | 'no_se';
+/** Lo que muestra el indicador del tablero: promedio del tramo o consumo instantáneo (cambia a cada momento). */
+export type LecturaConsumo = 'promedio' | 'instantaneo';
+
+/**
+ * Datos del alta guiada (A-92): metadatos LOCALES, fuera de todo original sellado y del paquete. Todo es
+ * opcional; `null` = no lo indicó. Sin patente. El consumo es lo que declaró el usuario, nunca un catálogo.
+ */
+export interface PerfilVehiculo {
+  marca: string | null;
+  modelo: string | null;
+  anio: number | null;
+  /** Cilindrada tal como la escribe el usuario (p. ej., «1.6»). */
+  motor: string | null;
+  trip: LecturaTablero | null;
+  odometro: LecturaTablero | null;
+  /** Instantáneo: se guarda como referencia, nunca como rendimiento. */
+  consumo: { forma: FormaConsumo; valor: number | null; unidad: UnidadConsumo | null; lectura: LecturaConsumo | null } | null;
 }
 
 /**

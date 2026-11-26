@@ -109,6 +109,7 @@ const check = (nombre, cond, detalle = '') => {
   }
 };
 const shot = async (page, nombre, etapa) => {
+  if (capturas) await page.evaluate(() => window.scrollTo(0, 0));
   if (capturas) await page.screenshot({ path: `${capturas}/medicion-${etapa}-${nombre.replace(/\W+/g, '-')}.png`, fullPage: true });
 };
 const sinScrollHorizontal = async (page, donde) => {
@@ -116,6 +117,209 @@ const sinScrollHorizontal = async (page, donde) => {
   check(`sin desplazamiento horizontal (${donde})`, sw <= iw, `${sw} > ${iw}`);
 };
 const tab = (page, nombre) => page.locator('.m-nav').getByRole('button', { name: nombre, exact: true }).click();
+/** Abre un bloque plegado («Opciones avanzadas», «Más opciones») si está cerrado. */
+const abrir = async (page, selector) => {
+  const d = page.locator(selector).first();
+  if ((await d.getAttribute('open')) === null) await d.locator('> summary').click();
+};
+const barraOculta = async (page) => (await page.locator('.m-nav').count()) === 0;
+const pulsado = async (loc) => (await loc.getAttribute('aria-pressed')) === 'true';
+
+/** Registros de una colección de IndexedDB (lectura directa, sin la interfaz). */
+async function registros(page, coleccion) {
+  return page.evaluate(
+    (nombre) =>
+      new Promise((resolve, reject) => {
+        const r = indexedDB.open('medicion.v1');
+        r.onerror = () => reject(r.error);
+        r.onsuccess = () => {
+          const g = r.result.transaction(nombre).objectStore(nombre).getAll();
+          g.onsuccess = () => {
+            r.result.close();
+            resolve(g.result);
+          };
+          g.onerror = () => reject(g.error);
+        };
+      }),
+    coleccion,
+  );
+}
+
+/**
+ * Alta guiada en 4 pasos (A-92). Pixel 7: «No lo sé» en todo y retroceso sin perder datos. PC: tablero
+ * conocido y rendimiento declarado (valor ficticio). En ambos, la barra inferior no existe durante el alta.
+ */
+async function altaGuiada(page, nombre, camino) {
+  const paso = async (n, titulo) => {
+    await expect(page.getByText(`Paso ${n} de 4`)).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: titulo })).toBeVisible();
+    check(`alta paso ${n}: barra inferior oculta`, await barraOculta(page));
+    check(`alta paso ${n}: sin patente ni turbo`, (await page.getByText(/patente|turbo/i).count()) === 0);
+    await sinScrollHorizontal(page, `alta paso ${n}`);
+  };
+  const siguiente = () => page.getByRole('button', { name: 'Siguiente', exact: true }).click();
+  const atras = () => page.getByRole('button', { name: 'Atrás', exact: true }).click();
+  await paso(1, '¿Qué vehículo conduces?');
+  for (const t of ['Auto / SUV', 'Camioneta', 'Furgón', 'Camión liviano']) await expect(page.getByRole('button', { name: t, exact: true })).toBeVisible();
+  check('paso 1: «Siguiente» exige el tipo', await page.getByRole('button', { name: 'Siguiente', exact: true }).isDisabled());
+  check('paso 1: restaurar copia disponible antes del alta', (await page.getByRole('button', { name: 'Restaurar una copia de seguridad' }).count()) === 1);
+  await shot(page, nombre, 'alta-1');
+  if (camino === 'cotizacion') {
+    await page.getByRole('button', { name: 'Auto / SUV', exact: true }).click();
+    await siguiente();
+    await paso(2, 'Identifica tu vehículo');
+    await page.getByLabel('Marca').fill('Marca ficticia');
+    await page.getByLabel('Modelo').fill('Modelo de prueba');
+    await page.getByLabel('Año').fill('2019');
+    await page.getByRole('group', { name: 'Combustible' }).getByRole('button', { name: 'No lo sé' }).click();
+    await shot(page, nombre, 'alta-2');
+    await atras();
+    await paso(1, '¿Qué vehículo conduces?');
+    check('retroceder conserva el tipo', await pulsado(page.getByRole('button', { name: 'Auto / SUV', exact: true })));
+    await siguiente();
+    check(
+      'retroceder conserva lo escrito en el paso 2',
+      (await page.getByLabel('Marca').inputValue()) === 'Marca ficticia' &&
+        (await page.getByLabel('Año').inputValue()) === '2019' &&
+        (await page.getByLabel('Motor (cilindrada)').inputValue()) === '' &&
+        (await pulsado(page.getByRole('group', { name: 'Combustible' }).getByRole('button', { name: 'No lo sé' }))),
+    );
+    await siguiente();
+    await paso(3, 'Conozcamos tu tablero');
+    await expect(page.locator('[data-ilustracion="tablero"]')).toBeVisible();
+    await page.getByRole('group', { name: '¿Tu TRIP muestra decimales?' }).getByRole('button', { name: 'No lo sé' }).click();
+    await page.getByRole('group', { name: '¿Y el kilometraje total?' }).getByRole('button', { name: 'No lo sé' }).click();
+    await page.locator('[data-ayuda-tablero] summary').click();
+    await shot(page, nombre, 'alta-3');
+    await siguiente();
+    await paso(4, '¿Cuánto combustible consume tu vehículo?');
+    await page.getByRole('button', { name: /No lo sé todavía/ }).click();
+    await shot(page, nombre, 'alta-4');
+    await atras();
+    await paso(3, 'Conozcamos tu tablero');
+    check('retroceder conserva las respuestas del tablero', await pulsado(page.getByRole('group', { name: '¿Tu TRIP muestra decimales?' }).getByRole('button', { name: 'No lo sé' })));
+    await siguiente();
+    check('el paso 4 conserva «No lo sé todavía»', await pulsado(page.getByRole('button', { name: /No lo sé todavía/ })));
+  } else {
+    await page.getByRole('button', { name: 'Camioneta', exact: true }).click();
+    await siguiente();
+    await paso(2, 'Identifica tu vehículo');
+    await page.getByRole('group', { name: 'Combustible' }).getByRole('button', { name: 'Bencina' }).click();
+    await siguiente();
+    await paso(3, 'Conozcamos tu tablero');
+    await page.getByRole('group', { name: '¿Tu TRIP muestra decimales?' }).getByRole('button', { name: /Sí, con decimal/ }).click();
+    await page.getByRole('group', { name: '¿Y el kilometraje total?' }).getByRole('button', { name: /Solo enteros/ }).click();
+    await siguiente();
+    await paso(4, '¿Cuánto combustible consume tu vehículo?');
+    await page.getByRole('button', { name: /Mi tablero muestra el consumo/ }).click();
+    await page.getByRole('button', { name: /El instantáneo/ }).click();
+    await page.getByLabel('El número que muestra').fill('8');
+    await page.getByRole('button', { name: /Litros cada 100 km/ }).click();
+    await expect(page.locator('[data-consumo-instantaneo]')).toBeVisible();
+    ok++; // El consumo instantáneo no se ofrece como rendimiento.
+    await page.getByRole('button', { name: /Conozco mi rendimiento/ }).click();
+    await page.getByLabel('Tu rendimiento').fill('12,4');
+    await page.getByRole('button', { name: /Kilómetros por litro/ }).click();
+    await expect(page.locator('[data-rendimiento-resultado]')).toContainText('12,4 km/L');
+    ok++;
+  }
+  await page.getByRole('button', { name: 'Guardar vehículo' }).click();
+  await expect(page.locator('.m-nav')).toBeVisible();
+  for (const t of ['Inicio', 'Combustible', 'Historial', 'Vehículo']) await expect(page.locator('.m-nav').getByRole('button', { name: t, exact: true })).toBeVisible();
+  const [v] = await registros(page, 'vehiculos');
+  if (camino === 'cotizacion') {
+    check(
+      '«No lo sé» en todo: desconocido en IndexedDB (nunca 0 ni inventado)',
+      v.porDefecto.kmL.valor === null && v.porDefecto.kmL.procedencia.clase === 'faltante' && v.resolucionTripKm === null && v.resolucionOdometroKm === null && v.combustible === null && v.perfil.marca === 'Marca ficticia',
+      JSON.stringify(v),
+    );
+  } else {
+    check(
+      'tablero y rendimiento declarados: 0,1 km, 1 km y 12,4 km/L declarado',
+      v.resolucionTripKm === 0.1 && v.resolucionOdometroKm === 1 && v.porDefecto.kmL.valor === 12.4 && v.porDefecto.kmL.procedencia.clase === 'declarado' && v.combustible === 'gasolina',
+      JSON.stringify(v),
+    );
+  }
+  check('alias interno automático', v.alias === 'veh-001');
+  // Pantalla principal.
+  await expect(page.getByRole('heading', { level: 1, name: 'Inicio' })).toBeVisible();
+  for (const t of [/Mi vehículo/, /Iniciar viaje/, /Registrar recarga/, /Mis viajes/]) await expect(page.getByRole('button', { name: t })).toBeVisible();
+  await sinScrollHorizontal(page, 'inicio');
+  await shot(page, nombre, 'inicio');
+  // Ayuda accesible después del alta.
+  await page.getByRole('button', { name: 'Ayuda', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: '¿Cómo funciona?' })).toBeVisible();
+  await expect(page.locator('[data-ilustracion="boleta"]')).toContainText('20,000 L × $1.000 = $20.000');
+  await page.getByRole('button', { name: 'Volver al inicio' }).click();
+  ok += 2;
+}
+
+/** Un vehículo del FORMATO ANTERIOR (sin perfil) abre Inicio sin repetir el alta; editarlo no reinterpreta nada. */
+async function formatoAnterior(browser) {
+  console.log('\nVehículo del formato anterior');
+  const context = await browser.newContext({ ...devices['Pixel 7'], ...contextoBase, timezoneId: 'America/Santiago', locale: 'es-CL' });
+  const page = await context.newPage();
+  const errores = [];
+  page.on('pageerror', (e) => errores.push(String(e)));
+  const viejo = {
+    id: 'v-anterior',
+    formato: 1,
+    alias: 'veh-001',
+    tipoVehiculo: 'camioneta',
+    combustible: 'diesel',
+    resolucionTripKm: 0.1,
+    resolucionOdometroKm: 1,
+    capacidadEstanqueL: null,
+    porDefecto: {
+      precioLitro: { valor: null, procedencia: { clase: 'faltante', fuente: { tipo: 'vehiculo', detalle: null }, fecha: null, vigenteDesde: null, vigenteHasta: null, version: null }, fuentePrecio: null },
+      kmL: { valor: 9.5, procedencia: { clase: 'medido', fuente: { tipo: 'vehiculo', detalle: null }, fecha: '2026-11-01', vigenteDesde: null, vigenteHasta: null, version: null } },
+      desgasteKm: { valor: null, procedencia: { clase: 'faltante', fuente: { tipo: 'vehiculo', detalle: null }, fecha: null, vigenteDesde: null, vigenteHasta: null, version: null } },
+      fijoHora: { valor: null, procedencia: { clase: 'faltante', fuente: { tipo: 'vehiculo', detalle: null }, fecha: null, vigenteDesde: null, vigenteHasta: null, version: null } },
+      trabajoHora: { valor: null, procedencia: { clase: 'faltante', fuente: { tipo: 'vehiculo', detalle: null }, fecha: null, vigenteDesde: null, vigenteHasta: null, version: null } },
+    },
+    creadoEl: '2026-11-01T08:00:00.000-03:00',
+    editadoEl: '2026-11-01T08:00:00.000-03:00',
+  };
+  await page.goto(base);
+  await expect(page.getByText('Paso 1 de 4')).toBeVisible();
+  // Se siembra la base como la dejó una versión anterior y se recarga.
+  await page.evaluate(async (v) => {
+    const bd = await new Promise((ok, mal) => {
+      const r = indexedDB.open('medicion.v1');
+      r.onsuccess = () => ok(r.result);
+      r.onerror = () => mal(r.error);
+    });
+    await new Promise((ok, mal) => {
+      const tx = bd.transaction('vehiculos', 'readwrite');
+      tx.objectStore('vehiculos').put(v);
+      tx.oncomplete = ok;
+      tx.onerror = () => mal(tx.error);
+    });
+    bd.close();
+  }, viejo);
+  await page.reload();
+  await expect(page.getByRole('heading', { level: 1, name: 'Inicio' })).toBeVisible();
+  check('formato anterior: abre Inicio sin repetir el alta', !(await barraOculta(page)));
+  await tab(page, 'Vehículo');
+  const resumen = page.locator('[data-resumen-vehiculo]');
+  await expect(resumen).toContainText('Camioneta');
+  await expect(resumen).toContainText('9,5 km/L (medido con tus recargas)');
+  await expect(resumen).toContainText('avanza de a 0,1 km');
+  ok += 2;
+  await page.getByRole('button', { name: 'Cambiar datos' }).click();
+  check('editar: el alta reconoce el tipo anterior', await pulsado(page.getByRole('button', { name: 'Camioneta', exact: true })));
+  await page.getByRole('button', { name: 'Siguiente', exact: true }).click();
+  check('editar: combustible anterior', await pulsado(page.getByRole('group', { name: 'Combustible' }).getByRole('button', { name: 'Diésel' })));
+  await page.getByRole('button', { name: 'Siguiente', exact: true }).click();
+  check('editar: TRIP con decimal deducido de 0,1 km', await pulsado(page.getByRole('group', { name: '¿Tu TRIP muestra decimales?' }).getByRole('button', { name: /Sí, con decimal/ })));
+  await page.getByRole('button', { name: 'Siguiente', exact: true }).click();
+  await page.getByRole('button', { name: 'Guardar vehículo' }).click();
+  await expect(page.locator('[data-resumen-vehiculo]')).toBeVisible();
+  const [v] = await registros(page, 'vehiculos');
+  check('editar sin responder el paso 4 conserva el rendimiento MEDIDO tal cual', JSON.stringify(v.porDefecto) === JSON.stringify(viejo.porDefecto) && v.id === viejo.id && v.alias === 'veh-001', JSON.stringify(v.porDefecto.kmL));
+  check('formato anterior: 0 errores', errores.length === 0, errores.join(' | '));
+  await context.close();
+}
 
 async function descargar(page, boton) {
   const [d] = await Promise.all([page.waitForEvent('download'), boton.click()]);
@@ -197,25 +401,22 @@ async function recorrido(browser, nombre, opciones, camino) {
   });
   await page.clock.install({ time: new Date('2026-11-26T09:00:00-03:00') });
 
-  // 1 · Vehículo: la primera vez, asistente; después se elige solo.
+  // 1 · Alta guiada en 4 pasos (A-92), sin barra inferior; después, Inicio.
   await page.goto(base);
-  await expect(page.getByRole('heading', { name: 'Primero, tu vehículo' })).toBeVisible();
-  await page.getByRole('button', { name: 'Agregar vehículo' }).click();
-  await page.getByLabel('Resolución del TRIP').fill('0,1');
-  await page.getByLabel('Resolución del odómetro').fill('1');
-  await page.getByLabel('Precio del combustible').fill('1290');
-  await page.locator('#veh-kmL').fill('12,4');
-  await sinScrollHorizontal(page, 'vehículo');
-  await shot(page, nombre, '1-vehiculo');
-  await page.getByRole('button', { name: 'Guardar vehículo' }).click();
+  await altaGuiada(page, nombre, camino);
   await expect(page.locator('[data-vehiculo="veh-001"]')).toBeVisible();
   ok++; // Vehículo único elegido automáticamente.
 
   // 2 · Presupuesto previo, sellado.
-  await tab(page, 'Viaje');
+  await page.getByRole('button', { name: /Iniciar viaje/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Nuevo viaje' })).toBeVisible();
   if (camino === 'cotizacion') {
+    await abrir(page, '[data-mas-opciones]');
     await page.locator('[data-cotizacion-ficticia]').click();
     await expect(page.getByText('Origen: cotización v3 FICT-0001 (ficticia)')).toBeVisible();
+    check('procedencia técnica plegada por defecto', (await page.getByText('declarado · recorrido').count()) === 0);
+    await abrir(page, '[data-avanzado="presupuesto"]');
+    await page.locator('[data-ver-origen]').check();
     check('la cotización v3 trae km y procedencia', (await page.locator('#pres-km').inputValue()) === '18' && (await page.getByText('declarado · recorrido').count()) > 0);
     // Uso personal (A-91): solo gastos pagados; sin modalidad, remuneración, margen ni gastos fijos.
     check(
@@ -228,8 +429,11 @@ async function recorrido(browser, nombre, opciones, camino) {
     );
   } else {
     // Simulación: simplificada por defecto; cambiar a detallada y volver no pierde lo escrito.
+    await abrir(page, '[data-mas-opciones]');
     await page.getByRole('button', { name: 'Simulación (ficticia)' }).click();
     await page.locator('[data-nuevo-presupuesto]').click();
+    check('opciones avanzadas plegadas: sin modalidad ni desgaste a la vista', !(await page.locator('[data-modalidad-opcion="simplificada"]').isVisible()) && !(await page.locator('#pres-desgasteKm').isVisible()));
+    await abrir(page, '[data-avanzado="presupuesto"]');
     check('simulación: modalidad simplificada por defecto y sin gastos fijos', (await page.locator('[data-modalidad-opcion="simplificada"]').getAttribute('aria-pressed')) === 'true' && (await page.locator('#pres-fijoHora').count()) === 0);
     await page.locator('[data-modalidad-opcion="detallada"]').click();
     await page.locator('#pres-fijoHora').fill('3000');
@@ -244,22 +448,25 @@ async function recorrido(browser, nombre, opciones, camino) {
     await page.locator('[data-no-aplica="peajes"]').uncheck();
     check('desmarcar «no aplica» conserva el TAG', (await page.locator('#pres-tag').inputValue()) === '700');
     await page.getByRole('button', { name: 'Cancelar' }).click();
+    await abrir(page, '[data-mas-opciones]');
     await page.getByRole('button', { name: 'Uso personal' }).click();
     await page.locator('[data-nuevo-presupuesto]').click();
-    check('prellenado con los valores del vehículo', (await page.locator('#pres-precioLitro').inputValue()) === '1290' && (await page.locator('#pres-kmL').inputValue()) === '12,4');
-    check('sin km no se puede sellar', await page.getByRole('button', { name: 'Sellar presupuesto' }).isDisabled());
+    check('prellenado con el rendimiento del alta; el precio no se inventa', (await page.locator('#pres-precioLitro').inputValue()) === '' && (await page.locator('#pres-kmL').inputValue()) === '12,4');
+    check('sin km no se puede guardar', await page.getByRole('button', { name: 'Guardar estimación' }).isDisabled());
+    await page.locator('#pres-precioLitro').fill('1290');
+    await page.locator('#pres-fuente').selectOption('boleta');
     await page.locator('#pres-km').fill('18');
     await page.locator('#pres-marchaMin').fill('35');
     await page.locator('#pres-tag').fill('1800');
     check('uso personal: modalidad simplificada fija y sin gastos fijos', (await page.locator('[data-modalidad-personal]').count()) === 1 && (await page.locator('#pres-fijoHora').count()) === 0);
-    await page.locator('[data-precision] summary').click();
+    await abrir(page, '[data-avanzado="presupuesto"]');
     await page.locator('#pres-base').selectOption('neto');
     await page.locator('#pres-ajuste').selectOption('sin');
   }
-  await expect(page.locator('[data-resumen-presupuesto]')).toContainText('Costo estimado por el motor vigente');
+  await expect(page.locator('[data-resumen-presupuesto]')).toContainText('Costo estimado');
   await sinScrollHorizontal(page, 'presupuesto');
   await shot(page, nombre, '2-presupuesto');
-  await page.getByRole('button', { name: 'Sellar presupuesto' }).click();
+  await page.getByRole('button', { name: 'Guardar estimación' }).click();
   await expect(page.locator('[data-presupuesto="viaje-001"]')).toBeVisible();
   ok++;
 
@@ -307,16 +514,21 @@ async function recorrido(browser, nombre, opciones, camino) {
   await page.locator('[data-opciones="recorrido"]').getByRole('button', { name: 'Mixto' }).click();
   await page.locator('[data-opciones="carga"]').getByRole('button', { name: 'Sin carga' }).click();
   await page.locator('#comp-monto').fill('1800');
-  await page.getByRole('button', { name: 'Agregar línea' }).click();
-  await page.locator('[data-opciones="cobertura-peajes"]').getByRole('button', { name: 'Completa' }).click();
+  await page.getByRole('button', { name: 'Agregar monto' }).click();
+  await page.locator('[data-opciones="cobertura-peajes"]').getByRole('button', { name: 'Está todo' }).click();
   await expect(page.getByText('doc-001-01')).toBeVisible();
-  if (camino === 'nuevo') await page.locator('[data-opciones="base"]').getByRole('button', { name: 'Netos' }).click();
+  if (camino === 'nuevo') {
+    await abrir(page, '[data-avanzado="ficha"]');
+    await page.locator('[data-opciones="base"]').getByRole('button', { name: 'Netos' }).click();
+  }
 
   // 7 · Comparación disponible, por partida, sin «aprobado».
   const cmp = page.locator('[data-comparacion]');
   await expect(cmp.locator('[data-estado-presupuesto]')).toHaveText('previo al viaje o simulación');
   await expect(cmp.locator('[data-partida="km"] [data-diferencia]')).toContainText('subestimación');
   await expect(cmp.locator('[data-partida="marchaMin"]')).toContainText('35 min');
+  await expect(cmp.locator('[data-resumen-simple]')).toContainText('20,3 km');
+  check('detalle técnico de la comparación plegado por defecto', !(await cmp.locator('[data-estado-presupuesto]').isVisible()));
   await expect(cmp.locator('[data-combustible]')).toContainText('Sin asignación al viaje');
   await expect(cmp.locator('[data-litros-asignados]')).toContainText('DATO FALTANTE');
   await expect(cmp.locator('[data-cobertura-partida="peajes"]')).toContainText('cobertura completa');
@@ -334,7 +546,7 @@ async function recorrido(browser, nombre, opciones, camino) {
   const textoCmp = (await cmp.innerText()).replace(/por aprobar/g, '').replace(/«aprobado»/g, '');
   check('ningún «aprobado» del total', !/aprobad/i.test(textoCmp));
   await sinScrollHorizontal(page, 'comparación');
-  await shot(page, nombre, '4-comparacion');
+  await shot(page, nombre, 'ficha');
 
   // 8 · Recargas: parcial (lo normal) y llena; total automático.
   await tab(page, 'Combustible');
@@ -360,6 +572,8 @@ async function recorrido(browser, nombre, opciones, camino) {
   await expect(page.locator('[data-viaje]')).toHaveCount(0);
   await page.getByLabel('Filtrar por estado').selectOption('');
   await expect(page.locator('[data-viaje]')).toHaveCount(1);
+  check('Historial: estadísticas internas plegadas', !(await page.locator('[data-objetivos-calcular]').isVisible()));
+  await abrir(page, '[data-avanzado="historial"]');
   await page.locator('[data-objetivos-calcular]').click();
   await expect(page.locator('[data-objetivos-resumen]')).toBeVisible();
   check('objetivos exploratorios (#12): denominador y leyenda, nunca «aprobado»', /exploratorios/.test(await page.locator('[data-objetivos]').innerText()) && !/aprobad[oa]/i.test(await page.locator('[data-objetivos]').innerText()));
@@ -403,8 +617,9 @@ async function recorrido(browser, nombre, opciones, camino) {
   await sinScrollHorizontal(page, 'historial');
   await shot(page, nombre, '6-historial');
 
-  // Persistencia tras recargar.
+  // Persistencia tras recargar: abre Inicio, sin repetir el alta.
   await page.reload();
+  await expect(page.getByRole('heading', { level: 1, name: 'Inicio' })).toBeVisible();
   await tab(page, 'Historial');
   await expect(page.locator('[data-viaje="viaje-001"]')).toBeVisible();
   await expect(page.locator('[data-vehiculo="veh-001"]')).toBeVisible();
@@ -440,14 +655,15 @@ async function recorrido(browser, nombre, opciones, camino) {
   // Borrar todo con confirmación PROPIA (sin diálogos nativos).
   if (camino === 'nuevo') {
     await tab(page, 'Historial');
+    await abrir(page, '[data-avanzado="historial"]');
     await page.locator('[data-borrar-todo]').click();
     await expect(page.getByRole('alertdialog')).toContainText('No se puede deshacer');
     await page.getByRole('button', { name: 'Cancelar' }).click();
     await expect(page.locator('[data-viaje]')).toHaveCount(1);
     await page.locator('[data-borrar-todo]').click();
     await page.getByRole('button', { name: 'Sí, borrar todo' }).click();
-    await tab(page, 'Viaje');
-    await expect(page.getByRole('heading', { name: 'Primero, tu vehículo' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: '¿Qué vehículo conduces?' })).toBeVisible();
+    check('tras borrar todo vuelve el alta, sin barra inferior', await barraOculta(page));
     ok++;
   }
 
@@ -470,6 +686,12 @@ try {
       fallas++;
       console.log(`  FALLA (excepción) ${nombre}: ${e.message.split('\n').slice(0, 6).join(' ')}`);
     }
+  }
+  try {
+    await formatoAnterior(browser);
+  } catch (e) {
+    fallas++;
+    console.log(`  FALLA (excepción) formato anterior: ${e.message.split('\n').slice(0, 6).join(' ')}`);
   }
   if (sinFlag && sinFlag !== '-') {
     const ctxSin = await browser.newContext(contextoBase);

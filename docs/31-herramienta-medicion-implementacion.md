@@ -100,6 +100,98 @@ Metas orientativas: MAPE ≤ 5 %, ≥ 90 % dentro de ±10 % y 0 subestimaciones 
 
 El valor nunca se imprime. Sin la variable, el e2e sigue aceptando solo `localhost` o `127.0.0.1`.
 
+### 3.2 Rediseño de uso (A-92, 26-11-2026)
+
+La prueba en Android no fue clara para un usuario sin conocimientos técnicos. Por eso se cambió la interfaz. **No cambian** las fórmulas, los sellos, los respaldos, las exportaciones ni el contrato de #55.
+
+**Alta guiada en 4 pasos** (`src/medicion/pantallas/Alta.tsx` y lógica pura en `src/medicion/alta.ts`):
+- Solo el tipo de vehículo es obligatorio. Lo demás admite «No lo sé», queda desconocido (`null`) y nunca se reemplaza por 0 ni por un valor de catálogo.
+- La barra inferior se oculta mientras dura el alta.
+- «Atrás» conserva lo anotado.
+- Antes de crear el vehículo se puede restaurar una copia de seguridad.
+
+Contenido de cada paso:
+- **Paso 1:** tipo de vehículo.
+- **Paso 2:** marca, modelo, año, motor y combustible. No se pide patente, turbo, transmisión ni capacidad del estanque.
+- **Paso 3:** tablero. La resolución se deduce así: decimal → 0,1 km, enteros → 1 km. «No tiene TRIP» y «No lo sé» son respuestas distintas y en ambos casos la resolución queda desconocida.
+- **Paso 4:** consumo.
+  - El rendimiento se guarda en km/L como DECLARADO.
+  - Un valor en L/100 km se convierte solo cuando el usuario indica la unidad y que es el **promedio**.
+  - El consumo **instantáneo** nunca cuenta como rendimiento.
+
+**Ilustraciones locales** (`src/medicion/ilustraciones.tsx`): SVG incrustado, sin imágenes remotas.
+- Tablero ficticio: «TRIP A (parcial)» frente a «ODO (kilometraje total)».
+- Contadores con y sin decimal.
+- Boleta ficticia coherente: 20,000 L × $1.000 = $20.000.
+- Se explica que no hace falta poner el TRIP en cero, y que las recargas parciales también sirven.
+
+**Inicio y navegación.**
+- La pantalla Inicio tiene cuatro accesos: Mi vehículo, Iniciar viaje (o Continuar viaje), Registrar recarga y Mis viajes.
+- La barra inferior tiene cuatro botones: Inicio, Combustible, Historial y Vehículo.
+- La ayuda («¿Cómo funciona?») está siempre disponible en el botón «Ayuda» de la cabecera.
+- Los textos piden no usar el teléfono mientras se maneja.
+
+**Movido a «Opciones avanzadas» (plegado):**
+- resoluciones de instrumentos y código interno (Vehículo);
+- procedencia técnica, modalidad, desgaste, remuneración, gastos fijos y precisión (estimación);
+- base de comparación e incertidumbre (ficha);
+- detalle técnico de la comparación y criterios de #12 (ficha);
+- intervalos (Combustible);
+- almacenamiento, presupuestos sellados, objetivos #12, exportaciones y «Borrar todo» (Historial).
+
+La copia de seguridad (guardar y restaurar) sigue visible.
+
+**Modelo de datos.**
+- `VehiculoMedicion` gana `perfil?`, que guarda marca, modelo, año, motor y las respuestas del tablero y del consumo.
+- `combustible` admite `null`.
+- Son metadatos locales: no entran en ningún sello ni en el paquete. `fichaPrevia` solo usa `alias` y `tipoVehiculo`.
+- El esquema del respaldo valida `perfil` de forma estricta (rechaza claves ajenas, por ejemplo `patente`).
+- Un vehículo del formato anterior, sin `perfil`, se abre con un borrador deducido en memoria. Al guardarlo conserva id, alias, fechas, resolución de litros, capacidad y valores por defecto con su procedencia. El rendimiento guardado no se reinterpreta.
+
+**Textos y roles estables para las pruebas** (nombres accesibles):
+
+| Pantalla | Textos y roles |
+|---|---|
+| Todas las del alta | texto «Paso N de 4», `progressbar`, `heading` h1 con el título del paso; botones «Atrás» («Cancelar» al editar) y «Siguiente» (en el paso 4, «Guardar vehículo»); sin `navigation` |
+| Paso 1 | h1 «¿Qué vehículo conduces?»; grupo «Tipo de vehículo» con botones `aria-pressed` «Auto / SUV», «Camioneta», «Furgón», «Camión liviano»; «Siguiente» deshabilitado sin tipo; botón «Restaurar una copia de seguridad» (solo en el primer uso) |
+| Paso 2 | h1 «Identifica tu vehículo»; campos «Marca», «Modelo», «Año», «Motor (cilindrada)»; grupo «Combustible»: «Bencina», «Diésel», «Otro», «No lo sé» |
+| Paso 3 | h1 «Conozcamos tu tablero»; grupo «¿Tu TRIP muestra decimales?»: «Sí, con decimal», «No, solo enteros», «Mi vehículo no tiene TRIP», «No lo sé»; grupo «¿Y el kilometraje total?»: «Solo enteros», «Con decimal», «No lo sé»; plegable «¿Cómo lo encuentro?» |
+| Paso 4 | h1 «¿Cuánto combustible consume tu vehículo?»; grupo «Elige una opción»: «Conozco mi rendimiento», «Mi tablero muestra el consumo», «Mi vehículo no tiene indicador de consumo», «No lo sé todavía»; luego «¿Qué número muestra?» («El promedio» / «El instantáneo»), campo «Tu rendimiento» o «El número que muestra», grupo «¿En qué unidad?» |
+| Restaurar | h1 «Restaurar una copia de seguridad»; `[data-respaldo-importar]`, `[data-resultado-importar]` |
+| Inicio | h1 «Inicio»; botón «Mi vehículo: {nombre}»; botones «Iniciar viaje» o «Continuar viaje», «Registrar recarga», «Mis viajes», «¿Cómo funciona?» |
+| Cabecera y barra | botón «Ayuda»; `navigation` con botones «Inicio», «Combustible», «Historial», «Vehículo» |
+
+Atributos estables: `data-iniciar`, `data-viaje`, `data-respaldo-exportar`, `data-avanzado="vehiculo|presupuesto|ficha|combustible|historial"`, `data-resumen-vehiculo`, `data-resumen-simple`, `data-detalle-tecnico`.
+
+**Pruebas A-92** (ejecutadas por Claude en local, 26-11-2026):
+- `npx tsc --noEmit -p .`: sin errores.
+- `npm test`: **48 archivos, 955 pruebas en verde**. Incluye `tests/medicion-alta.test.ts`, con 8 pruebas nuevas sobre:
+  - desconocidos que no se inventan;
+  - resolución deducida y «no tiene» frente a «no lo sé»;
+  - conversión de L/100 km;
+  - consumo instantáneo;
+  - vehículo del formato anterior;
+  - respaldo con `perfil`.
+- Builds:
+  - el comercial pesa 587,88 kB y conserva el **mismo hash** que antes;
+  - el de medición pesa 377 kB (113 kB gzip);
+  - `scripts/ci-medicion/paquetes.mjs`: paquetes separados;
+  - interoperabilidad con la CLI: OK en ambos sentidos.
+- `scripts/e2e-medicion.mjs`: **147 comprobaciones, 0 fallas**. Cubre:
+  - alta con «No lo sé» en todo;
+  - volver atrás sin perder datos;
+  - barra oculta durante el alta;
+  - vehículo del formato anterior;
+  - flujo completo sin conexión;
+  - CLI e importación atómica.
+- Pruebas de aceptación de Codex (PR #60, `9689a6b`) corridas en local contra este HEAD, sin incorporarlas a la rama:
+  - `alta-a92.mjs`: 5/5;
+  - su `atomicidad.mjs` actualizada: OK.
+
+Pendiente:
+- El `scripts/ci-medicion/` de esta rama todavía navega con la barra visible desde el inicio, así que su paso de atomicidad fallará hasta integrar #60.
+- Falta la prueba en el teléfono real.
+
 ## 4. Pruebas (ejecutadas por Claude, 26-11-2026, sobre el HEAD con el merge de #55)
 
 **Cierre A-91 (sobre `e79849d` más los cambios de este round):**
@@ -193,5 +285,6 @@ No se recomienda publicar la herramienta dentro del staging comercial existente:
 - **D-1:** la prueba en el teléfono real requiere la autorización de §7.
 - **Dependencia de #55:** el PR #57 incluye el merge de la rama de Codex; su diff se reduce cuando #55 se integre en la base. Si Codex publica otra versión del contrato, se vuelve a hacer merge (nunca rebase de commits ajenos).
 - **CI para #57:** resuelta por Codex con `fase0-medicion.yml` (§4). Falta confirmar la corrida remota sobre el HEAD que incluye A-91.
+- **A-92:** el paso de atomicidad de `scripts/ci-medicion/` necesita las pruebas de Codex del PR #60 (§3.2).
 - **#12:** criterios estadísticos por aprobar. Los objetivos que se muestran son exploratorios.
 - **Revisión independiente** (Codex o GPT) del módulo antes de cualquier publicación.

@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { avisosLectura, avisosViaje, distanciaViaje, ultimoOdometro } from '../calculos';
 import { LEYENDA_OBJETIVOS, OBJETIVOS_12 } from '../objetivos';
+import { nombreVehiculo } from '../alta';
 import { aliasPresentacion, CRITERIOS_12, FORMATO_ANTERIOR, informeViaje, tiemposDesglosados, totalMinutos, type ResultadoInforme } from '../campo';
 import { recodificarFoto } from '../foto';
 import type { BaseClp, Comprobante, Directa, Instrumento, NivelCarga, Recorrido, Viaje } from '../modelo';
@@ -33,7 +34,7 @@ export function VistaComparacion({ r, totalNoDesglosado }: { r: ResultadoInforme
   const inf = r.informe;
   return (
     <section className="m-tarjeta" aria-label="Comparación" data-comparacion>
-      <h2>Comparación disponible</h2>
+      <h2>¿Cómo te fue?</h2>
       {r.notas.map((n) => (
         <p key={n} className="m-aviso" data-nota-comparacion>
           {n}
@@ -45,6 +46,25 @@ export function VistaComparacion({ r, totalNoDesglosado }: { r: ResultadoInforme
         </p>
       ) : (
         <>
+          <dl className="m-datos" data-resumen-simple>
+            <div>
+              <dt>Kilómetros</dt>
+              <dd>
+                {inf.recorrido.km?.referencia != null ? fmt(inf.recorrido.km.referencia, ' km') : 'sin dato'}
+                {inf.recorrido.km?.previsto != null ? ` (estimaste ${fmt(inf.recorrido.km.previsto, ' km')})` : ''}
+              </dd>
+            </div>
+            <div>
+              <dt>Pagaste en TAG, ayudantes y otros</dt>
+              <dd>{inf.gastosDelViaje.subtotalClp === null ? 'falta anotar algo' : fmtClp(inf.gastosDelViaje.subtotalClp)}</dd>
+            </div>
+            <div>
+              <dt>Litros de este viaje</dt>
+              <dd>{inf.referencias.litrosAsignadosEstimados === null ? 'aún no se pueden calcular' : `${fmt(inf.referencias.litrosAsignadosEstimados, ' L')} (estimado)`}</dd>
+            </div>
+          </dl>
+          <details className="m-avanzado" data-detalle-tecnico>
+            <summary>Ver detalle técnico</summary>
           <p>
             Presupuesto: <strong data-estado-presupuesto>{inf.estadoPresupuesto}</strong> · modalidad {inf.conciliacionIndependiente.modalidad} · conciliación{' '}
             <strong data-conciliacion>{inf.conciliacionIndependiente.estado}</strong> ({inf.conciliacionIndependiente.aprobacion}).
@@ -170,11 +190,12 @@ export function VistaComparacion({ r, totalNoDesglosado }: { r: ResultadoInforme
           <p className="m-nota">
             Remuneración y margen: es una meta, no un pago; la conciliación compara el costo operativo ({inf.conciliacionIndependiente.alcance}).
           </p>
+          <p className="m-nota" data-criterios>
+            {CRITERIOS_12}
+          </p>
+          </details>
         </>
       )}
-      <p className="m-nota" data-criterios>
-        {CRITERIOS_12}
-      </p>
     </section>
   );
 }
@@ -261,20 +282,11 @@ export function FichaViaje({ viajeId, onVolver }: { viajeId: string; onVolver: (
           </button>
         </div>
         <p>
-          {veh?.alias} · {v.uso === 'simulacion' ? 'simulación (ficticia)' : 'uso personal'} · inicio {fechaHoraLegible(v.inicio)} · fin {fechaHoraLegible(v.fin)}
+          {veh ? nombreVehiculo(veh) : ''} · {v.uso === 'simulacion' ? 'simulación (ficticia)' : 'uso personal'} · salida {fechaHoraLegible(v.inicio)} · llegada {fechaHoraLegible(v.fin)}
           {v.horaEditada ? ' · horas escritas después' : ''}
         </p>
-        <p>
-          Presupuesto:{' '}
-          {pres ? (
-            <>
-              {pres.datos.id} · sello <code>{huellaCorta(pres.sha256)}</code> · {pres.estado}
-              {esAnterior(pres) ? ` · ${FORMATO_ANTERIOR}` : ` · modalidad ${pres.datos.plan.modalidad ?? 'detallada'}`}
-              {selloOk === false ? ' · ¡el sello no verifica!' : selloOk ? ' · sello verificado' : ''}
-            </>
-          ) : (
-            'sin presupuesto previo'
-          )}
+        <p data-estimacion>
+          {pres ? (selloOk === false ? 'Con estimación previa, pero su sello no verifica (revisa el detalle técnico).' : 'Con estimación previa (guardada antes de salir).') : 'Sin estimación previa.'}
         </p>
         <details>
           <summary>Corregir horas (si registras después)</summary>
@@ -308,13 +320,13 @@ export function FichaViaje({ viajeId, onVolver }: { viajeId: string; onVolver: (
       </section>
 
       <section className="m-tarjeta" aria-label="Lecturas">
-        <h2>Lecturas</h2>
-        <p className="m-nota">Basta el TRIP o el odómetro. El TRIP da la distancia; el odómetro ubica el viaje entre tus cargas de combustible.</p>
+        <h2>Kilómetros</h2>
+        <p className="m-nota">Basta con el TRIP o con el kilometraje total. Si anotas los dos, mejor.</p>
         <div className="m-grilla">
-          {lectura('inicial', 'trip', 'TRIP inicial')}
-          {lectura('inicial', 'odometro', 'Odómetro inicial')}
-          {lectura('final', 'trip', 'TRIP final')}
-          {lectura('final', 'odometro', 'Odómetro final')}
+          {lectura('inicial', 'trip', 'TRIP al salir')}
+          {lectura('inicial', 'odometro', 'Kilometraje total al salir')}
+          {lectura('final', 'trip', 'TRIP al llegar')}
+          {lectura('final', 'odometro', 'Kilometraje total al llegar')}
         </div>
         <label className="m-check">
           <input
@@ -345,7 +357,7 @@ export function FichaViaje({ viajeId, onVolver }: { viajeId: string; onVolver: (
         ) : null}
         <p className="m-resultado" data-km>
           Distancia: <strong className="num">{fmt(dist.km, ' km')}</strong>
-          {dist.fuente ? ` (${dist.fuente === 'odometro' ? 'odómetro' : dist.fuente === 'trip' ? 'TRIP' : 'TRIP reiniciado, declarado'})` : ''}
+          {dist.fuente ? ` (${dist.fuente === 'odometro' ? 'kilometraje total' : dist.fuente === 'trip' ? 'TRIP' : 'TRIP reiniciado, lo dijiste tú'})` : ''}
           {dist.motivo ? <small> · {dist.motivo}</small> : null}
         </p>
         {desglose ? (
@@ -373,39 +385,19 @@ export function FichaViaje({ viajeId, onVolver }: { viajeId: string; onVolver: (
             ) : null}
           </div>
         )}
-        <div className="m-fila">
-          <CampoNumero id="km-incert" etiqueta="Incertidumbre de los km (± km, opcional)" valor={textoIncert} onCambio={setTextoIncert} sufijo="km" />
-          <button
-            type="button"
-            className="m-btn m-btn-sec"
-            onClick={() => {
-              const n = parseNumero(textoIncert);
-              void guardar((x) => ({ ...x, incertidumbreKm: n !== null && n >= 0 ? n : null }));
-            }}
-          >
-            Guardar
-          </button>
-        </div>
         <Avisos avisos={avisos} />
       </section>
 
       <section className="m-tarjeta" aria-label="Detalles">
-        <h2>Detalles (un toque cada uno, opcionales)</h2>
+        <h2>Cómo fue el viaje (opcional)</h2>
         <Opciones<Recorrido> id="recorrido" etiqueta="Recorrido" valor={v.recorrido} opciones={[['urbano', 'Urbano'], ['autopista', 'Autopista'], ['mixto', 'Mixto']]} onCambio={(x) => void guardar((y) => ({ ...y, recorrido: x }))} />
         <Opciones<NivelCarga> id="carga" etiqueta="Nivel de carga" valor={v.nivelCarga} opciones={[['sin', 'Sin carga'], ['parcial', 'Parcial'], ['completa', 'Completa']]} onCambio={(x) => void guardar((y) => ({ ...y, nivelCarga: x }))} />
         <Opciones<boolean> id="aire" etiqueta="Aire acondicionado" valor={v.aire} opciones={[[true, 'Sí'], [false, 'No']]} onCambio={(x) => void guardar((y) => ({ ...y, aire: x }))} />
-        <Opciones<NonNullable<BaseClp>>
-          id="base"
-          etiqueta="Los montos de comprobantes son"
-          valor={v.baseClp ?? null}
-          opciones={[['neto', 'Netos'], ['con_iva', 'Con IVA']]}
-          onCambio={(x) => void guardar((y) => ({ ...y, baseClp: x }))}
-        />
       </section>
 
       <section className="m-tarjeta" aria-label="Comprobantes">
-        <h2>Gastos pagados en el viaje (TAG, ayudantes, otros)</h2>
-        <p className="m-nota">«Completa» exige al menos una línea, aunque sea $0. Sin comprobante completo no hay comparación de esa partida. No escribas números de boleta: se usa una referencia doc-NNN-NN.</p>
+        <h2>Lo que pagaste en el viaje</h2>
+        <p className="m-nota">TAG y peajes, ayudantes u otros gastos. Si pagaste $0, anótalo igual. No escribas números de boleta.</p>
         <ul className="m-lista">
           {v.comprobantes.map((c) => (
             <li key={c.ref} className="m-item">
@@ -438,7 +430,7 @@ export function FichaViaje({ viajeId, onVolver }: { viajeId: string; onVolver: (
               void guardar((x) => ({ ...x, comprobantes: [...x.comprobantes, c] }));
             }}
           >
-            Agregar línea
+            Agregar monto
           </button>
         </div>
         {DIRECTAS.map((k) => {
@@ -459,14 +451,14 @@ export function FichaViaje({ viajeId, onVolver }: { viajeId: string; onVolver: (
                     })
                   }
                 />
-                {ETIQ_DIRECTA[k]}: no aplica en este viaje{!na && conMonto ? ' (tiene líneas: quítalas antes)' : ''}
+                {ETIQ_DIRECTA[k]}: no hubo en este viaje{!na && conMonto ? ' (tiene montos: quítalos antes)' : ''}
               </label>
               {na ? null : (
                 <Opciones<'parcial' | 'completa'>
                   id={`cobertura-${k}`}
-                  etiqueta={`Cobertura de ${ETIQ_DIRECTA[k]}`}
+                  etiqueta={`¿Anotaste todo lo de ${ETIQ_DIRECTA[k]}?`}
                   valor={v.cobertura[k]}
-                  opciones={[['parcial', 'Parcial'], ['completa', 'Completa']]}
+                  opciones={[['parcial', 'Faltan algunos'], ['completa', 'Está todo']]}
                   onCambio={(x) => void guardar((y) => ({ ...y, cobertura: { ...y.cobertura, [k]: x } }))}
                 />
               )}
@@ -475,10 +467,48 @@ export function FichaViaje({ viajeId, onVolver }: { viajeId: string; onVolver: (
         })}
         {DIRECTAS.filter((k) => v.cobertura[k] === 'completa' && !v.comprobantes.some((c) => c.partida === k)).map((k) => (
           <p key={k} className="m-aviso">
-            {ETIQ_DIRECTA[k]}: «completa» sin ninguna línea. Agrega al menos una (aunque sea $0).
+            {ETIQ_DIRECTA[k]}: marcaste «está todo» pero no hay montos. Agrega al menos uno (aunque sea $0).
           </p>
         ))}
       </section>
+
+      <details className="m-avanzado" data-avanzado="ficha">
+        <summary>Opciones avanzadas</summary>
+        <section className="m-tarjeta" aria-label="Precisión">
+          <p className="m-nota" data-sello-ficha>
+            Presupuesto:{' '}
+            {pres ? (
+              <>
+                {pres.datos.id} · sello <code>{huellaCorta(pres.sha256)}</code> · {pres.estado}
+                {esAnterior(pres) ? ` · ${FORMATO_ANTERIOR}` : ` · modalidad ${pres.datos.plan.modalidad ?? 'detallada'}`}
+                {selloOk === false ? ' · ¡el sello no verifica!' : selloOk ? ' · sello verificado' : ''}
+              </>
+            ) : (
+              'sin presupuesto previo'
+            )}
+          </p>
+          <Opciones<NonNullable<BaseClp>>
+            id="base"
+            etiqueta="Los montos que anotaste son"
+            valor={v.baseClp ?? null}
+            opciones={[['neto', 'Netos'], ['con_iva', 'Con IVA']]}
+            onCambio={(x) => void guardar((y) => ({ ...y, baseClp: x }))}
+          />
+          <div className="m-fila">
+            <CampoNumero id="km-incert" etiqueta="Incertidumbre de los km (± km, opcional)" valor={textoIncert} onCambio={setTextoIncert} sufijo="km" />
+            <button
+              type="button"
+              className="m-btn m-btn-sec"
+              onClick={() => {
+                const n = parseNumero(textoIncert);
+                void guardar((x) => ({ ...x, incertidumbreKm: n !== null && n >= 0 ? n : null }));
+              }}
+            >
+              Guardar
+            </button>
+          </div>
+        </section>
+      </details>
 
       {v.estado !== 'en curso' ? informe ? <VistaComparacion r={informe} totalNoDesglosado={v.fin && !desglose && !v.soloMarchaDeclarada ? totalMinutos(v) : null} /> : <p className="m-nota">Calculando la comparación…</p> : null}
 

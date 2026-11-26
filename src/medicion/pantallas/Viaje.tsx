@@ -61,10 +61,9 @@ export function PantallaViaje() {
   if (!veh) {
     return (
       <section className="m-tarjeta">
-        <h2>{d.vehiculos.length ? 'Elige tu vehículo' : 'Primero, tu vehículo'}</h2>
-        <p>{d.vehiculos.length ? 'Tienes varios vehículos: elige uno arriba.' : 'Registra tu vehículo una vez (sin patente). Después no se vuelve a pedir.'}</p>
-        <button type="button" className="m-btn m-btn-primario m-grande" onClick={() => irA('vehiculo')}>
-          {d.vehiculos.length ? 'Ver vehículos' : 'Agregar vehículo'}
+        <h1 className="m-titulo">Elige tu vehículo</h1>
+        <button type="button" className="m-btn m-btn-primario m-grande" onClick={() => irA('inicio')}>
+          Ir al inicio
         </button>
       </section>
     );
@@ -88,12 +87,14 @@ export function PantallaViaje() {
           {AVISO_CONDUCIR}
         </p>
         <section className="m-tarjeta" aria-label="Viaje en curso">
-          <h2>
-            {enCurso.codigo} en curso · desde {fechaHoraLegible(enCurso.inicio)}
-          </h2>
+          <h1 className="m-titulo">Viaje en curso</h1>
+          <p className="m-nota">
+            {enCurso.codigo} · desde {fechaHoraLegible(enCurso.inicio)}
+          </p>
           <p className="m-estado-actual" data-estado-actual={actual?.tipo}>
             {ESTADOS.find(([k]) => k === actual?.tipo)?.[1] ?? '—'} <span className="num">{reloj}</span>
           </p>
+          <p className="m-nota">Opcional, solo con el vehículo detenido: marca qué estás haciendo.</p>
           <div className="m-estados" role="group" aria-label="Estado del viaje (opcional)">
             {ESTADOS.map(([k, t]) => (
               <button key={k} type="button" className={actual?.tipo === k ? 'm-btn m-estado m-btn-on' : 'm-btn m-estado'} aria-pressed={actual?.tipo === k} onClick={() => actual?.tipo !== k && void guardar({ ...enCurso, tramos: cambiarTramo(enCurso.tramos, k, isoLocal()) })}>
@@ -101,16 +102,17 @@ export function PantallaViaje() {
               </button>
             ))}
           </div>
-          <p className="m-nota">Cada toque cierra el tramo anterior y abre otro: no se escriben minutos.</p>
+          <p className="m-nota">Cada toque empieza a contar el nuevo estado. No hay que escribir minutos.</p>
         </section>
         <section className="m-tarjeta" aria-label="Lectura inicial">
-          <h2>Lectura inicial (TRIP u odómetro)</h2>
+          <h2>Kilómetros al salir</h2>
+          <p className="m-nota">Basta con uno de los dos. Si no alcanzaste, anótalo después.</p>
           <div className="m-grilla">
             <CampoLectura
               id="inicial-trip"
-              etiqueta="TRIP inicial"
+              etiqueta="TRIP al salir"
               actual={enCurso.lecturas.inicial.trip?.valor ?? null}
-              ayuda="Sugerencia: ponlo en cero al salir."
+              ayuda="No hace falta ponerlo en cero: anota lo que marca."
               avisosDe={(valor) => avisosLectura('trip', 'inicial', valor, enCurso, null)}
               onGuardar={async ({ valor, foto, conservar }) => {
                 await registrarLectura(a, enCurso, 'inicial', 'trip', valor, { ahora: isoLocal(), foto, conservar, recodificar: recodificarFoto });
@@ -120,7 +122,7 @@ export function PantallaViaje() {
             />
             <CampoLectura
               id="inicial-odometro"
-              etiqueta="Odómetro inicial"
+              etiqueta="Kilometraje total al salir"
               actual={enCurso.lecturas.inicial.odometro?.valor ?? null}
               ayuda={ultimo !== null ? `Último conocido: ${ultimo} km` : undefined}
               avisosDe={(valor) => avisosLectura('odometro', 'inicial', valor, enCurso, ultimo)}
@@ -149,6 +151,7 @@ export function PantallaViaje() {
           >
             Finalizar viaje
           </button>
+          <p className="m-nota">Al llegar, detenido, toca «Finalizar viaje» y anota los kilómetros.</p>
           {anulando ? (
             <Confirmar
               texto="¿Anular este viaje en curso? Queda en el historial como anulado."
@@ -237,16 +240,10 @@ export function PantallaViaje() {
 
   return (
     <>
+      <h1 className="m-titulo">Nuevo viaje</h1>
       <section className="m-tarjeta" aria-label="Presupuesto previo">
-        <h2>1 · Presupuesto previo</h2>
-        <div className="m-fila" role="radiogroup" aria-label="Uso">
-          <button type="button" className={uso === 'personal' ? 'm-btn m-btn-on' : 'm-btn'} aria-pressed={uso === 'personal'} onClick={() => setUso('personal')}>
-            Uso personal
-          </button>
-          <button type="button" className={uso === 'simulacion' ? 'm-btn m-btn-on' : 'm-btn'} aria-pressed={uso === 'simulacion'} onClick={() => setUso('simulacion')}>
-            Simulación (ficticia)
-          </button>
-        </div>
+        <h2>Antes de salir (opcional)</h2>
+        <p className="m-nota">Si quieres comparar después, estima ahora cuánto crees que costará. Si no, sáltate esto.</p>
         <ul className="m-lista" aria-label="Presupuestos sellados disponibles">
           {disponibles.map((p) => (
             <li key={p.id} className={presId === p.id ? 'm-item m-sel' : 'm-item'}>
@@ -258,37 +255,51 @@ export function PantallaViaje() {
           ))}
           <li className={presId === null ? 'm-item m-sel' : 'm-item'}>
             <button type="button" className="m-item-btn" onClick={() => setPresId(null)}>
-              {presId === null ? '● ' : '○ '}Sin presupuesto (la comparación dirá «sin presupuesto previo»)
+              {presId === null ? '● ' : '○ '}Sin estimación
             </button>
           </li>
         </ul>
         <div className="m-fila m-envolver">
           <button type="button" className="m-btn m-btn-sec" data-nuevo-presupuesto onClick={() => setForm({ entrada: entradaDesdeVehiculo(veh), origen: { tipo: 'nuevo' }, avisos: [], reemplaza: null })}>
-            Nuevo presupuesto
-          </button>
-          <label className="m-btn m-btn-sec m-foto">
-            Desde una cotización (archivo)
-            <input
-              type="file"
-              accept="application/json,.json"
-              data-archivo-cotizacion
-              onChange={async (e) => {
-                const f = e.target.files?.[0];
-                e.target.value = '';
-                if (!f) return;
-                if (f.size > 1_000_000) return setErrorArchivo('El archivo es demasiado grande para ser una cotización.');
-                try {
-                  desdeCotizacion(JSON.parse(await f.text()));
-                } catch {
-                  setErrorArchivo('El archivo no es JSON válido.');
-                }
-              }}
-            />
-          </label>
-          <button type="button" className="m-btn m-btn-sec" data-cotizacion-ficticia onClick={() => desdeCotizacion(cotizacionFicticia)}>
-            Cotización ficticia de ejemplo
+            Hacer una estimación
           </button>
         </div>
+        <details className="m-avanzado" data-mas-opciones>
+          <summary>Más opciones</summary>
+          <div className="m-fila" role="radiogroup" aria-label="Uso">
+            <button type="button" className={uso === 'personal' ? 'm-btn m-btn-on' : 'm-btn'} aria-pressed={uso === 'personal'} onClick={() => setUso('personal')}>
+              Uso personal
+            </button>
+            <button type="button" className={uso === 'simulacion' ? 'm-btn m-btn-on' : 'm-btn'} aria-pressed={uso === 'simulacion'} onClick={() => setUso('simulacion')}>
+              Simulación (ficticia)
+            </button>
+          </div>
+          <p className="m-nota">«Simulación» es para practicar con datos inventados: no se mezcla con tus viajes reales.</p>
+          <div className="m-fila m-envolver">
+            <label className="m-btn m-btn-sec m-foto">
+              Desde una cotización (archivo)
+              <input
+                type="file"
+                accept="application/json,.json"
+                data-archivo-cotizacion
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!f) return;
+                  if (f.size > 1_000_000) return setErrorArchivo('El archivo es demasiado grande para ser una cotización.');
+                  try {
+                    desdeCotizacion(JSON.parse(await f.text()));
+                  } catch {
+                    setErrorArchivo('El archivo no es JSON válido.');
+                  }
+                }}
+              />
+            </label>
+            <button type="button" className="m-btn m-btn-sec" data-cotizacion-ficticia onClick={() => desdeCotizacion(cotizacionFicticia)}>
+              Cotización ficticia de ejemplo
+            </button>
+          </div>
+        </details>
         {errorArchivo ? <p className="m-aviso">{errorArchivo}</p> : null}
         {elegido ? (
           <button
@@ -296,16 +307,16 @@ export function PantallaViaje() {
             className="m-btn"
             onClick={() => setForm({ entrada: entradaDesdePlan(elegido.datos.plan, elegido.meta.procedencia), origen: elegido.meta.origen, avisos: ['Corregir = sellar uno nuevo y anular el anterior.'], reemplaza: elegido })}
           >
-            Corregir el presupuesto elegido
+            Corregir la estimación elegida
           </button>
         ) : null}
       </section>
       <section className="m-tarjeta" aria-label="Iniciar viaje">
-        <h2>2 · Iniciar viaje</h2>
-        <p className="m-nota">Fecha, hora y zona se guardan solas. Después podrás registrar la lectura inicial (TRIP u odómetro).</p>
+        <h2>Iniciar viaje</h2>
+        <p className="m-nota">La fecha y la hora se guardan solas. Después anotas los kilómetros.</p>
         <HoraEditable etiqueta="hora de inicio" valor={horaInicio} onCambio={setHoraInicio} />
         <button type="button" className="m-btn m-btn-primario m-grande" data-iniciar onClick={iniciar}>
-          Iniciar viaje{elegido ? ` con ${elegido.datos.id}` : ' sin presupuesto'}
+          Iniciar viaje{elegido ? ` con ${elegido.datos.id}` : ''}
         </button>
       </section>
     </>

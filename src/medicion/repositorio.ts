@@ -184,13 +184,36 @@ const base = z.enum(['neto', 'con_iva']).nullable();
 const uso = z.enum(['personal', 'simulacion']);
 const tipoVehiculo = z.enum(['auto', 'camioneta', 'furgon', 'camion_liviano', 'otro']);
 
+const textoCorto = z.string().trim().min(1).max(40).nullable();
+const lecturaTablero = z.enum(['decimal', 'entero', 'no_tiene', 'no_se']).nullable();
+/** Metadatos locales del alta guiada (A-92): todo opcional, sin patente. */
+const perfilVehiculo = z
+  .object({
+    marca: textoCorto,
+    modelo: textoCorto,
+    anio: z.number().int().min(1950).max(2100).nullable(),
+    motor: textoCorto,
+    trip: lecturaTablero,
+    odometro: lecturaTablero,
+    consumo: z
+      .object({
+        forma: z.enum(['rendimiento', 'tablero', 'sin_indicador', 'no_se']),
+        valor: z.number().positive().finite().nullable(),
+        unidad: z.enum(['km/L', 'L/100km']).nullable(),
+        lectura: z.enum(['promedio', 'instantaneo']).nullable(),
+      })
+      .strict()
+      .nullable(),
+  })
+  .strict();
+
 const vehiculoSchema = z
   .object({
     id,
     formato: z.literal(1),
     alias: z.string().regex(/^veh-\d{3,8}$/),
     tipoVehiculo,
-    combustible: z.enum(['gasolina', 'diesel', 'otro']),
+    combustible: z.enum(['gasolina', 'diesel', 'otro']).nullable(),
     resolucionTripKm: positivoONulo,
     resolucionOdometroKm: positivoONulo,
     resolucionLitros: positivoONulo.optional(),
@@ -204,6 +227,7 @@ const vehiculoSchema = z
         trabajoHora: datoMedicion,
       })
       .strict(),
+    perfil: perfilVehiculo.optional(),
     creadoEl: instante,
     editadoEl: instante,
   })
