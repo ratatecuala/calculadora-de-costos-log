@@ -18,9 +18,8 @@
 # terminar, también si algo falla o se interrumpe con Ctrl+C:
 #   1. descifra el respaldo y comprueba las sumas SHA-256 del manifiesto;
 #   2. comprueba que el PostgreSQL local es de la misma versión mayor que el del respaldo, o superior;
-#   3. detecta por la huella del origen (fila inv.security_definer) si el origen tenía aplicada la
-#      migración de #52, y aplica EXACTAMENTE las migraciones de ese estado (lista explícita: nunca
-#      «todas las de la carpeta»). Antes de #52: solo las 3 anteriores;
+#   3. reconoce el prefijo del origen por sus invariantes y el schema.sql verificado; aplica solo
+#      esas migraciones e iguala las definiciones de precio entero sin ejecutar el SQL del origen;
 #   4. crea una base temporal con una base mínima tipo Supabase y las tablas auth.users y
 #      auth.identities con las MISMAS columnas y TIPOS del origen (auth-columnas.txt del respaldo);
 #   5. carga los datos de la app (public, private, auth.users y auth.identities); un formato o dato
@@ -50,7 +49,7 @@ suma_c() { if command -v sha256sum >/dev/null; then sha256sum -c --quiet -; else
 if [[ -n "${PG_BIN:-}" ]]; then pgbin="$PG_BIN"
 elif ls -d /usr/lib/postgresql/*/bin >/dev/null 2>&1; then pgbin="$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -n 1)"
 else pgbin="$(dirname "$(command -v initdb || echo /nonexistent/initdb)")"; fi
-for b in initdb pg_ctl psql postgres; do [[ -x "$pgbin/$b" ]] || fallar "no encuentro $b de PostgreSQL (instálalo: docs/25 fase 0)"; done
+for b in initdb pg_ctl psql postgres pg_dump; do [[ -x "$pgbin/$b" ]] || fallar "no encuentro $b de PostgreSQL (instálalo: docs/25 fase 0)"; done
 mayor_local="$("$pgbin/postgres" --version | grep -oE '[0-9]+' | head -n 1)"
 
 # Las 3 migraciones anteriores a #52 y la de #52, por nombre EXACTO.
@@ -58,7 +57,8 @@ anteriores_52=(20261118000315_esquema_inicial.sql 20261118000924_guardar_cotizac
 migracion_52=20261122120000_guardado_unico_y_contador.sql
 # I-2 (A-81): solo si el origen ya las tenía (fila conteo.public.job_cargo_items en su verificación).
 migraciones_i2=(20261125120000_lineas_de_carga.sql 20261125120100_guardado_v2.sql)
-for m in "${anteriores_52[@]}" "$migracion_52" "${migraciones_i2[@]}"; do [[ -f "$repo/supabase/migrations/$m" ]] || fallar "falta la migración $m en el repositorio"; done
+precio_entero=20261125130000_precio_entero.sql
+for m in "${anteriores_52[@]}" "$migracion_52" "${migraciones_i2[@]}" "$precio_entero"; do [[ -f "$repo/supabase/migrations/$m" ]] || fallar "falta la migración $m en el repositorio"; done
 
 trabajo="$(mktemp -d "${TMPDIR:-/tmp}/simulacro-XXXXXX")"
 cluster="$trabajo/pg"
@@ -84,10 +84,10 @@ else
   fallar "RESPALDO debe ser un archivo .tar.age (o, solo en ensayos ficticios, una carpeta con SIMULACRO_CARPETA_FICTICIA=1)"
 fi
 carpeta="$(find "$trabajo" -mindepth 1 -maxdepth 1 -type d -name 'respaldo-*' | head -n 1)"
-for f in manifiesto.txt data.sql auth-columnas.txt verificacion-origen.txt; do
+for f in manifiesto.txt schema.sql data.sql auth-columnas.txt verificacion-origen.txt; do
   [[ -n "$carpeta" && -f "$carpeta/$f" ]] || fallar "el respaldo no trae $f (¿es de una versión anterior de respaldo-supabase.sh? Haz un respaldo nuevo)"
 done
-for f in data.sql auth-columnas.txt verificacion-origen.txt; do
+for f in schema.sql data.sql auth-columnas.txt verificacion-origen.txt; do
   grep -qE " $f\$" "$carpeta/manifiesto.txt" || fallar "el manifiesto no trae la suma SHA-256 de $f"
 done
 (cd "$carpeta" && grep -E ' (roles\.sql|schema\.sql|data\.sql|auth-columnas\.txt|verificacion-origen\.txt)$' manifiesto.txt | suma_c) || fallar "las sumas SHA-256 no coinciden: el respaldo está dañado o incompleto"
@@ -104,24 +104,21 @@ mayor_origen=$(( srv / 10000 ))
 (( mayor_local >= mayor_origen )) || fallar "tu PostgreSQL local es $mayor_local y el respaldo es de PostgreSQL $mayor_origen: instala PostgreSQL $mayor_origen (docs/25 fase 0)"
 echo "   origen PostgreSQL $mayor_origen · local PostgreSQL $mayor_local"
 
-echo "3) Estado de #52 en el origen"
-fila="$(grep -E '^inv\.security_definer \| ' "$carpeta/verificacion-origen.txt" || true)"
-[[ -n "$fila" ]] || fallar "verificacion-origen.txt no trae la fila inv.security_definer: no se puede saber el estado de #52"
-valor="$(cut -d'|' -f2 <<<"$fila")"
-if grep -q '^conteo\.public\.job_cargo_items | ' "$carpeta/verificacion-origen.txt"; then
-  estado="i2"; migraciones=("${anteriores_52[@]}" "$migracion_52" "${migraciones_i2[@]}")
-elif grep -q 'public\.create_job_with_quote' <<<"$valor"; then
-  estado="posterior"; migraciones=("${anteriores_52[@]}" "$migracion_52")
-else
-  estado="anterior"; migraciones=("${anteriores_52[@]}")
-fi
-if [[ "$estado" == anterior ]]; then
-  echo "   el origen está ANTES de #52: se aplican solo las 3 migraciones anteriores (nunca la de #52)"
-elif [[ "$estado" == i2 ]]; then
-  echo "   el origen tiene #52 e I-2 (líneas de carga): se aplican las 6 migraciones"
-else
-  echo "   el origen está DESPUÉS de #52: se aplican las 3 anteriores y la de #52"
-fi
+echo "3) Estado de las migraciones del origen"
+estado="$(python3 -I "$dir/estado_migraciones.py" estado "$carpeta/schema.sql" "$carpeta/verificacion-origen.txt")"
+migraciones=("${anteriores_52[@]}")
+case "$estado" in
+  anterior) echo "   ANTES de #52: solo las 3 migraciones anteriores" ;;
+  posterior) echo "   DESPUÉS de #52: se aplican las 4 migraciones" ;;
+  m3) echo "   #52 y M3: se aplican las 5 migraciones" ;;
+  i2) echo "   #52 e I-2: se aplican las 6 migraciones" ;;
+  precio) echo "   #52, I-2 y precio entero: se aplican las 7 migraciones" ;;
+  *) fallar "estado de migraciones desconocido" ;;
+esac
+if [[ "$estado" != anterior ]]; then migraciones+=("$migracion_52"); fi
+if [[ "$estado" == m3 || "$estado" == i2 || "$estado" == precio ]]; then migraciones+=("${migraciones_i2[0]}"); fi
+if [[ "$estado" == i2 || "$estado" == precio ]]; then migraciones+=("${migraciones_i2[1]}"); fi
+if [[ "$estado" == precio ]]; then migraciones+=("$precio_entero"); fi
 
 echo "4) Base local temporal"
 "$pgbin/initdb" -D "$cluster" -U postgres -A trust --no-sync >/dev/null
@@ -136,12 +133,12 @@ for m in "${migraciones[@]}"; do
   psql_l --single-transaction -f "$repo/supabase/migrations/$m" >/dev/null
   echo "   migración aplicada: $m"
 done
-definer="$(psql_l -A -t -c "select coalesce((select p.prosecdef from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'create_job_with_quote'), false)")"
-lineas="$(psql_l -A -t -c "select to_regclass('public.job_cargo_items') is not null")"
-if [[ "$estado" == anterior && ( "$definer" != f || "$lineas" != f ) ]] || [[ "$estado" == posterior && ( "$definer" != t || "$lineas" != f ) ]] \
-   || [[ "$estado" == i2 && ( "$definer" != t || "$lineas" != t ) ]]; then
-  fallar "la base local no quedó en el estado del origen ($estado): no se continúa"
-fi
+# Comprobar el estado local con la misma huella observacional, independiente de la selección.
+"$pgbin/pg_dump" -w -h "$sock" -p 54329 -U postgres -d postgres --schema-only --schema=public --schema=private -f "$trabajo/schema-local.sql"
+python3 -I "$dir/estado_migraciones.py" comparar "$carpeta/schema.sql" "$trabajo/schema-local.sql"
+psql_l -A -t -F ' | ' -v referencia="$referencia" -f "$repo/scripts/verificar-restauracion.sql" > "$trabajo/estado-vacio.txt"
+estado_local="$(python3 -I "$dir/estado_migraciones.py" estado "$trabajo/schema-local.sql" "$trabajo/estado-vacio.txt")"
+[[ "$estado_local" == "$estado" ]] || fallar "la base local no quedó en el estado del origen ($estado): no se continúa"
 
 echo "5) Cargar los datos"
 python3 -I "$dir/procesar-respaldo.py" filtrar "$carpeta/data.sql" "$trabajo/datos.sql"
@@ -149,6 +146,7 @@ psql_l --single-transaction -c 'SET session_replication_role = replica' -f "$tra
 
 
 echo "6) Verificar"
+if [[ "$estado" == precio ]]; then psql_l -f "$dir/verificar-precio-restaurado.sql" >/dev/null; fi
 psql_l -A -t -F ' | ' -v referencia="$referencia" -f "$repo/scripts/verificar-restauracion.sql" > "$trabajo/restaurado.txt"
 controles="$(grep -c ' | ' "$trabajo/restaurado.txt" || true)"
 contenido="$(grep -c '^contenido\.' "$trabajo/restaurado.txt" || true)"
