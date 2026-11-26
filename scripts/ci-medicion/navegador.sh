@@ -18,3 +18,4 @@ node scripts/e2e-medicion.mjs "$base" "$sin_flag" | tee "$tmp/e2e.log"
 # haber recargado la PWA y escrito una carga sin conexión.
 test "$(grep -Fc 'sin conexión: recarga y registro OK' "$tmp/e2e.log")" -eq 2
 node scripts/ci-medicion/atomicidad.mjs "$base" "$tmp"
+A92_ORIGEN="$base" node --test scripts/ci-medicion/alta-a92.mjs

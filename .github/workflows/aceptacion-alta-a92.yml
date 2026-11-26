@@ -1,0 +1,45 @@
+name: A-92 · Aceptación del alta
+on:
+  pull_request:
+    branches: ['claude/medicion-telefono']
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a92-alta-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  alta:
+    if: github.head_ref == 'codex/a92-alta-medicion-e2e' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Preparar dependencias y Chromium
+        run: |
+          npm ci
+          npm install --prefix "$RUNNER_TEMP/qa-navegador" --no-audit --no-fund --ignore-scripts playwright@1.56.1
+          "$RUNNER_TEMP/qa-navegador/node_modules/.bin/playwright" install chromium --only-shell
+      - name: Compilar la medición ficticia en red aislada
+        run: |
+          sudo ip netns add medicion
+          sudo ip -n medicion link set lo up
+          bash scripts/ci-medicion/local.sh env VITE_FF_MEDICION=1 npm run build:medicion
+      - name: Aceptación del alta guiada sobre la propuesta
+        run: |
+          bash scripts/ci-medicion/local.sh bash -euc '
+            python3 -m http.server 5195 --bind 127.0.0.1 --directory dist-medicion > /tmp/a92-http.log 2>&1 &
+            servidor=$!
+            trap "kill $servidor" EXIT
+            export A92_ORIGEN=http://127.0.0.1:5195
+            curl -fsS --retry 10 --retry-connrefused "$A92_ORIGEN/" -o /dev/null
+            node --test scripts/ci-medicion/alta-a92.mjs
+          '
