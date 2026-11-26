@@ -1,0 +1,22 @@
+[
+  {"id":"GB-1a","tipo":"fijos","entrada":{"gasto":1800000,"periodo_gasto":"año","horas_productivas":1200,"periodo_horas":"año","minutos_viaje":180},"esperado":"4500"},
+  {"id":"GB-1b0","tipo":"fijos","entrada":{"gasto":1800000,"periodo_gasto":"año","horas_productivas":0,"periodo_horas":"año","minutos_viaje":180},"esperado":"desconocido"},
+  {"id":"GB-1b1","tipo":"fijos","entrada":{"gasto":1800000,"periodo_gasto":"año","horas_productivas":null,"periodo_horas":"año","minutos_viaje":180},"esperado":"desconocido"},
+  {"id":"GB-1c","tipo":"fijos","entrada":{"gasto":150000,"periodo_gasto":"mes","horas_productivas":100,"periodo_horas":"mes","minutos_viaje":180},"esperado":"4500"},
+  {"id":"GB-1d","tipo":"fijos","entrada":{"gasto":150000,"periodo_gasto":"mes","horas_productivas":1200,"periodo_horas":"año","minutos_viaje":180},"esperado":"periodos_incompatibles"},
+  {"id":"GB-2a","tipo":"componentes","entrada":{"componentes":[[400000,50000],[80000,10000],[300000,20000]],"km":80},"esperado":{"CLP_km":"31","CLP":"2480"}},
+  {"id":"GB-2b","tipo":"componentes","entrada":{"componentes":[[400000,50000],[80000,10000],[300000,null]],"km":80},"esperado":{"CLP_km_minimos":"16","CLP_minimos":"1280"}},
+  {"id":"GB-2c","tipo":"componentes","entrada":{"componentes":[[400000,50000],[80000,10000],[300000,0]],"km":80},"esperado":{"CLP_km_minimos":"16","CLP_minimos":"1280"}},
+  {"id":"GB-3a","tipo":"partidas","entrada":[["refrigeracion","CLP/km","km",25,80]],"esperado":"2000"},
+  {"id":"GB-3b","tipo":"partidas","entrada":[["ayudante_2","CLP/h","h",5000,3]],"esperado":"15000"},
+  {"id":"GB-3c","tipo":"partidas","entrada":[["estacionamiento","CLP/servicio","servicio",4000,1]],"esperado":"4000"},
+  {"id":"GB-3d","tipo":"partidas","entrada":[["ayudante_2","CLP/h","km",5000,80]],"esperado":"rechazo"},
+  {"id":"GB-3e","tipo":"partidas","entrada":[["TAG","CLP/servicio","servicio",3000,1],["TAG","CLP/servicio","servicio",3000,1]],"esperado":"rechazo"},
+  {"id":"GB-3f","tipo":"capacidad","entrada":{"caracter":"🚚","repeticiones":2747,"sufijo":""},"esperado":{"bytes":11000,"admisible_por_tamano":true}},
+  {"id":"GB-3g","tipo":"capacidad","entrada":{"caracter":"🚚","repeticiones":2747,"sufijo":"a"},"esperado":{"bytes":11001,"admisible_por_tamano":false}},
+  {"id":"GB-3h","tipo":"limite_partidas","entrada":{"cantidad":3,"limite_del_caso":3},"esperado":"admisible_por_cantidad"},
+  {"id":"GB-3i","tipo":"limite_partidas","entrada":{"cantidad":4,"limite_del_caso":3},"esperado":"rechazo"},
+  {"id":"GB-4a","tipo":"conductor","entrada":{"pago":"servicio","tarifa":25000,"cantidad":1,"D_sin_conductor":31000,"CF_sin_conductor":4500,"W":2480,"minutos_propietario":30,"meta_hora":6000,"P":60000},"esperado":[56000,4500,3000,58480,62980,65980,74000,1520,-2980,-5980]},
+  {"id":"GB-4b","tipo":"conductor","entrada":{"pago":"hora","tarifa":12500,"cantidad":2,"D_sin_conductor":31000,"CF_sin_conductor":4500,"W":2480,"minutos_propietario":30,"meta_hora":6000,"P":60000},"esperado":[56000,4500,3000,58480,62980,65980,74000,1520,-2980,-5980]},
+  {"id":"GB-4c","tipo":"conductor","entrada":{"pago":"sueldo_fijo_asignado","tarifa":25000,"cantidad":1,"D_sin_conductor":31000,"CF_sin_conductor":4500,"W":2480,"minutos_propietario":30,"meta_hora":6000,"P":60000},"esperado":[31000,29500,3000,33480,62980,65980,74000,26520,-2980,-5980]}
+]

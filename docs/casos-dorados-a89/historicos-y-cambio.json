@@ -1,0 +1,350 @@
+{
+  "historicos": [
+    {
+      "id": "H1",
+      "entrada": {
+        "routeSource": "simulado",
+        "km": null,
+        "minutes": null,
+        "costEstimate": 41234.5,
+        "costType": "cotaInferior",
+        "suggestedPrice": 51543,
+        "margin": 0.2,
+        "missing": [
+          "peajes",
+          "gastosFijos"
+        ],
+        "engineVersion": "motor-1.0.0"
+      },
+      "esperado": {
+        "sourceVersion": 1,
+        "modalidad": null,
+        "costEstimate": 41234.5,
+        "suggestedPrice": 51543,
+        "escrituras": 0,
+        "recalculos": 0
+      }
+    },
+    {
+      "id": "H2",
+      "entrada": {
+        "routeSource": "simulado",
+        "km": null,
+        "minutes": null,
+        "costEstimate": 47555.25,
+        "costType": "cotaInferior",
+        "suggestedPrice": 59999,
+        "margin": 0.2,
+        "missing": [
+          "peajes",
+          "gastosFijos"
+        ],
+        "engineVersion": "motor-1.0.1",
+        "vehicle": null,
+        "formulaVersion": "motor-1.0.1",
+        "schemaVersion": 2,
+        "cargo": null,
+        "resources": null
+      },
+      "esperado": {
+        "sourceVersion": 2,
+        "modalidad": null,
+        "costEstimate": 47555.25,
+        "suggestedPrice": 59999,
+        "escrituras": 0,
+        "recalculos": 0
+      }
+    },
+    {
+      "id": "H3",
+      "entrada": {
+        "routeSource": "simulado",
+        "km": null,
+        "minutes": null,
+        "costEstimate": 38555.75,
+        "costType": "cotaInferior",
+        "suggestedPrice": 51777,
+        "margin": 0.2,
+        "missing": [
+          "peajes",
+          "gastosFijos"
+        ],
+        "engineVersion": "motor-1.0.1",
+        "vehicle": null,
+        "formulaVersion": "motor-1.0.1",
+        "schemaVersion": 3,
+        "economia": {
+          "registradoEl": "2026-11-26",
+          "parametros": {
+            "fuelPricePerL": {
+              "valor": null,
+              "unidad": "CLP/L",
+              "procedencia": {
+                "clase": "faltante",
+                "fuente": {
+                  "tipo": "usuario",
+                  "detalle": null
+                },
+                "fecha": null,
+                "vigenteDesde": null,
+                "vigenteHasta": null,
+                "version": null
+              }
+            },
+            "kmPerL": {
+              "valor": null,
+              "unidad": "km/L",
+              "procedencia": {
+                "clase": "faltante",
+                "fuente": {
+                  "tipo": "usuario",
+                  "detalle": null
+                },
+                "fecha": null,
+                "vigenteDesde": null,
+                "vigenteHasta": null,
+                "version": null
+              }
+            },
+            "wearPerKm": {
+              "valor": null,
+              "unidad": "CLP/km",
+              "procedencia": {
+                "clase": "faltante",
+                "fuente": {
+                  "tipo": "usuario",
+                  "detalle": null
+                },
+                "fecha": null,
+                "vigenteDesde": null,
+                "vigenteHasta": null,
+                "version": null
+              }
+            },
+            "fixedPerHour": {
+              "valor": null,
+              "unidad": "CLP/h",
+              "procedencia": {
+                "clase": "faltante",
+                "fuente": {
+                  "tipo": "usuario",
+                  "detalle": null
+                },
+                "fecha": null,
+                "vigenteDesde": null,
+                "vigenteHasta": null,
+                "version": null
+              }
+            },
+            "ownerPerHour": {
+              "valor": null,
+              "unidad": "CLP/h",
+              "procedencia": {
+                "clase": "faltante",
+                "fuente": {
+                  "tipo": "usuario",
+                  "detalle": null
+                },
+                "fecha": null,
+                "vigenteDesde": null,
+                "vigenteHasta": null,
+                "version": null
+              }
+            },
+            "helpers": {
+              "valor": null,
+              "unidad": "personas",
+              "procedencia": {
+                "clase": "faltante",
+                "fuente": {
+                  "tipo": "usuario",
+                  "detalle": null
+                },
+                "fecha": null,
+                "vigenteDesde": null,
+                "vigenteHasta": null,
+                "version": null
+              }
+            },
+            "helperFee": {
+              "valor": null,
+              "unidad": "CLP",
+              "procedencia": {
+                "clase": "faltante",
+                "fuente": {
+                  "tipo": "usuario",
+                  "detalle": null
+                },
+                "fecha": null,
+                "vigenteDesde": null,
+                "vigenteHasta": null,
+                "version": null
+              }
+            },
+            "loadMinutes": {
+              "valor": null,
+              "unidad": "min",
+              "procedencia": {
+                "clase": "faltante",
+                "fuente": {
+                  "tipo": "usuario",
+                  "detalle": null
+                },
+                "fecha": null,
+                "vigenteDesde": null,
+                "vigenteHasta": null,
+                "version": null
+              }
+            },
+            "tolls": {
+              "valor": null,
+              "unidad": "CLP",
+              "procedencia": {
+                "clase": "faltante",
+                "fuente": {
+                  "tipo": "usuario",
+                  "detalle": null
+                },
+                "fecha": null,
+                "vigenteDesde": null,
+                "vigenteHasta": null,
+                "version": null
+              }
+            },
+            "otherCosts": {
+              "valor": null,
+              "unidad": "CLP",
+              "procedencia": {
+                "clase": "faltante",
+                "fuente": {
+                  "tipo": "usuario",
+                  "detalle": null
+                },
+                "fecha": null,
+                "vigenteDesde": null,
+                "vigenteHasta": null,
+                "version": null
+              }
+            }
+          },
+          "recorrido": {
+            "km": {
+              "clase": "faltante",
+              "fuente": {
+                "tipo": "usuario",
+                "detalle": null
+              },
+              "fecha": null,
+              "vigenteDesde": null,
+              "vigenteHasta": null,
+              "version": null
+            },
+            "minutos": {
+              "clase": "faltante",
+              "fuente": {
+                "tipo": "usuario",
+                "detalle": null
+              },
+              "fecha": null,
+              "vigenteDesde": null,
+              "vigenteHasta": null,
+              "version": null
+            }
+          },
+          "margen": {
+            "valor": 0.2,
+            "unidad": "fraccion",
+            "procedencia": {
+              "clase": "declarado",
+              "fuente": {
+                "tipo": "usuario",
+                "detalle": null
+              },
+              "fecha": null,
+              "vigenteDesde": null,
+              "vigenteHasta": null,
+              "version": null
+            }
+          },
+          "recargos": {
+            "valor": 0,
+            "unidad": "CLP",
+            "procedencia": {
+              "clase": "declarado",
+              "fuente": {
+                "tipo": "usuario",
+                "detalle": null
+              },
+              "fecha": null,
+              "vigenteDesde": null,
+              "vigenteHasta": null,
+              "version": null
+            }
+          },
+          "partidas": null,
+          "versiones": {
+            "motor": "motor-1.0.1",
+            "formulas": "motor-1.0.1",
+            "datos": {
+              "combustible": null,
+              "catalogo": null,
+              "peajes": null
+            }
+          }
+        }
+      },
+      "esperado": {
+        "sourceVersion": 3,
+        "modalidad": null,
+        "costEstimate": 38555.75,
+        "suggestedPrice": 51777,
+        "escrituras": 0,
+        "recalculos": 0
+      }
+    }
+  ],
+  "cambioModo": {
+    "inicial": {
+      "fixedPerHour": 1500,
+      "horas": "67/30",
+      "P": 55000,
+      "precioConfirmado": true,
+      "exclusionesUsuario": [],
+      "modo": "D"
+    },
+    "pasos": [
+      {
+        "accion": "abrir",
+        "fila": "GM-7a",
+        "modo": "D",
+        "P": 55000,
+        "fixedPerHour": 1500,
+        "priceNeedsConfirmation": false
+      },
+      {
+        "accion": "elegir_simplificada",
+        "fila": "GM-7b",
+        "modo": "S",
+        "P": 55000,
+        "fixedPerHour": 1500,
+        "priceNeedsConfirmation": true
+      },
+      {
+        "accion": "confirmar_precio",
+        "fila": "GM-7b",
+        "modo": "S",
+        "P": 55000,
+        "fixedPerHour": 1500,
+        "priceNeedsConfirmation": false
+      },
+      {
+        "accion": "elegir_detallada",
+        "fila": "GM-7c",
+        "modo": "D",
+        "P": 55000,
+        "fixedPerHour": 1500,
+        "priceNeedsConfirmation": true
+      }
+    ]
+  }
+}
