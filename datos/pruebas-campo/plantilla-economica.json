@@ -3,6 +3,8 @@
   "vehiculo": null,
   "tipoVehiculo": null,
   "plan": {
+    "modalidad": "simplificada",
+    "noAplica": [],
     "baseClp": null,
     "ajusteHasta": null,
     "muestraPrevista": null,
@@ -28,6 +30,7 @@
     "cotizado": null
   },
   "observacion": {
+    "noAplica": [],
     "baseClp": null,
     "fin": null,
     "odometroInicial": null,

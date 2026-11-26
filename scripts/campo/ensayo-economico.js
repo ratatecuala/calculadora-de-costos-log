@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { linkSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ejecutar } from './archivo.js';
+import { ejecutar, importar } from './archivo.js';
+import { VERSION_MOTOR, crearPaquete, envolverOriginal, huellaCanonica, verificarPaquete } from '../../src/shared/campo/index.js';
 import { resumenClases } from './clases.js';
 import { diferencia, informe, presupuesto, rendimiento } from './comparar.js';
 import { validarObservacion, validarPlan } from './evidencia.js';
@@ -13,7 +14,8 @@ const est = x => [x,'ESTIMADO'], med = x => [x,'MEDIDO'], doc = x => [x,'COMPROB
 function ficha() {
   const f = JSON.parse(readFileSync(plantilla,'utf8'));
   Object.assign(f,{uso:'flete_real',vehiculo:'veh-001',tipoVehiculo:'furgon'});
-  Object.assign(f.plan,{km:est(10),marchaMin:est(30),esperaMin:est(5),cargaMin:est(10),descargaMin:est(5),
+  // Los casos históricos comparan seis partidas, incluidos los gastos fijos.
+  Object.assign(f.plan,{modalidad:'detallada',km:est(10),marchaMin:est(30),esperaMin:est(5),cargaMin:est(10),descargaMin:est(5),
     kmL:est(10),precioLitro:est(1200),fuentePrecio:'supuesto',desgasteKm:est(20),fijoHora:est(600),
     trabajoHora:est(1200),ayudantes:est(1),pagoAyudante:est(4000),tag:est(500),otros:est(0),
     margenPct:est(20),recargos:est(0),cotizado:[10000,'DECLARADO'],ajusteHasta:'sin_ajuste',muestraPrevista:'validacion',baseClp:'neto'});
@@ -33,7 +35,7 @@ function sello(f) {
 }
 function intervalo() {
   return {vehiculo:'veh-001',registroCompleto:true,recorrido:'urbano',carga:'sin',aire:false,muestra:'validacion',zona:'America/Santiago',
-    resolucionKm:med(0.1),resolucionLitros:med(0.01),incertidumbreLitros:med(0.1),
+    resolucionKm:med(0.1),incertidumbreKm:med(0.1),resolucionLitros:med(0.01),incertidumbreLitros:med(0.1),
     recargas:[{fecha:'2026-11-24',lleno:true,odometro:med(100),litros:doc(40)},{fecha:'2026-11-25',lleno:false,odometro:med(200),litros:doc(10)},
       {fecha:'2026-11-26',lleno:true,odometro:med(400),litros:doc(20)}]};
 }
@@ -50,6 +52,88 @@ function privado(fn) {
 }
 
 export function registrar(it) {
+  it('modalidad simplificada conserva los datos de fijos y compara exclusivamente su alcance',()=>{
+    const f=observar(ficha()),o=f.observacion;
+    f.plan.modalidad='simplificada'; o.intervalo=intervalo();
+    o.mantencion={periodo:'2026-10-01/2026-10-31',gastoClp:doc(10000),kmPeriodo:med(400)};
+    o.cobertura.ayudantes='completa'; o.comprobantes.push({ref:'doc-002-01',partida:'ayudantes',clp:4000});
+    f.plan.noAplica=['otros']; o.noAplica=['otros'];
+    const r=informe(f,sello(f)),c=r.conciliacionIndependiente;
+    assert.equal(c.partidas.gastosFijos.estado,'excluida'); assert.equal(c.partidas.gastosFijos.referenciaClp,null);
+    assert.equal(c.partidas.otros.estado,'no aplicable'); assert.equal(c.partidas.otros.referenciaClp,null);
+    assert.equal(c.totalComparable.previsto,5900); assert.equal(c.totalComparable.referencia,6400);
+    assert.equal(r.presupuestoOriginal.partidas.gastosFijos,null); assert(!r.completitud.observacion.faltan.includes('fijosPeriodo'));
+    assert.equal(f.plan.fijoHora[0],600);
+    f.plan.modalidad='detallada'; assert(informe(f,sello(f)).conciliacionIndependiente.faltan.includes('gastosFijos'));
+    f.plan.modalidad='simplificada'; o.noAplica=[];
+    assert.equal(informe(f,sello(f)).conciliacionIndependiente.partidas.otros.estado,'alcance diferente');
+    assert.equal(informe(f,sello(f)).conciliacionIndependiente.totalComparable,null);
+    f.plan.noAplica=[]; assert.equal(informe(f,sello(f)).conciliacionIndependiente.partidas.otros.estado,'desconocida');
+    o.comprobantes.push({ref:'doc-003-01',partida:'otros',clp:0}); o.cobertura.otros='completa';
+    assert.equal(informe(f,sello(f)).conciliacionIndependiente.partidas.otros.estado,'cero comprobado');
+  });
+  it('un cambio de etiqueta o huella impide atribuir la variación solamente al recorrido',()=>{
+    const f=ficha(),s=crearPresupuesto(f,'viaje-001','2026-11-01T00:00:00.000Z',VERSION_MOTOR);
+    observar(f);
+    for(const v of [{...VERSION_MOTOR,etiqueta:'motor-2.0.0'},{...VERSION_MOTOR,sha256:'b'.repeat(64)},null]){
+      const r=compararFicha(f,s,null,v); assert.equal(r.variacionCostoModelado.diferencia,null);
+      assert.equal(r.variacionCostoModelado.motores,v?'distintos':'sin verificar');
+      assert.equal(r.presupuestoOriginal.costoClp,7250);
+    }
+    assert.equal(compararFicha(f,s,null,VERSION_MOTOR).variacionCostoModelado.diferencia,-730);
+  });
+  it('propaga incertidumbres declaradas y mantiene abiertos los rangos sin máximo finito',()=>{
+    const f=observar(ficha()); f.observacion.intervalo=intervalo();
+    let u=informe(f,sello(f)).referencias.incertidumbreCombustible;
+    assert(Math.abs(u.litros.inferior-(11.9*29.9/300.1))<1e-10);
+    assert(Math.abs(u.combustibleClp.superior-12.1*30.1/299.9*1250)<1e-8);
+    f.observacion.intervalo.incertidumbreKm=med(300);
+    assert.equal(informe(f,sello(f)).referencias.incertidumbreCombustible.litros.superior,null);
+    delete f.observacion.intervalo.incertidumbreKm;
+    u=informe(f,sello(f)).referencias.incertidumbreCombustible;
+    assert.equal(u.litros,null); assert(u.faltan.includes('kmIntervalo'));
+  });
+  it('huella canónica conserva orden de listas, Unicode e históricos con orden anterior',async()=>{
+    assert.equal(await huellaCanonica({b:'Ñ🚚',a:[1,2]}),await huellaCanonica({a:[1,2],b:'Ñ🚚'}));
+    assert.notEqual(await huellaCanonica([1,2]),await huellaCanonica([2,1]));
+    const f=ficha(),s=crearPresupuesto(f,'viaje-001','2026-11-01T00:00:00.000Z',VERSION_MOTOR);
+    const original=await envolverOriginal(s);
+    assert.equal(original.sha256,(await envolverOriginal(Object.fromEntries(Object.entries(s).reverse()))).sha256);
+    const antiguo={...s,version:2}; delete antiguo.plan.modalidad;
+    const v2=await envolverOriginal(antiguo);
+    const paquete=await crearPaquete([{id:s.id,ficha:f,original:v2}]); await verificarPaquete(paquete);
+    assert.deepEqual(paquete.viajes[0].original,v2);
+  });
+  it('importa paquetes completos, verifica ambos niveles y conserva originales en conflictos y reintentos',async()=>{
+    const root=mkdtempSync(join(tmpdir(),'campo-import-'));
+    try {
+      const f=ficha(),s=crearPresupuesto(f,'viaje-001','2026-11-01T00:00:00.000Z',VERSION_MOTOR);
+      const original=await envolverOriginal(s); observar(f);
+      const viaje={id:s.id,ficha:f,original}, p=await crearPaquete([viaje]);
+      const ruta=join(root,'movil.json'), cargar=async x=>{writeFileSync(ruta,JSON.stringify(x));return importar(ruta,root);};
+      assert.deepEqual(await cargar(p),{importados:1,identicos:0});
+      const path=join(root,'calibracion',s.id,'presupuesto-original.json'), bytes=readFileSync(path);
+      assert.deepEqual(await cargar(p),{importados:0,identicos:1});
+      const alterado=structuredClone(p); alterado.viajes[0].original.datos.plan.km=est(100);
+      await assert.rejects(cargar(alterado),/huella/i);
+      alterado.sha256=await huellaCanonica({formato:1,viajes:alterado.viajes});
+      await assert.rejects(cargar(alterado),/original/i);
+      const copia=structuredClone(viaje); copia.ficha.observacion.km=med(15);
+      const nuevo={id:'viaje-002',ficha:ficha(),original:null};
+      await assert.rejects(cargar(await crearPaquete([nuevo,copia])),/Conflicto/);
+      assert.throws(()=>readFileSync(join(root,'calibracion','viaje-002','ficha.json')),/ENOENT/);
+      assert.deepEqual(bytes,readFileSync(path));
+      await assert.rejects(crearPaquete([viaje,viaje]),/duplicado/);
+      await assert.rejects(crearPaquete([{...viaje,id:'../publico'}]),/inválido/);
+      copia.ficha.observacion.foto='privado'; await assert.rejects(crearPaquete([copia]),/Campos/);
+    } finally {rmSync(root,{recursive:true,force:true});}
+  });
+  it('una recarga parcial aislada es válida y varios viajes del mismo intervalo aportan una sola muestra',()=>{
+    const f=observar(ficha()), i=intervalo(); f.observacion.intervalo={...i,recargas:[i.recargas[1]]};
+    validarObservacion(f.observacion,false,f.vehiculo); assert.equal(rendimiento(f.observacion.intervalo),null);
+    f.observacion.intervalo=i; const otro=structuredClone(f); otro.observacion.km=med(6);
+    assert.equal(resumenClases([f,otro]).grupos[0].n,1);
+  });
   it('cuantifica espera como sensibilidad separada y clasifica el costo como parcial',()=>{
     const f=observar(ficha()); const s=sello(f); const r=informe(f,s);
     assert.deepEqual(r.esperaFueraDelMotor.observada,{minutos:8,fijosClp:80,metaTrabajoClp:160,potencialClp:240,evidencia:'ESTIMADO'});

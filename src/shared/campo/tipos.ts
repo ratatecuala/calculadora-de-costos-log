@@ -24,7 +24,7 @@ export type Carga = 'sin' | 'parcial' | 'completa' | null;
 export interface Intervalo {
   vehiculo: string; registroCompleto: boolean | null; recorrido: Recorrido; carga: Carga; aire: boolean | null;
   muestra?: Muestra | null; zona?: string | null; resolucionKm?: Dato; resolucionLitros?: Dato;
-  incertidumbreLitros?: Dato; recargas: Recarga[];
+  incertidumbreLitros?: Dato; incertidumbreKm?: Dato; recargas: Recarga[];
 }
 export interface Observacion extends Tiempos {
   noAplica?: Directa[]; inicio: string | null; fin?: string | null; baseClp?: Base; resolucionKm: Dato;

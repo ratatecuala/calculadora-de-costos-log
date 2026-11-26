@@ -32,7 +32,7 @@ En campos numéricos escribe el valor y su evidencia, por ejemplo `[12.4, "MEDID
 {
   "vehiculo": "veh-001", "recorrido": "urbano", "carga": "sin", "aire": false,
   "registroCompleto": true, "muestra":"validacion", "zona":"America/Santiago",
-  "resolucionKm":null, "resolucionLitros":null, "incertidumbreLitros":null,
+  "resolucionKm":null, "resolucionLitros":null, "incertidumbreLitros":null, "incertidumbreKm":null,
   "recargas": [
     {"fecha":"2026-10-01","lleno":true,"odometro":[100,"MEDIDO"],"litros":null},
     {"fecha":"2026-10-02","lleno":false,"odometro":[200,"MEDIDO"],"litros":[10,"COMPROBADO"]},
@@ -45,7 +45,7 @@ En campos numéricos escribe el valor y su evidencia, por ejemplo `[12.4, "MEDID
 
 Antes de salir reserva el uso de la muestra en `plan.muestraPrevista` (`calibracion` o `validacion`). El informe exige que el sello previo y el intervalo observado coincidan en `validacion` para asignar sus litros al viaje.
 
-**Antes de sellar** indica la base de los importes (`baseClp`: `neto` o `con_iva`) y cómo obtuviste el rendimiento. En `ajusteHasta` usa `"sin_ajuste"` si no utilizaste una muestra para ajustar el rendimiento. Si sí la utilizaste, anota el último día y el mayor odómetro empleados, por ejemplo `{"fecha":"2026-09-30","odometro":100}`. Un `null` deja la independencia pendiente. Indica también la resolución e incertidumbre de distancia si las conocías. El original v2 guarda los parámetros, la versión del producto y la huella SHA-256 de los fuentes del motor. Los originales v1 siguen legibles con versión desconocida y se conservan intactos.
+**Antes de sellar** indica la base de los importes (`baseClp`: `neto` o `con_iva`) y cómo obtuviste el rendimiento. En `ajusteHasta` usa `"sin_ajuste"` si no utilizaste una muestra para ajustar el rendimiento. Si sí la utilizaste, anota el último día y el mayor odómetro empleados, por ejemplo `{"fecha":"2026-09-30","odometro":100}`. Un `null` deja la independencia pendiente. Indica también la resolución e incertidumbre de distancia si las conocías. El original de campo v3 guarda los parámetros, la versión del producto y la huella SHA-256 de los fuentes del motor. Los originales de campo v1 y v2 siguen legibles y conservan las cifras y versiones que traían.
 
 **Después del viaje** completa `inicio` y `fin` con fecha, hora y zona local, los dos odómetros, los km TRIP, su resolución e incertidumbre y la base tributaria efectiva. En cada intervalo agrega `"muestra":"calibracion"` o `"muestra":"validacion"`. Registra `resolucionKm`, `resolucionLitros` e `incertidumbreLitros` con el formato de valor y evidencia. El último campo es la incertidumbre del total de litros del intervalo, incluida la variación del llenado. Un dato desconocido queda en `null`. No se supone una precisión a partir del número de decimales.
 
@@ -57,7 +57,7 @@ El viaje debe quedar dentro de las fechas y odómetros del intervalo de validaci
 | Recalculado | Usa km y tiempos observados con los precios y supuestos del presupuesto original. Las horas del motor incluyen marcha, carga y descarga. La espera de servicio queda visible en el tiempo total observado y fuera del costo modelado. |
 | Gastos respaldados | Subtotal de líneas disponibles. Cada partida completa permite comparar. Una cartola parcial conserva su subtotal y deja abierta la diferencia. |
 | Espera fuera del motor | Minutos previstos y observados, costo fijo potencial y meta de trabajo propia asociada. Un importe desconocido queda abierto. El efecto se muestra por separado y el costo modelado queda parcial cuando hay espera económicamente relevante o desconocida. |
-| Conciliación independiente | Contrasta el presupuesto operativo con TAG, ayudantes y otros respaldados, más combustible, desgaste y fijos asignados con evidencia independiente. Los fijos de referencia incluyen la espera observada. La meta de remuneración propia se informa aparte. Solo se calcula el error total con las seis partidas comparables, base tributaria coincidente y un presupuesto verificable. Los subtotales parciales identifican las partidas cubiertas. |
+| Conciliación independiente | Contrasta el presupuesto operativo con TAG, ayudantes y otros respaldados, más combustible, desgaste y fijos asignados con evidencia independiente. Los fijos de referencia incluyen la espera observada. La meta de remuneración propia se informa aparte. Solo se calcula el error total con todas las partidas aplicables de la modalidad comparables, base tributaria coincidente y un presupuesto verificable. Los subtotales parciales identifican las partidas cubiertas. |
 | Comparaciones | Diferencia con signo = previsto − referencia. La absoluta usa la misma unidad sin signo. La porcentual divide la diferencia con signo por la referencia y solo aparece si es distinta de cero. Positivo indica sobreestimación, negativo subestimación. Los importes por partida conservan la precisión del motor, el costo mostrado se redondea a pesos. |
 | Referencias estimadas | El km/L se mide para el intervalo completo. Para estimar litros de un viaje se exige coincidencia de vehículo, recorrido, carga y aire. El precio observado permite valorar esos litros. La recarga completa nunca se agrega como gasto de un solo viaje. |
 | Completitud | Número de campos presentes sobre los revisados y lista de faltantes. Una cota inferior conserva lo conocido. La comparación de costos totales modelados requiere dos resultados completos; el subtotal de comprobantes se compara por partida. |
@@ -66,12 +66,26 @@ El objetivo del propietario es un error económico absoluto máximo del 10 %. El
 
 El resumen de combustible deduplica intervalos y separa calibración, validación y registros históricos sin asignar. Con menos de tres intervalos por grupo muestra «insuficiente». Un grupo con tres o más sigue siendo descriptivo. Los viajes personales sirven para ensayar el método.
 
-### Contrato para la futura captura privada
+### Modalidades y evidencia
 
-La [plantilla](plantilla-economica.json) y los validadores en `scripts/campo/evidencia.js` definen el formato. La API pura de `scripts/campo/contrato.js` funciona sin disco, red ni interfaz:
+La ficha nueva usa `plan.modalidad = "simplificada"`. Incluye combustible, TAG, desgaste del recorrido, ayudantes y otros desembolsos aplicables. Los gastos fijos quedan excluidos incluso si conservas una tarifa para usarla después. En `"detallada"` se incluyen los fijos por hora productiva. Registra gastos de periodo por km u hora en la categoría correspondiente, una sola vez. La conciliación operativa mantiene separada tu remuneración objetivo. El informe conserva el alcance sellado antes del viaje. Los originales anteriores sin modalidad retienen su alcance histórico detallado.
 
-- `validarFicha(ficha)` comprueba campos, unidades, clases de evidencia, fechas y límites.
-- `crearPresupuesto(ficha, id, fechaUtc, versionMotor)` devuelve una copia v2 con las entradas y el costo sellado. El adaptador de almacenamiento suministra la versión del motor que ejecuta.
-- `compararFicha(ficha, original, ultimoAjuste)` genera el informe. El adaptador debe verificar previamente la huella del original, su identidad, referencias compartidas y solapamientos de su archivo. El tercer argumento lleva el último corte aplicable de otras fichas del mismo vehículo. El adaptador local implementa esas comprobaciones en `archivo.js`. La huella local detecta alteraciones accidentales; quien controla el equipo también controla su reloj y sus archivos.
+Para una partida directa que no corresponde, por ejemplo ayudantes, usa `"noAplica":["ayudantes"]` en el plan y confírmala en la observación. Si lo previsto y lo observado discrepan, la comparación queda parcial. Un importe desconocido se registra como `null`; un cero comprobado requiere una línea de respaldo con valor cero y cobertura completa.
 
-La captura móvil puede guardar los mismos registros en forma local y presentar estos resultados. El contrato de campo es independiente del snapshot comercial de cotizaciones.
+### Incertidumbre del combustible
+
+El intervalo de validación guarda los litros de todas las recargas posteriores al primer lleno, incluidas las parciales. Para una recarga parcial aislada basta con registrar la carga; los litros consumidos y el rendimiento siguen abiertos. El resumen cuenta intervalos únicos por vehículo y clase. Cinco viajes vinculados a los mismos dos llenados aportan una sola medición de consumo.
+
+Anota la incertidumbre absoluta de km del viaje, de km del intervalo y del total de litros del intervalo; una resolución de lectura puede registrarse aunque se desconozca la incertidumbre. Se calculan los extremos de km del viaje × litros del intervalo ÷ km del intervalo usando únicamente las incertidumbres declaradas y el precio observado fijo. Si faltan incertidumbres, el informe las enumera. Si la distancia del intervalo puede llegar a cero, el extremo superior queda abierto. Es una sensibilidad de la asignación de combustible; sigue pendiente acordar el criterio estadístico de #12.
+
+### Intercambio privado teléfono → CLI
+
+1. En el dispositivo exporta el paquete de medición con sus fichas y originales. Conserva el archivo en una carpeta privada.
+2. Desde la raíz del proyecto ejecuta `npm run campo -- fase0 importar "ruta/paquete-medicion.json"`.
+3. Revisa cuántos viajes se importaron y cuántos eran idénticos. Después usa `comparar viaje-001` o `resumen` como antes.
+
+Un conflicto de identidad, de comprobante, de alcance del intervalo o de huella detiene la importación antes de publicar las fichas. Los viajes nuevos se guardan completos uno por uno; tras una interrupción se puede repetir el mismo paquete. La herramienta conserva cada original. Si el proceso fue terminado abruptamente y quedó el directorio vacío `calibracion/.campo-escritura`, confirma que no hay procesos de campo activos antes de quitar ese directorio de bloqueo. La huella detecta cambios accidentales y no autentica al propietario contra alguien que pueda recalcularla.
+
+### Contrato de desarrollo
+
+La entrada pública es `src/shared/campo/index.js` y exporta los tipos de `tipos.ts`. `crearPresupuesto` recibe `VERSION_MOTOR`; `envolverOriginal` genera el sello; `crearPaquete([{id,ficha,original}])` prepara un paquete v1. `verificarPaquete` comprueba la huella exterior e interior y las identidades. Las claves se ordenan canónicamente, las listas conservan su orden y los valores se codifican en UTF-8. Los sellos históricos mantienen su algoritmo original. `revisarReferencias(ficha,otrasFichas)` devuelve el corte de ajuste para `compararFicha(ficha,original?.datos,corte,VERSION_MOTOR)` (usa `null` si el original está ausente). Una diferencia de versión **o** huella en el motor suprime la cifra atribuible exclusivamente al recorrido. La comparación con evidencia independiente conserva el presupuesto histórico.
