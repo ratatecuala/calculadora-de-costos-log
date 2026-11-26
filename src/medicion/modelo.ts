@@ -51,6 +51,8 @@ export interface VehiculoMedicion {
   resolucionTripKm: number | null;
   /** Resolución del odómetro (p. ej., 1 km). */
   resolucionOdometroKm: number | null;
+  /** Resolución de la lectura de litros del surtidor (p. ej., 0,01 L). Ausente o `null` = no se sabe. */
+  resolucionLitros?: number | null;
   /** Capacidad del estanque en litros (opcional; solo para avisar). */
   capacidadEstanqueL: number | null;
   porDefecto: PorDefectoVehiculo;
@@ -58,66 +60,17 @@ export interface VehiculoMedicion {
   editadoEl: string;
 }
 
-/** Dato con la tupla del instrumento de Codex (#55): `[valor, CLASE]` o `null`. */
-export type ClaseCampo = 'MEDIDO' | 'COMPROBADO' | 'DECLARADO' | 'ESTIMADO' | 'SIMULADO';
-export type DatoCampo = [number, ClaseCampo] | null;
+/**
+ * Contrato publicado y auditado de Codex (#55, `src/shared/campo/`, 89c9139): el plan, el presupuesto
+ * sellado (`Presupuesto`), su sobre (`Original`) y las tuplas `[valor, CLASE]` son SUS tipos; la
+ * herramienta no define otros.
+ */
+export type { Clase as ClaseCampo, Dato as DatoCampo, Plan as PlanCampo, Presupuesto as DatosPresupuesto, VersionMotor, Modalidad, Base, Corte } from '../shared/campo/index.js';
+import type { Presupuesto, Base } from '../shared/campo/index.js';
 
-/** Plan en la forma exacta de `plantilla-economica.json` de #55 (sin claves extra: Codex lo valida estricto). */
-export interface PlanCampo {
-  baseClp: 'neto' | 'con_iva' | null;
-  ajusteHasta: null;
-  muestraPrevista: Muestra | null;
-  resolucionKm: DatoCampo;
-  incertidumbreKm: DatoCampo;
-  km: DatoCampo;
-  marchaMin: DatoCampo;
-  esperaMin: DatoCampo;
-  cargaMin: DatoCampo;
-  descargaMin: DatoCampo;
-  kmL: DatoCampo;
-  precioLitro: DatoCampo;
-  fuentePrecio: FuentePrecio | null;
-  desgasteKm: DatoCampo;
-  fijoHora: DatoCampo;
-  trabajoHora: DatoCampo;
-  ayudantes: DatoCampo;
-  pagoAyudante: DatoCampo;
-  tag: DatoCampo;
-  otros: DatoCampo;
-  margenPct: DatoCampo;
-  recargos: DatoCampo;
-  cotizado: DatoCampo;
-}
-
-/** Resultado del motor guardado en el sello (forma de `ResultadoMotor` de #55). */
-export interface ResultadoMotorCampo {
-  partidas: Record<string, number | null>;
-  costoClp: number | null;
-  sugeridoClp: number | null;
-  evidencia: 'SIMULADO' | 'ESTIMADO';
-  faltan: string[];
-  litrosEstimados: number | null;
-  tipo: 'estimado' | 'cotaInferior';
-}
-
-export interface VersionMotor {
-  etiqueta: string;
-  sha256: string;
-}
-
-/** `datos` del presupuesto original de #55 (`presupuesto-original.json`) más procedencia y origen (docs/29 §3). */
-export interface DatosPresupuesto {
-  version: 2;
-  id: string;
-  uso: Uso;
-  vehiculo: string;
-  tipoVehiculo: TipoVehiculo;
-  fecha: string;
-  versionMotor: VersionMotor | null;
-  plan: PlanCampo;
-  /** `null` si faltan km o minutos para que el motor calcule (nunca se calcula con ceros inventados). */
-  resultado: ResultadoMotorCampo | null;
-  /** Procedencia por parámetro del plan (revisión GPT, P2). Fuera de `plan` porque #55 valida `plan` estricto. */
+/** Metadata PROPIA de la herramienta: va FUERA del original sellado (el validador de #55 es estricto). */
+export interface MetaPresupuesto {
+  /** Procedencia por parámetro del plan (A-88). */
   procedencia: Record<string, Procedencia>;
   origen: OrigenPresupuesto;
 }
@@ -126,13 +79,10 @@ export type OrigenPresupuesto =
   | { tipo: 'nuevo' }
   | { tipo: 'cotizacion'; schemaVersion: 1 | 2 | 3; folio: string | null; ficticia: boolean };
 
-export interface PresupuestoSellado {
-  id: string;
-  formato: typeof FORMATO_REGISTRO;
-  vehiculoId: string;
-  /** Inmutables: corregir = sellar otro y anular este. */
-  datos: DatosPresupuesto;
-  sha256: string;
+/** Formato del registro de presupuesto: 2 = original del contrato de #55 + metadata aparte. */
+export const FORMATO_PRESUPUESTO = 2 as const;
+
+interface EstadoSello {
   estado: 'sellado' | 'anulado';
   anuladoEl: string | null;
   motivoAnulacion: string | null;
@@ -141,6 +91,46 @@ export interface PresupuestoSellado {
   creadoEl: string;
   editadoEl: string;
 }
+
+/**
+ * Presupuesto sellado con el contrato de #55. `datos` y `sha256` son EXACTAMENTE el `Original` que
+ * entregó `envolverOriginal(crearPresupuesto(...))`: nunca se editan ni se vuelven a sellar.
+ */
+export interface PresupuestoSellado extends EstadoSello {
+  id: string;
+  formato: typeof FORMATO_PRESUPUESTO;
+  vehiculoId: string;
+  datos: Presupuesto;
+  sha256: string;
+  meta: MetaPresupuesto;
+}
+
+/**
+ * Presupuesto del FORMATO ANTERIOR (registro `formato: 1`, `datos.version: 2` con `procedencia` y `origen`
+ * dentro de lo sellado). Se conserva tal cual, con su huella original: no se migra ni se vuelve a sellar,
+ * y queda «formato anterior, no comparable» (el validador estricto de #55 no lo admite).
+ */
+export interface PresupuestoAnterior extends EstadoSello {
+  id: string;
+  formato: 1;
+  vehiculoId: string;
+  datos: {
+    version: 2;
+    id: string;
+    uso: Uso;
+    vehiculo: string;
+    tipoVehiculo: TipoVehiculo;
+    fecha: string;
+    resultado: { costoClp: number | null; tipo: string } | null;
+    [k: string]: unknown;
+  };
+  sha256: string;
+}
+
+export type PresupuestoLocal = PresupuestoSellado | PresupuestoAnterior;
+export const esAnterior = (p: PresupuestoLocal): p is PresupuestoAnterior => p.formato === 1;
+
+export type BaseClp = Base;
 
 export interface Lectura {
   valor: number;
@@ -191,6 +181,10 @@ export interface Viaje {
   aire: boolean | null;
   comprobantes: Comprobante[];
   cobertura: Record<Directa, 'parcial' | 'completa' | null>;
+  /** Base tributaria de los importes observados (neto o con IVA). Ausente o `null` = DATO FALTANTE. */
+  baseClp?: BaseClp;
+  /** Incertidumbre absoluta de los km del viaje que declara el usuario. Ausente o `null` = DATO FALTANTE. */
+  incertidumbreKm?: number | null;
   creadoEl: string;
   editadoEl: string;
 }
@@ -201,6 +195,10 @@ export interface CierreIntervalo {
   carga: NivelCarga | null;
   aire: boolean | null;
   registroCompleto: boolean | null;
+  /** Incertidumbre del total de litros del intervalo (incluye la variación del llenado), declarada. */
+  incertidumbreLitros?: number | null;
+  /** Incertidumbre de los km del intervalo, declarada. */
+  incertidumbreKm?: number | null;
 }
 
 export interface CargaCombustible {

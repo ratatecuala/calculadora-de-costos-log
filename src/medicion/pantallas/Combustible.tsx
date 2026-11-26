@@ -5,7 +5,7 @@
  */
 import { useState } from 'react';
 import { avisosCarga, intervalosLleno, kmDesdeAnterior, ordenarCargas, totalCarga, type Aviso } from '../calculos';
-import { PENDIENTE_CODEX } from '../contrato-provisional';
+import { intervaloFicha, medirIntervalo } from '../campo';
 import type { CargaCombustible, CierreIntervalo, Muestra, NivelCarga, Recorrido } from '../modelo';
 import { FORMATO_REGISTRO, nuevoId } from '../modelo';
 import { aInputLocal, desdeInputLocal, isoLocal } from '../tiempo';
@@ -155,17 +155,25 @@ export function PantallaCombustible() {
 
       <section className="m-tarjeta" aria-label="Intervalos lleno a lleno">
         <h2>Intervalos lleno a lleno (opcional)</h2>
-        <p className="m-nota">Solo para calibración controlada: aparecen cuando registras dos cargas «lleno». km/L: {PENDIENTE_CODEX}.</p>
+        <p className="m-nota">
+          Solo para calibración controlada: aparecen cuando registras dos cargas «lleno». El km/L lo calcula el contrato de #55 con un intervalo completo, odómetros y litros de boleta o surtidor.
+        </p>
         {intervalos.length === 0 ? <p className="m-nota">Sin intervalos todavía.</p> : null}
         {intervalos.map((i) => {
           const m = i.hasta.cierreIntervalo;
+          const medicion = medirIntervalo(intervaloFicha(i, veh, false, null));
+          const incert = (k: 'incertidumbreLitros' | 'incertidumbreKm', texto: string) => {
+            const n = parseNumero(texto);
+            void cerrar(i.hasta, { [k]: n !== null && n >= 0 ? n : null });
+          };
           return (
             <article key={i.codigo} className="m-cmp" data-intervalo={i.codigo}>
               <h3>
                 {i.codigo}: {fechaHoraLegible(i.desde.fechaHora)} → {fechaHoraLegible(i.hasta.fechaHora)}
               </h3>
               <p>
-                {fmt(i.km, ' km')} por odómetro · {i.parciales.length} carga(s) parcial(es) entre medio
+                {fmt(i.km, ' km')} por odómetro · {i.parciales.length} carga(s) parcial(es) entre medio ·{' '}
+                <span data-km-l>{medicion ? `${fmt(Math.round(medicion.kmL * 100) / 100, ' km/L')} (medido)` : 'km/L: dato faltante (falta marcar el registro completo, un odómetro o litros de boleta/surtidor)'}</span>
               </p>
               <div className="m-grilla">
                 <label className="m-campo">
@@ -194,9 +202,25 @@ export function PantallaCombustible() {
                     <option value="completa">Completa</option>
                   </select>
                 </label>
+                <label className="m-campo">
+                  <span>Aire acondicionado</span>
+                  <select value={m?.aire === true ? 'si' : m?.aire === false ? 'no' : ''} onChange={(e) => void cerrar(i.hasta, { aire: e.target.value === 'si' ? true : e.target.value === 'no' ? false : null })}>
+                    <option value="">—</option>
+                    <option value="si">Sí</option>
+                    <option value="no">No</option>
+                  </select>
+                </label>
                 <label className="m-check">
                   <input type="checkbox" checked={m?.registroCompleto === true} onChange={(e) => void cerrar(i.hasta, { registroCompleto: e.target.checked })} />
                   Registré todas las cargas del intervalo
+                </label>
+                <label className="m-campo">
+                  <span>Incertidumbre de los litros (± L, opcional)</span>
+                  <input inputMode="decimal" defaultValue={m?.incertidumbreLitros != null ? String(m.incertidumbreLitros).replace('.', ',') : ''} onBlur={(e) => incert('incertidumbreLitros', e.target.value)} />
+                </label>
+                <label className="m-campo">
+                  <span>Incertidumbre de los km (± km, opcional)</span>
+                  <input inputMode="decimal" defaultValue={m?.incertidumbreKm != null ? String(m.incertidumbreKm).replace('.', ',') : ''} onBlur={(e) => incert('incertidumbreKm', e.target.value)} />
                 </label>
               </div>
             </article>

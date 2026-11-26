@@ -18,13 +18,44 @@
  * importación sin duplicados, persistencia tras recargar, modo sin conexión, «borrar todo» con
  * confirmación propia. Exige 0 errores de consola, 0 diálogos nativos, 0 peticiones fuera de localhost y
  * sin desplazamiento horizontal.
+ *
+ * Contrato de #55: el presupuesto se sella con `crearPresupuesto`/`envolverOriginal`, la comparación es el
+ * informe de `compararFicha` y el paquete descargado se IMPORTA con la CLI de Codex (`npm run campo --
+ * fase0 importar`) en una carpeta temporal fuera del repositorio: el original llega idéntico, los motores
+ * coinciden y la reimportación es idempotente. También se prueba que un respaldo con un sello alterado no
+ * escribe nada.
  */
+import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
+const raiz = fileURLToPath(new URL('../', import.meta.url));
+
+/** Importa el paquete con la CLI de #55 en una copia temporal mínima (sin tocar `calibracion/` del repo). */
+function importarConCli(paquete) {
+  const tmp = mkdtempSync(join(tmpdir(), 'medicion-cli-'));
+  try {
+    for (const p of ['src/shared/campo', 'src/engine', 'src/web/jobs.ts', 'scripts/campo', 'datos/pruebas-campo', 'package.json']) {
+      mkdirSync(dirname(join(tmp, p)), { recursive: true });
+      cpSync(join(raiz, p), join(tmp, p), { recursive: true });
+    }
+    symlinkSync(join(raiz, 'node_modules'), join(tmp, 'node_modules'), 'junction');
+    const runner = join(dirname(require.resolve(join(raiz, 'node_modules/vite-node/package.json'))), 'vite-node.mjs');
+    const cli = (...args) => execFileSync(process.execPath, [runner, 'scripts/campo/registro.ts', 'fase0', ...args], { cwd: tmp, encoding: 'utf8' }).trim();
+    writeFileSync(join(tmp, 'paquete.json'), JSON.stringify(paquete), 'utf8');
+    const primera = cli('importar', 'paquete.json');
+    const informe = JSON.parse(readFileSync(join(tmp, cli('comparar', paquete.viajes[0].id).split(/\r?\n/).at(-1)), 'utf8'));
+    const original = JSON.parse(readFileSync(join(tmp, 'calibracion', paquete.viajes[0].id, 'presupuesto-original.json'), 'utf8'));
+    const segunda = cli('importar', 'paquete.json');
+    return { primera, segunda, informe, original };
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
 const { chromium, devices } = require('playwright');
 const { expect } = require('playwright/test');
 
@@ -158,6 +189,7 @@ async function recorrido(browser, nombre, opciones, camino) {
     await page.locator('[data-cotizacion-ficticia]').click();
     await expect(page.getByText('Origen: cotización v3 FICT-0001 (ficticia)')).toBeVisible();
     check('la cotización v3 trae km y procedencia', (await page.locator('#pres-km').inputValue()) === '18' && (await page.getByText('declarado · recorrido').count()) > 0);
+    check('cotización: modalidad detallada (como el cotizador)', (await page.locator('[data-modalidad-opcion="detallada"]').getAttribute('aria-pressed')) === 'true');
   } else {
     await page.locator('[data-nuevo-presupuesto]').click();
     check('prellenado con los valores del vehículo', (await page.locator('#pres-precioLitro').inputValue()) === '1290' && (await page.locator('#pres-kmL').inputValue()) === '12,4');
@@ -165,6 +197,10 @@ async function recorrido(browser, nombre, opciones, camino) {
     await page.locator('#pres-km').fill('18');
     await page.locator('#pres-marchaMin').fill('35');
     await page.locator('#pres-tag').fill('1800');
+    check('modalidad simplificada por defecto y sin campo de gastos fijos', (await page.locator('[data-modalidad-opcion="simplificada"]').getAttribute('aria-pressed')) === 'true' && (await page.locator('#pres-fijoHora').count()) === 0);
+    await page.locator('[data-precision] summary').click();
+    await page.locator('#pres-base').selectOption('neto');
+    await page.locator('#pres-ajuste').selectOption('sin');
   }
   await expect(page.locator('[data-resumen-presupuesto]')).toContainText('Costo estimado por el motor vigente');
   await sinScrollHorizontal(page, 'presupuesto');
@@ -220,13 +256,23 @@ async function recorrido(browser, nombre, opciones, camino) {
   await page.getByRole('button', { name: 'Agregar línea' }).click();
   await page.locator('[data-opciones="cobertura-peajes"]').getByRole('button', { name: 'Completa' }).click();
   await expect(page.getByText('doc-001-01')).toBeVisible();
+  if (camino === 'nuevo') await page.locator('[data-opciones="base"]').getByRole('button', { name: 'Netos' }).click();
 
   // 7 · Comparación disponible, por partida, sin «aprobado».
   const cmp = page.locator('[data-comparacion]');
-  await expect(cmp.locator('[data-estado-presupuesto]')).toHaveText('previo al viaje');
+  await expect(cmp.locator('[data-estado-presupuesto]')).toHaveText('previo al viaje o simulación');
   await expect(cmp.locator('[data-partida="km"] [data-diferencia]')).toContainText('subestimación');
-  await expect(cmp.locator('[data-partida="combustible"]')).toContainText('comparación pendiente del contrato de Codex');
+  await expect(cmp.locator('[data-partida="marchaMin"]')).toContainText('35 min');
+  await expect(cmp.locator('[data-combustible]')).toContainText('sin asignación al viaje');
   await expect(cmp.locator('[data-partida="peajes"]')).toContainText('COMPROBADO');
+  if (camino === 'nuevo') {
+    // Misma base (neto) en el plan y en la observación: hay diferencia en pesos; los fijos quedan excluidos.
+    await expect(cmp.locator('[data-partida="peajes"] [data-diferencia]')).toContainText('igual');
+    await expect(cmp.locator('[data-partida="gastosFijos"] [data-estado-partida]')).toContainText('excluida');
+  } else {
+    // Sin base tributaria declarada: sin diferencia en pesos (no se inventa la base).
+    check('sin base tributaria no hay diferencia en pesos', (await cmp.locator('[data-partida="peajes"] [data-diferencia]').count()) === 0);
+  }
   await expect(cmp.locator('[data-criterios]')).toContainText('por aprobar en #12');
   const textoCmp = (await cmp.innerText()).replace(/por aprobar/g, '').replace(/«aprobado»/g, '');
   check('ningún «aprobado» del total', !/aprobad/i.test(textoCmp));
@@ -262,9 +308,18 @@ async function recorrido(browser, nombre, opciones, camino) {
   const cargas = await descargar(page, page.locator('[data-exportar="cargas"]'));
   check('cargas.csv', cargas.texto.includes(';31,82;1290;41048;'));
   const comp = await descargar(page, page.locator('[data-exportar="comparacion"]'));
-  check('comparacion.csv', comp.texto.includes('viaje-001;km;km;previo al viaje;18;;20,3;MEDIDO;-2,3;'));
+  check('comparacion.csv (informe del contrato)', comp.texto.includes('viaje-001;km;km;previo al viaje o simulación;18;;20,3;MEDIDO;-2,3;'), comp.texto.split('\r\n').slice(0, 3).join(' | '));
   const paq = JSON.parse((await descargar(page, page.locator('[data-exportar="paquete"]'))).texto);
-  check('paquete-medicion.json con ficha y original sellado', paq.formato === 1 && paq.viajes.length === 1 && paq.viajes[0].original?.sha256?.length === 64 && paq.viajes[0].ficha.vehiculo === 'veh-001');
+  check('paquete-medicion.json con ficha y original sellado v3', paq.formato === 1 && paq.viajes.length === 1 && paq.viajes[0].original?.datos?.version === 3 && paq.viajes[0].ficha.vehiculo === 'veh-001');
+  try {
+    const r = importarConCli(paq);
+    check('CLI de #55: importa el paquete del teléfono', /importados: 1/.test(r.primera), r.primera);
+    check('CLI de #55: original idéntico al exportado', JSON.stringify(r.original) === JSON.stringify(paq.viajes[0].original));
+    check('CLI de #55: motores idénticos (VERSION_MOTOR)', r.informe.variacionCostoModelado.motores === 'idénticos', r.informe.variacionCostoModelado.motores);
+    check('CLI de #55: reimportación idempotente', /identicos.*1/.test(r.segunda), r.segunda);
+  } catch (e) {
+    check('CLI de #55: importación del paquete', false, String(e.message).split('\n').slice(0, 4).join(' '));
+  }
   const todo = viajes.texto + cargas.texto + comp.texto + JSON.stringify(paq);
   check('ninguna exportación lleva fotos', !/data:image|fotoId|Exif/.test(todo));
   const respaldo = await descargar(page, page.locator('[data-respaldo-exportar]'));
@@ -273,6 +328,16 @@ async function recorrido(browser, nombre, opciones, camino) {
   // Importar la misma copia: fusión por id, sin duplicados.
   await page.locator('[data-respaldo-importar]').setInputFiles(respaldo.ruta);
   await expect(page.locator('[data-resultado-importar]')).toContainText('Importado: 0 nuevos');
+  await expect(page.locator('[data-viaje]')).toHaveCount(1);
+  ok++;
+  // Respaldo con un sello alterado: no se importa NADA (tampoco un viaje nuevo válido del mismo archivo).
+  const malo = JSON.parse(respaldo.texto);
+  malo.presupuestos[0].datos.plan.km = [99, 'DECLARADO'];
+  malo.viajes.push({ ...malo.viajes[0], id: 'viaje-nuevo-falso', codigo: 'viaje-099', presupuestoId: null });
+  const rutaMala = join(mkdtempSync(join(tmpdir(), 'medicion-')), 'respaldo-alterado.json');
+  writeFileSync(rutaMala, JSON.stringify(malo), 'utf8');
+  await page.locator('[data-respaldo-importar]').setInputFiles(rutaMala);
+  await expect(page.locator('[data-resultado-importar]')).toContainText('no se importó nada');
   await expect(page.locator('[data-viaje]')).toHaveCount(1);
   ok++;
   await sinScrollHorizontal(page, 'historial');

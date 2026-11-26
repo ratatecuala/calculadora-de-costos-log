@@ -8,7 +8,7 @@ import cotizacionFicticia from '../fixtures/cotizacion-v3-ficticia.json';
 import { avisosLectura, ultimoOdometro } from '../calculos';
 import { recodificarFoto } from '../foto';
 import type { OrigenPresupuesto, PresupuestoSellado, TipoEvento, Uso, Viaje } from '../modelo';
-import { FORMATO_REGISTRO, nuevoId } from '../modelo';
+import { esAnterior, FORMATO_REGISTRO, nuevoId } from '../modelo';
 import { entradaDesdePlan, entradaDesdeVehiculo, leerCotizacion, type EntradaPlan } from '../presupuesto';
 import { registrarLectura, siguienteCodigo } from '../repositorio';
 import { huellaCorta } from '../sello';
@@ -189,7 +189,7 @@ export function PantallaViaje() {
 
   const usados = new Set(d.viajes.map((v) => v.presupuestoId).filter(Boolean));
   const disponibles = d.presupuestos
-    .filter((p) => p.vehiculoId === veh.id && p.estado === 'sellado' && !usados.has(p.id) && p.datos.uso === uso)
+    .filter((p): p is PresupuestoSellado => !esAnterior(p) && p.vehiculoId === veh.id && p.estado === 'sellado' && !usados.has(p.id) && p.datos.uso === uso)
     .sort((x, y) => y.creadoEl.localeCompare(x.creadoEl));
   const elegido = disponibles.find((p) => p.id === presId) ?? null;
 
@@ -294,7 +294,7 @@ export function PantallaViaje() {
           <button
             type="button"
             className="m-btn"
-            onClick={() => setForm({ entrada: entradaDesdePlan(elegido.datos.plan, elegido.datos.procedencia), origen: elegido.datos.origen, avisos: ['Corregir = sellar uno nuevo y anular el anterior.'], reemplaza: elegido })}
+            onClick={() => setForm({ entrada: entradaDesdePlan(elegido.datos.plan, elegido.meta.procedencia), origen: elegido.meta.origen, avisos: ['Corregir = sellar uno nuevo y anular el anterior.'], reemplaza: elegido })}
           >
             Corregir el presupuesto elegido
           </button>

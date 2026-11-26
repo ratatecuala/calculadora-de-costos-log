@@ -1,22 +1,15 @@
 /**
- * Sello del presupuesto previo: `{datos, sha256}` con la huella de #55 (`sha256(JSON.stringify(datos))`,
- * en hexadecimal), calculada con `crypto.subtle` (navegador y Node ≥ 20). El sello prueba integridad,
- * no la hora: el reloj es del teléfono (docs/29 §5).
+ * Sello del presupuesto previo con el contrato de #55: `envolverOriginal(crearPresupuesto(...))`. La huella
+ * la calcula el contrato (canónica para `version: 3`); la herramienta no tiene una propia. El sello prueba
+ * integridad, no la hora: el reloj es del teléfono (docs/29 §5).
  *
- * PROVISIONAL: cuando Codex publique `huellaCanonica` en `src/shared/campo/`, esta función se reemplaza
- * por la suya para que la CLI y el teléfono verifiquen igual (docs/29 §2.1).
+ * La metadata propia (procedencia por parámetro y origen) va en `meta`, FUERA del original sellado.
+ * Los sellos existentes nunca se vuelven a sellar: anular solo cambia el estado.
  */
-import type { DatosPresupuesto, PresupuestoSellado } from './modelo';
-import { FORMATO_REGISTRO, nuevoId } from './modelo';
-
-export async function sha256Hex(texto: string): Promise<string> {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-export function huella(datos: unknown): Promise<string> {
-  return sha256Hex(JSON.stringify(datos));
-}
+import type { Ficha } from '../shared/campo/index.js';
+import { sellarOriginal } from './campo';
+import type { MetaPresupuesto, PresupuestoLocal, PresupuestoSellado } from './modelo';
+import { FORMATO_PRESUPUESTO, nuevoId } from './modelo';
 
 function congelar<T>(x: T): T {
   if (x && typeof x === 'object' && !Object.isFrozen(x)) {
@@ -26,29 +19,35 @@ function congelar<T>(x: T): T {
   return x;
 }
 
-export async function sellar(datos: DatosPresupuesto, vehiculoId: string, ahora: string, reemplazaA: string | null = null): Promise<PresupuestoSellado> {
-  const copia = congelar(structuredClone(datos));
+export async function sellar(entrada: {
+  ficha: Ficha;
+  codigo: string;
+  /** ISO UTC con milisegundos (`new Date().toISOString()`), como exige el contrato. */
+  fecha: string;
+  vehiculoId: string;
+  meta: MetaPresupuesto;
+  ahora: string;
+  reemplazaA?: string | null;
+}): Promise<PresupuestoSellado> {
+  const original = await sellarOriginal(entrada.ficha, entrada.codigo, entrada.fecha);
   return {
     id: nuevoId(),
-    formato: FORMATO_REGISTRO,
-    vehiculoId,
-    datos: copia,
-    sha256: await huella(copia),
+    formato: FORMATO_PRESUPUESTO,
+    vehiculoId: entrada.vehiculoId,
+    datos: congelar(original.datos),
+    sha256: original.sha256,
+    meta: structuredClone(entrada.meta),
     estado: 'sellado',
     anuladoEl: null,
     motivoAnulacion: null,
-    reemplazaA,
-    creadoEl: ahora,
-    editadoEl: ahora,
+    reemplazaA: entrada.reemplazaA ?? null,
+    creadoEl: entrada.ahora,
+    editadoEl: entrada.ahora,
   };
 }
 
-export async function verificarSello(p: Pick<PresupuestoSellado, 'datos' | 'sha256'>): Promise<boolean> {
-  return (await huella(p.datos)) === p.sha256;
-}
-
 /** Anular no toca `datos` ni `sha256`: solo marca el estado. Es irreversible. */
-export function anular(p: PresupuestoSellado, motivo: string, ahora: string): PresupuestoSellado {
+export function anular<T extends PresupuestoLocal>(p: T, motivo: string, ahora: string): T {
   if (p.estado === 'anulado') return p;
   return { ...p, estado: 'anulado', anuladoEl: ahora, motivoAnulacion: motivo.trim() || 'sin motivo', editadoEl: ahora };
 }

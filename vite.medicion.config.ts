@@ -12,27 +12,10 @@
  */
 import react from '@vitejs/plugin-react';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 
 const raiz = fileURLToPath(new URL('.', import.meta.url));
-
-/** Misma huella del motor que usa el instrumento de #55 (`scripts/campo/archivo.js`, `versionMotor`). */
-function versionMotor(): { etiqueta: string; sha256: string } | null {
-  try {
-    const fuente = (p: string) => readFileSync(new URL('./src/' + p, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
-    const etiqueta = /^export const ENGINE_VERSION = '([^']+)';/m.exec(fuente('web/jobs.ts'))?.[1];
-    if (!etiqueta) return null;
-    const archivos = ['engine/inputs.ts', 'engine/measures.ts', 'engine/rounding.ts', 'engine/types.ts'];
-    const sha256 = createHash('sha256')
-      .update(JSON.stringify(archivos.map((p) => [p, fuente(p)])))
-      .digest('hex');
-    return { etiqueta, sha256 };
-  } catch {
-    return null;
-  }
-}
 
 /** Service worker mínimo, sin dependencias: precarga los archivos del build y responde desde la caché. */
 function serviceWorker(): Plugin {
@@ -101,7 +84,6 @@ export default defineConfig(({ command, mode }) => {
     base: './',
     publicDir: false,
     plugins: [react(), serviceWorker(), politicaSeguridad()],
-    define: { __VERSION_MOTOR_MEDICION__: JSON.stringify(versionMotor()) },
     server: { fs: { allow: [raiz] } },
     build: {
       outDir: fileURLToPath(new URL('./dist-medicion', import.meta.url)),

@@ -9,7 +9,7 @@
  * - Nunca alert()/confirm()/prompt(): las confirmaciones son de la página.
  * - La flag queda apagada por defecto.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -42,12 +42,12 @@ describe('la app comercial no conoce la herramienta de medición', () => {
   });
 });
 
-describe('la herramienta no importa la app comercial, la nube ni scripts de Codex', () => {
-  const prohibidos = [/src\/web|\.\.\/web\//, /snapshot/, /clientQuote/, /saveQuote/, /cloud\//, /supabase/i, /scripts\/campo|scripts\/simulacro/, /shared\/campo/];
+describe('la herramienta no importa la app comercial, la nube ni scripts de Codex; el contrato de #55 solo por su entrada pública', () => {
+  const prohibidos = [/src\/web|\.\.\/web\//, /snapshot/, /clientQuote/, /saveQuote/, /cloud\//, /supabase/i, /scripts\/campo|scripts\/simulacro/, /shared\/campo\/(?!index\.js$)/];
   it.each(codigoMedicion.map((p) => [relative(raiz, p)]))('%s', (rel) => {
     const imports = [...leer(join(raiz, rel)).matchAll(/(?:from|import)\s*\(?\s*['"]([^'"]+)['"]/g)].map((m) => m[1] ?? '');
     for (const i of imports) for (const re of prohibidos) expect(i, `${rel} importa ${i}`).not.toMatch(re);
-    for (const i of imports.filter((x) => x.startsWith('../shared/') || x.startsWith('../../shared/'))) expect(i).toMatch(/shared\/procedencia$/);
+    for (const i of imports.filter((x) => x.startsWith('../shared/') || x.startsWith('../../shared/'))) expect(i).toMatch(/shared\/(?:procedencia|campo\/index\.js)$/);
   });
 
   it('sin red ni diálogos del navegador', () => {
@@ -58,8 +58,12 @@ describe('la herramienta no importa la app comercial, la nube ni scripts de Code
     }
   });
 
-  it('el contrato provisional está marcado como PROVISIONAL', () => {
-    expect(leer(join(raiz, 'src/medicion/contrato-provisional.ts'))).toMatch(/CONTRATO PROVISIONAL/);
+  it('sin adaptadores duplicados: no queda contrato provisional, huella propia ni motor propio', () => {
+    expect(existsSync(join(raiz, 'src/medicion/contrato-provisional.ts'))).toBe(false);
+    for (const p of codigoMedicion) {
+      const t = leer(p);
+      expect(t, relative(raiz, p)).not.toMatch(/crypto\.subtle|CLASE_A_CAMPO|engine\/(?:inputs|measures|rounding)/);
+    }
   });
 });
 

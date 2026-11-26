@@ -4,9 +4,11 @@
  */
 import { useState } from 'react';
 import { distanciaViaje } from '../calculos';
-import { cargasCsv, comparacionCsv, paqueteMedicion, viajesCsv } from '../exportar';
+import { aliasPresentacion, FORMATO_ANTERIOR, paqueteMedicion } from '../campo';
+import { cargasCsv, comparacionCsv, viajesCsv } from '../exportar';
 import type { Uso, Viaje } from '../modelo';
-import { exportarRespaldo, fusionarRespaldo, guardarPresupuesto, leerRespaldo } from '../repositorio';
+import { esAnterior } from '../modelo';
+import { exportarRespaldo, fusionarRespaldo, guardarPresupuesto, leerRespaldo, type Respaldo } from '../repositorio';
 import { anular, huellaCorta } from '../sello';
 import { diasDesde, isoLocal } from '../tiempo';
 import { Confirmar, descargar, fechaHoraLegible, fmt, fmtClp, useCtx } from '../ui';
@@ -26,6 +28,7 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
   const [conFotos, setConFotos] = useState(false);
   const [borrar, setBorrar] = useState(false);
   const [resultado, setResultado] = useState<string | null>(null);
+  const [pendiente, setPendiente] = useState<{ respaldo: Respaldo; conflictos: string[] } | null>(null);
 
   if (ficha) return <FichaViaje viajeId={ficha} onVolver={() => setFicha(null)} />;
 
@@ -36,6 +39,25 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
   const recordar = d.ajustes.recordatorioCopiaDias !== null && (dias === null || dias >= d.ajustes.recordatorioCopiaDias);
   const hoy = isoLocal().slice(0, 10);
   const datos = { vehiculos: d.vehiculos, presupuestos: d.presupuestos, viajes: d.viajes, cargas: d.cargas };
+  const alias = aliasPresentacion(d.viajes.map((v) => ({ id: v.id, alias: v.codigo })));
+  const aliasVeh = aliasPresentacion(d.vehiculos.map((v) => ({ id: v.id, alias: v.alias })));
+
+  const importar = async (r: Respaldo, reemplazarMasRecientes: boolean) => {
+    try {
+      const res = await fusionarRespaldo(a, r, { reemplazarMasRecientes });
+      if (!res.escrito) {
+        setPendiente({ respaldo: r, conflictos: res.conflictos });
+        setResultado(`No se importó nada: ${res.conflictos.length} conflicto(s). Revisa la lista y decide.`);
+        return;
+      }
+      setPendiente(null);
+      await recargar();
+      setResultado(`Importado: ${res.agregados} nuevos, ${res.actualizados} actualizados, ${res.iguales} sin cambios.`);
+    } catch (err) {
+      setPendiente(null);
+      setResultado(err instanceof Error ? err.message : 'No se pudo importar; no se escribió nada.');
+    }
+  };
 
   const exportarCopia = async () => {
     const r = await exportarRespaldo(a, isoLocal(), conFotos);
@@ -54,7 +76,7 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
             <option value="">Todos los vehículos</option>
             {d.vehiculos.map((v) => (
               <option key={v.id} value={v.id}>
-                {v.alias}
+                {aliasVeh.get(v.id) ?? v.alias}
               </option>
             ))}
           </select>
@@ -77,7 +99,7 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
             return (
               <li key={v.id} className="m-item">
                 <button type="button" className="m-item-btn" onClick={() => setFicha(v.id)} data-viaje={v.codigo}>
-                  <strong>{v.codigo}</strong> · {fechaHoraLegible(v.inicio)} · {veh?.alias} · {v.estado} · {fmt(distanciaViaje(v, veh).km, ' km')}
+                  <strong>{alias.get(v.id) ?? v.codigo}</strong> · {fechaHoraLegible(v.inicio)} · {veh ? (aliasVeh.get(veh.id) ?? veh.alias) : ''} · {v.estado} · {fmt(distanciaViaje(v, veh).km, ' km')}
                   {v.presupuestoId ? '' : ' · sin presupuesto'}
                 </button>
               </li>
@@ -95,7 +117,7 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
             .map((p) => (
               <li key={p.id} className="m-item m-columna" data-sello={p.datos.id}>
                 <span>
-                  {p.datos.id} · {fmtClp(p.datos.resultado?.costoClp)} · sello <code>{huellaCorta(p.sha256)}</code> · {p.estado}
+                  {p.datos.id} · {esAnterior(p) ? FORMATO_ANTERIOR : `${p.datos.plan.modalidad ?? 'detallada'} · ${fmtClp(p.datos.resultado.costoClp)}`} · sello <code>{huellaCorta(p.sha256)}</code> · {p.estado}
                   {p.motivoAnulacion ? ` (${p.motivoAnulacion})` : ''}
                 </span>
                 {p.estado === 'sellado' ? (
@@ -139,7 +161,7 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
           <button type="button" className="m-btn m-btn-sec" data-exportar="cargas" onClick={() => descargar('cargas.csv', cargasCsv(datos), CSV)}>
             cargas.csv
           </button>
-          <button type="button" className="m-btn m-btn-sec" data-exportar="comparacion" onClick={() => descargar('comparacion.csv', comparacionCsv(datos), CSV)}>
+          <button type="button" className="m-btn m-btn-sec" data-exportar="comparacion" onClick={async () => descargar('comparacion.csv', await comparacionCsv(datos), CSV)}>
             comparacion.csv
           </button>
           <button
@@ -148,7 +170,9 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
             data-exportar="paquete"
             onClick={async () => {
               try {
-                descargar('paquete-medicion.json', JSON.stringify(await paqueteMedicion(datos), null, 2), JSON_T);
+                const { paquete, excluidos } = await paqueteMedicion(datos);
+                descargar('paquete-medicion.json', JSON.stringify(paquete, null, 2), JSON_T);
+                setResultado(excluidos.length ? `Paquete con ${paquete.viajes.length} viaje(s). Fuera del paquete: ${excluidos.map((x) => `${x.codigo} (${x.motivo})`).join('; ')}.` : `Paquete con ${paquete.viajes.length} viaje(s).`);
               } catch (e) {
                 avisar(e instanceof Error ? e.message : 'No se pudo armar el paquete');
               }
@@ -187,11 +211,9 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
                 e.target.value = '';
                 if (!f) return;
                 try {
-                  const r = await fusionarRespaldo(a, leerRespaldo(await f.text()));
-                  await recargar();
-                  setResultado(`Importado: ${r.agregados} nuevos, ${r.actualizados} actualizados, ${r.iguales} sin cambios${r.conflictos.length ? `. Conflictos: ${r.conflictos.join(' ')}` : ''}.`);
+                  await importar(leerRespaldo(await f.text()), false);
                 } catch (err) {
-                  setResultado(err instanceof Error ? err.message : 'No se pudo importar.');
+                  setResultado(err instanceof Error ? err.message : 'No se pudo importar; no se escribió nada.');
                 }
               }}
             />
@@ -201,6 +223,33 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
           <p className="m-info" role="status" data-resultado-importar>
             {resultado}
           </p>
+        ) : null}
+        {pendiente ? (
+          <div className="m-confirmar" data-conflictos>
+            <ul className="m-avisos">
+              {pendiente.conflictos.map((c) => (
+                <li key={c} className="m-aviso">
+                  {c}
+                </li>
+              ))}
+            </ul>
+            <p className="m-nota">Los presupuestos sellados nunca se reemplazan. Para los demás registros puedes conservar lo de este dispositivo (no importar) o tomar la versión editada más recientemente.</p>
+            <div className="m-fila m-envolver">
+              <button type="button" className="m-btn m-btn-sec" data-importar-recientes onClick={() => void importar(pendiente.respaldo, true)}>
+                Importar tomando la versión más reciente
+              </button>
+              <button
+                type="button"
+                className="m-btn"
+                onClick={() => {
+                  setPendiente(null);
+                  setResultado('Importación cancelada: no se escribió nada.');
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
         ) : null}
       </section>
 

@@ -1,33 +1,20 @@
 /**
- * Presupuesto previo de la herramienta de medición: arma el `plan` (forma de #55) desde el formulario o
- * desde una cotización, con la procedencia de cada parámetro, y obtiene el resultado con el motor
- * VIGENTE (`buildCostItems`, `computeMeasures`, `displayAmount` de `src/engine`) sin copiar fórmulas.
+ * Presupuesto previo de la herramienta de medición: arma el `plan` del contrato de #55 desde el formulario
+ * o desde una cotización, con la procedencia de cada parámetro (que va FUERA de lo sellado, en `meta`).
+ * El resultado lo calcula el contrato (`crearPresupuesto`, ver `campo.ts`): aquí no hay motor ni fórmulas.
  *
- * Modalidad (A-89): el viaje simplificado no exige SOAP, permisos, seguros, mantenciones ni gastos
- * anuales. Todo parámetro es opcional; lo que falta queda DATO FALTANTE (no 0) y la partida que depende
- * de él se informa como faltante.
+ * Modalidad (A-89): la simplificada es la predeterminada y no suma gastos fijos (lo decide el contrato,
+ * `alcancePartida`); la detallada los incluye. El viaje simplificado no exige SOAP, permisos, seguros,
+ * mantenciones ni gastos anuales. Todo parámetro es opcional; lo que falta queda DATO FALTANTE (no 0).
  */
-import { buildCostItems, type TripParams } from '../engine/inputs';
-import { computeMeasures } from '../engine/measures';
-import { displayAmount } from '../engine/rounding';
 import { procedencia, type ClaseDato, type Procedencia, type TipoFuente } from '../shared/procedencia';
-import type { ClaseCampo, DatoCampo, DatoMedicion, FuentePrecio, PlanCampo, ResultadoMotorCampo, Uso, VehiculoMedicion, VersionMotor } from './modelo';
+import { aClase, planVacio } from './campo';
+import type { BaseClp, Corte, DatoMedicion, FuentePrecio, Modalidad, Muestra, PlanCampo, Uso, VehiculoMedicion } from './modelo';
 
 /**
- * Equivalencia de clases entre `procedencia.ts` (minúsculas) y el instrumento de #55 (mayúsculas).
- * PROVISIONAL: docs/29 §3 pide una sola tabla en `procedencia.ts`; hasta que exista allí (o en el contrato
- * publicado por Codex), esta es la única copia del módulo y se reemplaza por importación.
+ * Clase que corresponde a cada fuente del precio (regla de #55: la clase del precio sigue a su fuente). El
+ * contrato no exporta su tabla y la VALIDA al sellar: si esta copia divergiera, `crearPresupuesto` rechaza.
  */
-export const CLASE_A_CAMPO: Record<ClaseDato, ClaseCampo | null> = {
-  medido: 'MEDIDO',
-  comprobado: 'COMPROBADO',
-  declarado: 'DECLARADO',
-  estimado: 'ESTIMADO',
-  simulado: 'SIMULADO',
-  faltante: null,
-};
-
-/** Clase que corresponde a cada fuente del precio (regla de #55: la clase del precio sigue a su fuente). */
 export const CLASE_DE_FUENTE_PRECIO: Record<FuentePrecio, ClaseDato> = {
   boleta: 'comprobado',
   surtidor: 'medido',
@@ -75,7 +62,25 @@ export const ETIQUETAS_PLAN: Record<CampoPlan, string> = {
   recargos: 'Recargos ($)',
 };
 
-export type EntradaPlan = Record<CampoPlan, DatoMedicion> & { fuentePrecio: FuentePrecio | null };
+/** Opciones del plan que pide el contrato (A-89 y precisión), todas declaradas por el usuario. */
+export interface OpcionesPlan {
+  modalidad: Modalidad;
+  /** Base de los importes: neto o con IVA. `null` = no la sé (sin comparación en CLP). */
+  baseClp: BaseClp;
+  /**
+   * Cómo obtuviste el rendimiento: `'sin_ajuste'` si no usaste una muestra para ajustarlo; un corte
+   * `{fecha, odometro}` si la usaste; `null` = no lo sé (la independencia queda pendiente).
+   */
+  ajusteHasta: Corte | 'sin_ajuste' | null;
+  /** Reserva previa del intervalo de combustible: calibración o validación (opcional). */
+  muestraPrevista: Muestra | null;
+  /** Incertidumbre absoluta de los km previstos, si la conoces. */
+  incertidumbreKm: number | null;
+}
+
+export const opcionesIniciales = (modalidad: Modalidad = 'simplificada'): OpcionesPlan => ({ modalidad, baseClp: null, ajusteHasta: null, muestraPrevista: null, incertidumbreKm: null });
+
+export type EntradaPlan = Record<CampoPlan, DatoMedicion> & { fuentePrecio: FuentePrecio | null; opciones: OpcionesPlan };
 
 export const faltante = (): DatoMedicion => ({ valor: null, procedencia: procedencia('faltante', 'usuario') });
 export const declarado = (valor: number | null, tipo: TipoFuente = 'usuario', detalle: string | null = null): DatoMedicion =>
@@ -84,7 +89,7 @@ export const declarado = (valor: number | null, tipo: TipoFuente = 'usuario', de
 /** Formulario vacío: todo DATO FALTANTE, sin valores inventados. */
 export function entradaVacia(): EntradaPlan {
   const e = Object.fromEntries(CAMPOS_PLAN.map((k) => [k, faltante()])) as Record<CampoPlan, DatoMedicion>;
-  return { ...e, fuentePrecio: null };
+  return { ...e, fuentePrecio: null, opciones: opcionesIniciales() };
 }
 
 /** Formulario prellenado con los valores por defecto del vehículo, conservando su procedencia. */
@@ -115,31 +120,9 @@ export interface PlanConstruido {
 export function construirPlan(e: EntradaPlan, uso: Uso, resolucionKm: number | null): PlanConstruido {
   const avisos: string[] = [];
   const proc: Record<string, Procedencia> = {};
-  const plan: PlanCampo = {
-    baseClp: null,
-    ajusteHasta: null,
-    muestraPrevista: null,
-    resolucionKm: null,
-    incertidumbreKm: null,
-    km: null,
-    marchaMin: null,
-    esperaMin: null,
-    cargaMin: null,
-    descargaMin: null,
-    kmL: null,
-    precioLitro: null,
-    fuentePrecio: null,
-    desgasteKm: null,
-    fijoHora: null,
-    trabajoHora: null,
-    ayudantes: null,
-    pagoAyudante: null,
-    tag: null,
-    otros: null,
-    margenPct: null,
-    recargos: null,
-    cotizado: null,
-  };
+  const sim = uso === 'simulacion';
+  const o = e.opciones;
+  const plan: PlanCampo = { ...planVacio(o.modalidad), baseClp: o.baseClp, ajusteHasta: o.ajusteHasta, muestraPrevista: o.muestraPrevista };
   for (const k of CAMPOS_PLAN) {
     const d = e[k];
     let clase: ClaseDato = d.valor === null ? 'faltante' : d.procedencia.clase;
@@ -160,80 +143,23 @@ export function construirPlan(e: EntradaPlan, uso: Uso, resolucionKm: number | n
       continue;
     }
     const valor = k === 'ayudantes' ? Math.round(d.valor) : d.valor;
-    plan[k] = [valor, CLASE_A_CAMPO[clase] as ClaseCampo];
+    const c = aClase(clase);
+    if (c) plan[k] = [valor, c];
     proc[k] = { ...d.procedencia, clase };
   }
   if (plan.precioLitro) plan.fuentePrecio = e.fuentePrecio;
   if (resolucionKm !== null && resolucionKm > 0) {
-    plan.resolucionKm = [resolucionKm, uso === 'simulacion' ? 'SIMULADO' : 'DECLARADO'];
-    proc.resolucionKm = procedencia(uso === 'simulacion' ? 'simulado' : 'declarado', 'vehiculo');
+    plan.resolucionKm = [resolucionKm, sim ? 'SIMULADO' : 'DECLARADO'];
+    proc.resolucionKm = procedencia(sim ? 'simulado' : 'declarado', 'vehiculo');
   }
+  if (o.incertidumbreKm !== null && Number.isFinite(o.incertidumbreKm) && o.incertidumbreKm >= 0) {
+    plan.incertidumbreKm = [o.incertidumbreKm, sim ? 'SIMULADO' : 'DECLARADO'];
+    proc.incertidumbreKm = procedencia(sim ? 'simulado' : 'declarado', 'usuario');
+  }
+  if (o.modalidad === 'simplificada' && plan.fijoHora) avisos.push('Modalidad simplificada: los gastos fijos se conservan en el plan pero no se suman (cámbiala a detallada para incluirlos).');
+  if (o.baseClp === null) avisos.push('Sin base tributaria (neto o con IVA) no habrá comparación en pesos.');
+  if (o.ajusteHasta === null) avisos.push('Sin indicar cómo obtuviste el rendimiento, la independencia del combustible queda pendiente.');
   return { plan, procedencia: proc, avisos };
-}
-
-const v = (d: DatoCampo): number | null => (d === null ? null : d[0]);
-
-/**
- * Resultado del motor vigente para el plan. `null` si faltan km o minutos de marcha: el motor exige esos
- * números y aquí no se inventan. Cada partida que depende de un dato faltante se publica como faltante
- * (mismo criterio que el adaptador de #55); se reemplazará por `presupuesto()` de Codex cuando se publique.
- */
-export function resultadoMotor(plan: PlanCampo, uso: Uso): ResultadoMotorCampo | null {
-  const km = v(plan.km);
-  const marcha = v(plan.marchaMin);
-  if (km === null || marcha === null) return null;
-  const carga = v(plan.cargaMin);
-  const descarga = v(plan.descargaMin);
-  const maniobras = carga === null || descarga === null ? null : carga + descarga;
-  const ayudantes = v(plan.ayudantes);
-  const otros = v(plan.otros);
-  const params: TripParams = {
-    fuelPricePerL: v(plan.precioLitro),
-    kmPerL: v(plan.kmL),
-    wearPerKm: v(plan.desgasteKm),
-    fixedPerHour: v(plan.fijoHora),
-    ownerPerHour: v(plan.trabajoHora),
-    helpers: ayudantes ?? 0,
-    helperFee: v(plan.pagoAyudante),
-    loadMinutes: maniobras ?? 0,
-    tolls: v(plan.tag),
-    otherCosts: otros ?? 0,
-  };
-  const desconocida: Record<string, boolean> = {
-    gastosFijos: maniobras === null,
-    remuneracion: maniobras === null,
-    ayudantes: ayudantes === null,
-    otros: otros === null,
-  };
-  const items = buildCostItems(km, marcha, params).map((it) => (desconocida[it.id] ? { ...it, amount: null } : it));
-  const margen = v(plan.margenPct);
-  const recargos = v(plan.recargos);
-  const medidas = computeMeasures({ items, margin: (margen ?? 0) / 100, surcharges: recargos ?? 0 });
-  const sugerible = uso !== 'personal' && medidas.complete && margen !== null && recargos !== null;
-  return {
-    partidas: Object.fromEntries(items.map((i) => [i.id, i.amount])),
-    costoClp: items.every((i) => i.amount === null) ? null : displayAmount(medidas.cost),
-    sugeridoClp: sugerible ? displayAmount(medidas.suggested) : null,
-    evidencia: uso === 'simulacion' ? 'SIMULADO' : 'ESTIMADO',
-    faltan: medidas.missing,
-    // Lo entrega `presupuesto()` de Codex; aquí no se agrega una división propia.
-    litrosEstimados: null,
-    tipo: medidas.cost.type === 'estimado' ? 'estimado' : 'cotaInferior',
-  };
-}
-
-/** Recalculado con lo observado: MISMA fórmula, otra entrada. No es una validación (docs/29 §5). */
-export function recalculado(plan: PlanCampo, kmObservado: number | null, marchaObservada: number | null, uso: Uso): ResultadoMotorCampo | null {
-  if (kmObservado === null || marchaObservada === null) return null;
-  const clase: ClaseCampo = uso === 'simulacion' ? 'SIMULADO' : 'MEDIDO';
-  return resultadoMotor({ ...plan, km: [kmObservado, clase], marchaMin: [marchaObservada, clase] }, uso);
-}
-
-declare const __VERSION_MOTOR_MEDICION__: VersionMotor | undefined;
-
-/** Versión del motor inyectada al compilar (`vite.medicion.config.ts`), con la huella de #55. */
-export function versionMotor(): VersionMotor | null {
-  return typeof __VERSION_MOTOR_MEDICION__ === 'undefined' ? null : __VERSION_MOTOR_MEDICION__;
 }
 
 /** Plan sellado → formulario (para «corregir»: sellar uno nuevo con los mismos valores como punto de partida). */
@@ -244,6 +170,14 @@ export function entradaDesdePlan(plan: PlanCampo, proc: Record<string, Procedenc
     if (d !== null) e[k] = { valor: d[0], procedencia: proc[k] ?? procedencia('declarado', 'usuario') };
   }
   e.fuentePrecio = plan.fuentePrecio;
+  // Un plan histórico sin modalidad conserva su alcance detallado (guía de #55).
+  e.opciones = {
+    modalidad: plan.modalidad ?? 'detallada',
+    baseClp: plan.baseClp ?? null,
+    ajusteHasta: plan.ajusteHasta ?? null,
+    muestraPrevista: plan.muestraPrevista ?? null,
+    incertidumbreKm: plan.incertidumbreKm ? plan.incertidumbreKm[0] : null,
+  };
   return e;
 }
 
@@ -335,6 +269,9 @@ export function leerCotizacion(json: unknown): CotizacionLeida {
       entrada.fuentePrecio = c === 'comprobado' ? 'boleta' : c === 'medido' ? 'surtidor' : c === 'estimado' ? 'referencia_publicada' : c === 'simulado' ? 'supuesto' : 'declaracion';
     }
     if (s.km === null || s.minutes === null) avisos.push('La cotización no retuvo los km o los minutos (A-38): escríbelos.');
+    // El cotizador comercial suma los gastos fijos: el plan conserva ese alcance (modalidad detallada).
+    entrada.opciones = opcionesIniciales('detallada');
+    avisos.push('Cotización: modalidad detallada (incluye gastos fijos, como el cotizador). Puedes cambiarla a simplificada.');
   } else {
     entrada.km = ruta(s.km, null);
     entrada.marchaMin = ruta(s.minutes, null);

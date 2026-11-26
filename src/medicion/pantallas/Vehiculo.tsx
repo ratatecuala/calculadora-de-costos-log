@@ -37,6 +37,7 @@ function FormVehiculo({ inicial, onListo }: { inicial: VehiculoMedicion | null; 
   const [resTrip, setResTrip] = useState(aTexto(inicial?.resolucionTripKm ?? null));
   const [resOdo, setResOdo] = useState(aTexto(inicial?.resolucionOdometroKm ?? null));
   const [cap, setCap] = useState(aTexto(inicial?.capacidadEstanqueL ?? null));
+  const [resLitros, setResLitros] = useState(aTexto(inicial?.resolucionLitros ?? null));
   const [precio, setPrecio] = useState(aTexto(inicial?.porDefecto.precioLitro.valor ?? null));
   const [fuente, setFuente] = useState<FuentePrecio>(inicial?.porDefecto.precioLitro.fuentePrecio ?? 'boleta');
   const [vals, setVals] = useState<Record<CampoDef, string>>(() => ({
@@ -68,6 +69,7 @@ function FormVehiculo({ inicial, onListo }: { inicial: VehiculoMedicion | null; 
       combustible: comb,
       resolucionTripKm: parseNumero(resTrip),
       resolucionOdometroKm: parseNumero(resOdo),
+      resolucionLitros: parseNumero(resLitros),
       capacidadEstanqueL: parseNumero(cap),
       porDefecto: {
         precioLitro: {
@@ -114,7 +116,8 @@ function FormVehiculo({ inicial, onListo }: { inicial: VehiculoMedicion | null; 
         </label>
         <CampoNumero id="veh-res-trip" etiqueta="Resolución del TRIP" valor={resTrip} onCambio={setResTrip} sufijo="km" ayuda="Lo que avanza el último dígito (p. ej., 0,1). Vacío si no tiene TRIP." />
         <CampoNumero id="veh-res-odo" etiqueta="Resolución del odómetro" valor={resOdo} onCambio={setResOdo} sufijo="km" />
-        <CampoNumero id="veh-cap" etiqueta="Capacidad del estanque (opcional)" valor={cap} onCambio={setCap} sufijo="L" ayuda="Solo para avisar si una carga la supera." />
+        <CampoNumero id="veh-res-litros" etiqueta="Resolución de los litros del surtidor (opcional)" valor={resLitros} onCambio={setResLitros} sufijo="L" ayuda="Por ejemplo 0,01. Si no la sabes, déjala vacía." />
+        <CampoNumero id="veh-cap"etiqueta="Capacidad del estanque (opcional)" valor={cap} onCambio={setCap} sufijo="L" ayuda="Solo para avisar si una carga la supera." />
       </div>
       <h3>Valores por defecto del presupuesto (opcionales)</h3>
       <p className="m-nota">Lo que dejes vacío queda como dato faltante, nunca como cero. No se piden SOAP, permisos, seguros ni gastos anuales.</p>

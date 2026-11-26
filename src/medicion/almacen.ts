@@ -15,6 +15,15 @@ export interface Almacen {
   guardar<T extends { id: string }>(coleccion: Coleccion, registro: T): Promise<void>;
   borrar(coleccion: Coleccion, id: string): Promise<void>;
   borrarTodo(): Promise<void>;
+  /**
+   * Escribe varios registros en UNA transacción: o se escriben todos o ninguno (importación de respaldo).
+   */
+  guardarLote(escrituras: Escritura[]): Promise<void>;
+}
+
+export interface Escritura {
+  coleccion: Coleccion;
+  registro: { id: string };
 }
 
 /** Adaptador en memoria (pruebas). Copia profunda al entrar y salir, como IndexedDB. */
@@ -41,6 +50,16 @@ export class AlmacenMemoria implements Almacen {
   }
   async borrarTodo(): Promise<void> {
     for (const m of this.datos.values()) m.clear();
+  }
+  /** Todo o nada: se prepara una copia, se aplica completa y solo entonces reemplaza al estado actual. */
+  async guardarLote(escrituras: Escritura[]): Promise<void> {
+    const nuevo = new Map<Coleccion, Map<string, unknown>>([...this.datos].map(([c, m]) => [c, new Map(m)]));
+    for (const e of escrituras) {
+      const m = nuevo.get(e.coleccion);
+      if (!m) throw new Error(`Colección desconocida: ${e.coleccion}`);
+      m.set(e.registro.id, copia(e.registro));
+    }
+    this.datos = nuevo;
   }
 }
 
@@ -96,6 +115,23 @@ export class AlmacenIndexedDB implements Almacen {
   }
   async borrarTodo(): Promise<void> {
     for (const c of COLECCIONES) await this.tx(c, 'readwrite', (s) => s.clear());
+  }
+  /** Una sola transacción `readwrite` sobre todas las colecciones afectadas: si una escritura falla, se aborta entera. */
+  guardarLote(escrituras: Escritura[]): Promise<void> {
+    if (!escrituras.length) return Promise.resolve();
+    const cols = [...new Set(escrituras.map((e) => e.coleccion))];
+    return new Promise((resolve, reject) => {
+      const t = this.bd.transaction(cols, 'readwrite');
+      t.oncomplete = () => resolve();
+      t.onerror = () => reject(t.error ?? new Error('Error de almacenamiento local: no se importó nada.'));
+      t.onabort = () => reject(t.error ?? new Error('Importación cancelada (¿sin espacio?): no se importó nada.'));
+      try {
+        for (const e of escrituras) t.objectStore(e.coleccion).put(e.registro);
+      } catch (err) {
+        t.abort();
+        reject(err instanceof Error ? err : new Error(String(err)));
+      }
+    });
   }
 }
 
