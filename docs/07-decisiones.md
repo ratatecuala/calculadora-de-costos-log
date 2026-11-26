@@ -460,3 +460,29 @@ Registrada literalmente en [#43](https://github.com/ratatecuala/calculadora-de-c
 ## Cotización manual · confirmación de costos y elección del precio
 
 El propietario [autorizó estas dos mejoras en el PR #34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-7146430428), sobre `93a7b9c`. El ejemplo pide permiso si sustituye costos ingresados. Con un cálculo completo puede copiarse el precio sugerido mostrado al campo final, con confirmación si reemplaza otro valor. Cancelar conserva la cotización. Se mantienen las reglas A-81/A-83.
+
+## Decisión del 26-11-2026: desarrollo por fases con puertas de aprobación (A-84)
+
+Registrada en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7179239951). **APROBADA.** Las fases, los KPI, la medición y los criterios de cada puerta están en [08 · Fases y puertas](08-hoja-de-ruta.md#fases-y-puertas-de-aprobación-a-84).
+
+| ID | Decisión | Alcance |
+|---|---|---|
+| A-84 | El producto avanza por **fases 0–5**. Cada fase se cierra con una **puerta de aprobación** basada en KPIs verificables | Solo documentación y registro. No autoriza funcionalidades, cambios de fórmulas, Supabase, flags, despliegues ni merge |
+
+**Reglas obligatorias:**
+1. **Nada se desbloquea solo.** Cumplir los KPI de una fase solo permite **solicitar** el avance. Cada fase, inversión, despliegue o funcionalidad requiere una aprobación expresa del propietario (§8 de AGENTS.md).
+2. **Presupuestos máximos y plazos:** **DATO FALTANTE** hasta que el propietario los fije. Ningún agente propone cifras como si estuvieran aprobadas.
+3. **Tres tipos de KPI:**
+   - **técnicos:** funciona;
+   - **comerciales:** se usa y genera valor;
+   - **financieros:** conviene seguir invirtiendo.
+
+   Las **simulaciones y las pruebas automatizadas validan el software, no la demanda**: nunca cuentan como KPI comercial.
+4. **Comparabilidad (fase 3):** las variaciones de rendimiento se evalúan solo entre mediciones del mismo tipo (urbano, autopista, con o sin carga, con o sin aire acondicionado). No se mezclan.
+5. **GPS web (fase 4):** se comprueba con pruebas reales si registra al menos el 95 % del recorrido mientras se usa Waze. Si no es viable, queda como **limitación documentada** y se evalúan alternativas. Nunca se promete el funcionamiento en segundo plano sin evidencia.
+6. **Privacidad:** antes de fijar obligaciones o fechas legales, se verifican la vigencia y los requisitos en **fuentes oficiales** (Diario Oficial y BCN). Hasta entonces, la Ley 21.719 y su fecha de vigencia quedan **POR VALIDAR**.
+7. **Cada puerta indica:**
+   - la evidencia requerida;
+   - la inversión que podría autorizarse (DATO FALTANTE);
+   - quién decide: **el propietario**.
+8. **Datos del Chery:** se permite recolectarlos solo para experimentación. Nunca se publican datos personales (ubicaciones, domicilios ni placa), y el cotizador no se modifica por ellos.
