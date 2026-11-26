@@ -1,6 +1,6 @@
 # 32 · Diseño de las modalidades simplificada y detallada (A-89, A-90 Frente B)
 
-**Estado:** PROPUESTO (26-11-2026, hora de Chile). Diseño técnico, funcional y visual. **No autoriza implementar.** No cambia fórmulas, el motor, el snapshot, la base de datos ni las flags. Autorización del diseño: [A-90 en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7182615758). Decisión de producto: [A-89](07-decisiones.md). Maqueta estática con datos ficticios: [diseno/a89-maqueta.html](diseno/a89-maqueta.html) (descargar y abrir en el navegador).
+**Estado:** **dirección APROBADA** por el propietario con las correcciones de GPT ([A-91](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7183824623), ver §16). La implementación comercial **sigue sin autorizar**: espera los casos dorados de Codex, su revisión por GPT y una autorización nueva. Redactado como PROPUESTO el 26-11-2026, hora de Chile. Diseño técnico, funcional y visual. No cambia fórmulas, el motor, el snapshot, la base de datos ni las flags. Autorización del diseño: [A-90 en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7182615758). Decisión de producto: [A-89](07-decisiones.md). Maqueta estática con datos ficticios: [diseno/a89-maqueta.html](diseno/a89-maqueta.html) (descargar y abrir en el navegador).
 
 > Todos los montos son **ficticios**: reutilizan el ejemplo v4 de [10 §7](10-diseno-ux.md) y los casos G1 y G4 de [03 §3F](03-motor-de-costos.md).
 
@@ -469,3 +469,26 @@ export const snapshotV4Schema = z
 - Una cifra con una **exclusión voluntaria** nunca se rotula «completa» sin un aviso visible de lo excluido.
 - Un **valor inicial 0** no implica «no aplica» confirmado (ver D-M10).
 - B-1 a B-4 y B-6 quedan diferidos. La fecha comercial UTC (hallazgo de [28 §8](28-snapshot-v3-procedencia.md)) y cualquier cambio de alcance o del motor requieren aprobación del propietario.
+
+## 16. Dirección aprobada (A-91, 26-11-2026)
+
+El propietario aprobó la dirección de D-M1 a D-M10 con las correcciones de GPT de §15 ([A-91 en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7183824623)). Queda **APROBADO como dirección**:
+
+| Punto | Dirección aprobada |
+|---|---|
+| Modalidad | Simplificada **predeterminada**; detallada **opcional** |
+| Medidas | Costo operativo (D+W) separado de la remuneración objetivo (R) y de la utilidad |
+| Alcance | Exclusiones **explícitas**, nunca implícitas |
+| Faltantes | Desconocido es distinto de cero; un 0 inicial no es «no aplica» confirmado (D-M10) |
+| Cambio de modalidad | Conserva los datos ingresados (§7) |
+| Procedencia | Visible junto a cada partida (§8, D-A2) |
+| Históricos | Intactos: no se reescriben ni se recalculan |
+| Contrato | Único y compartido con Codex (`src/shared/campo/` para el instrumento; el motor comercial no se duplica) |
+| Diferido | Desgloses contables avanzados |
+
+**Sigue BLOQUEADO:** implementar los cambios comerciales de fórmula (D-M1, B-5, B-6, D-M10). Orden acordado:
+1. Codex prepara los casos dorados independientes (GM-1 a GM-8 de §12, más los de D-M10).
+2. GPT los revisa.
+3. El propietario concede la autorización de implementación.
+
+Hasta entonces Claude no toca `src/engine/`, `measures.ts`, `inputs.ts` ni el snapshot por A-89. La herramienta privada de medición (#57) ya usa las modalidades del contrato de Codex, que no es el motor comercial.

@@ -1,6 +1,7 @@
 import { displayAmount, formatClp } from '../engine/rounding';
 import type { Bounded } from '../engine/types';
 import type { PointRole, RouteSource } from '../shared/route';
+import { fechaCivilChile } from '../shared/procedencia';
 
 /** Monto con su tipo (§3C): «o más», «al menos», «como máximo». */
 export function boundedText(b: Bounded, kind: 'costo' | 'precio' | 'resultado'): string {
@@ -59,7 +60,10 @@ export function formatInputNumber(value: number | null, decimals = 2): string {
 
 /** Fecha ISO (aaaa-mm-dd) en formato chileno dd-mm-aaaa; cualquier otro texto se muestra tal cual. */
 export function formatDate(value: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  // Una marca de tiempo técnica (con hora) se muestra con su fecha civil de Chile (A-91), sin modificarla;
+  // una fecha sola AAAA-MM-DD (cotizaciones guardadas, incluidas las históricas) se muestra tal cual.
+  const civil = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(value) ? fechaCivilChile(new Date(value)) : null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(civil ?? value);
   return m ? `${m[3]}-${m[2]}-${m[1]}` : value;
 }
 

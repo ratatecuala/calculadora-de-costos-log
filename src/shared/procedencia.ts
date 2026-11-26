@@ -68,14 +68,33 @@ export const datoEconomicoSchema = z
 
 export type DatoEconomico = z.output<typeof datoEconomicoSchema>;
 
+/** Zona horaria civil del producto (A-91): las fechas comerciales siguen la hora de Chile continental. */
+export const ZONA_CIVIL = 'America/Santiago';
+
+const formatoCivil = new Intl.DateTimeFormat('en-CA', { timeZone: ZONA_CIVIL, year: 'numeric', month: '2-digit', day: '2-digit' });
+
 /**
- * Fecha AAAA-MM-DD en la zona horaria del dispositivo (no UTC): en Chile, después de las 21:00 la fecha
- * UTC ya es la del día siguiente. `null` si la fecha no es válida.
+ * Fecha civil AAAA-MM-DD en America/Santiago (A-91), con su horario de verano, sea cual sea la zona del
+ * dispositivo. No usa UTC: en Chile, después de las 20:00 o 21:00 la fecha UTC ya es la del día siguiente.
+ * `null` si la fecha no es válida.
  */
-export function fechaLocal(d: Date = new Date()): string | null {
+export function fechaCivilChile(d: Date = new Date()): string | null {
   if (Number.isNaN(d.getTime())) return null;
-  const dos = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}`;
+  const partes = Object.fromEntries(formatoCivil.formatToParts(d).map((p) => [p.type, p.value]));
+  return `${partes.year}-${partes.month}-${partes.day}`;
+}
+
+/** Suma días a una fecha civil AAAA-MM-DD, sin pasar por la hora (los cambios de horario no la desplazan). */
+export function sumarDiasCivil(fecha: string, dias: number): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha);
+  if (!m) throw new Error('Fecha civil inválida');
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + dias));
+  return d.toISOString().slice(0, 10);
+}
+
+/** Fecha de los eventos de procedencia: la misma fecha civil de Chile que la cotización (A-91). */
+export function fechaLocal(d: Date = new Date()): string | null {
+  return fechaCivilChile(d);
 }
 
 /** Fecha local de una marca de tiempo ISO; una fecha sola (AAAA-MM-DD) se conserva tal cual. */

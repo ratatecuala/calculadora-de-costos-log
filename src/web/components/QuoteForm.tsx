@@ -5,6 +5,7 @@ import { VEHICLE_TYPE_LABEL } from '../../shared/vehicle';
 import { suggestServiceText } from '../../shared/cargo';
 import { FEATURE_FLAGS } from '../featureFlags';
 import { buildJobRecord } from '../jobs';
+import { fechaCivilChile, sumarDiasCivil } from '../../shared/procedencia';
 import { alternarIncluye, includesPorDefecto } from '../modules/integracion';
 import { validateInventory } from '../modules/inventoryDraft';
 import { Fold } from './Fold';
@@ -31,10 +32,13 @@ function comuna(address: string): string {
   return parts.length > 1 ? parts[parts.length - 1]! : address.trim();
 }
 
+/** Fecha civil de Chile (A-91), nunca UTC: después de las 21:00 la UTC ya es mañana. */
+function hoyCivil(): string {
+  return fechaCivilChile() ?? new Date().toISOString().slice(0, 10);
+}
+
 function plusDays(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return sumarDiasCivil(hoyCivil(), days);
 }
 
 /** Crea la cotización. Solo copia al registro datos propios; km de proveedor solo si su retención lo permite. */
@@ -91,7 +95,7 @@ export function QuoteForm({ session, repository, onSaved, onCancel, cargoEnabled
       const result = await saveQuote(
         repository,
         (number, version) =>
-          buildJobRecord(session, form, business, { id: crypto.randomUUID(), number, createdAt: new Date().toISOString().slice(0, 10) }, { version: snapshotParaEmitir(version) }),
+          buildJobRecord(session, form, business, { id: crypto.randomUUID(), number, createdAt: hoyCivil() }, { version: snapshotParaEmitir(version) }),
         business,
         // La versión del snapshot la decide saveQuote con el repositorio fijado (docs/22 §2.1).
         { cargoFlag: FEATURE_FLAGS.integracionCarga, cargaNube: FEATURE_FLAGS.cargaNube },
