@@ -1,5 +1,7 @@
 # 08 · Hoja de ruta y backlog
 
+> **Seguimiento segunda ronda:** [30](30-segunda-ronda-fase-0.md). A-88 v3 CI verde, instrumento #55 y simulacro #56 aún sin integración; diseño de captura móvil pendiente de aprobación; #21 investigación aceptada con bloqueos. A-89 guía el alcance, no cambia puertas.
+
 > **A-89:** incorporar al diseño de fase 0 dos modalidades con un solo motor: simplificada predeterminada y detallada opcional. Revisar alcance 0A, protocolo 0B y segmento/competitividad 0C tras auditar las entregas vigentes. No cambia puertas ni autoriza programación. [Decisión](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7182307655).
 
 > **Seguimiento 26-11-2026:** [consolidación de primera ronda de fase 0](27-consolidacion-fase-0.md): #20 bloqueado para integración, A-87 aceptada documentalmente, #55 pendiente de correcciones y regresión. Objetivo económico 10 % acordado; protocolo y próximos trabajos propuestos. Las puertas vigentes no cambian.

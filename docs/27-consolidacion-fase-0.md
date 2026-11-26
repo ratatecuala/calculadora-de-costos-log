@@ -1,5 +1,7 @@
 # 27 · Consolidación de fase 0 — primera ronda (26-11-2026, Chile)
 
+> **Seguimiento:** la [segunda ronda](30-segunda-ronda-fase-0.md) incorpora A-89 y los resultados posteriores de Claude, Codex y Deep Research. Esta primera ronda se conserva como histórica.
+
 **Estado:** evidencia documental y revisión independiente por GPT. [Registro del propietario y síntesis en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7181997317). A-82/A-84/A-85/A-86/A-87 vigentes. No habilita programación, cambios de fórmulas, merge, APIs, gastos, migraciones, flags ni despliegues. El PR #55 es borrador separado; no está integrado.
 
 ## 1. Directrices del propietario y propuestas
