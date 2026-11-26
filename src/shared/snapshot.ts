@@ -39,6 +39,9 @@ export const MAX_MISSING_CHARS = 60;
  */
 export const MAX_CLOUD_INTERNAL_JSON_BYTES = 11000;
 
+/** Bytes de un texto en UTF-8 (lo que mide el tope de la nube). */
+export const utf8Bytes = (texto: string): number => new TextEncoder().encode(texto).length;
+
 const routeSource = z.enum(['simulado', 'google', 'declarado', 'mixto']);
 const costType = z.enum(['estimado', 'cotaInferior', 'cotaSuperior']);
 const vehicleType = z.enum(['camioneta', 'furgon', 'camionLiviano']);
@@ -202,7 +205,14 @@ export const snapshotV3Schema = z
   .refine(
     (s) => s.vehicle === null || (s.vehicle.kmPerL === s.economia.parametros.kmPerL.valor && s.vehicle.wearPerKm === s.economia.parametros.wearPerKm.valor),
     'Los valores del vehículo no coinciden con los parámetros usados',
-  );
+  )
+  // A-38: si los km o los minutos no se retienen, tampoco las partidas que permitirían reconstruirlos.
+  // Se exige al emitir, al leer y al copiar (todos pasan por este esquema).
+  .refine((s) => (s.km !== null && s.minutes !== null) || s.economia.partidas === null, 'Hay partidas guardadas sin km o minutos retenidos (A-38)')
+  // Los topes de texto cuentan caracteres, no bytes: con caracteres de 3 bytes (p. ej., «€») el máximo
+  // teórico supera el tope de la nube. Toda v3 válida debe poder copiarse a la cuenta sin recortes, así
+  // que el tamaño total en UTF-8 es parte del contrato (revisión GPT de afbe740).
+  .refine((s) => utf8Bytes(JSON.stringify(s)) <= MAX_CLOUD_INTERNAL_JSON_BYTES, `El registro interno supera ${MAX_CLOUD_INTERNAL_JSON_BYTES} bytes`);
 
 export type SnapshotV3 = z.output<typeof snapshotV3Schema>;
 export type CargoSnapshot = z.output<typeof cargoSnapshotSchema>;

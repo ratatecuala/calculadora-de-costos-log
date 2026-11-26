@@ -5,7 +5,8 @@
 # Comprueba, para cada caso armado con el código del cliente (generar-v3.ts):
 #   1. `create_job_with_quote` (sin migración nueva) guarda la v3 como `authenticated`;
 #   2. `jobs.internal` queda IDÉNTICO a lo que envió el cliente (igualdad jsonb);
-#   3. `pg_column_size` del jsonb sin comprimir (lo que evalúa el CHECK) ≤ 16384, también en la v3 máxima;
+#   3. `pg_column_size` del jsonb sin comprimir (lo que evalúa el CHECK) ≤ 16384, también en la v3 máxima,
+#      y textos con caracteres de 3 y 4 bytes sin pérdida (la v3 de 3 bytes sobre el tope la rechaza el cliente);
 #   4. `client_quotes` no contiene nada de `economia` ni de la procedencia;
 #   5. control negativo: un `internal` de más de 16 KB sigue rechazado por el CHECK existente.
 #
@@ -53,6 +54,7 @@ check "todos los casos se guardaron" "$(q "select count(*) from prueba_v3.result
 check "internal idéntico a lo enviado (jsonb)" "$(q "select count(*) from prueba_v3.esperado e join prueba_v3.resultados r using (caso) join public.jobs j on j.id = (r.resultado ->> 'id')::uuid where j.internal = e.internal")" "$casos"
 check "schemaVersion 3 en todos" "$(q "select count(*) from public.jobs where internal ->> 'schemaVersion' = '3'")" "$casos"
 check "pg_column_size ≤ 16384 en todos" "$(q "select count(*) from public.jobs where pg_column_size(internal::text::jsonb) <= 16384")" "$casos"
+check "nombre con 3 y 4 bytes idéntico, carácter por carácter" "$(q "select count(*) from public.jobs where internal -> 'vehicle' ->> 'name' = 'Furgón €漢字 😀🚚' || repeat('€', 21)")" "1"
 check "client_quotes sin economía ni procedencia" "$(q "select count(*) from public.client_quotes q where to_jsonb(q)::text ~ '(economia|procedencia|parametros|partidas)'")" "0"
 echo "   tamaños (bytes del cliente → pg_column_size sin comprimir):"
 q "select '     ' || e.caso || ': ' || e.bytes_cliente || ' → ' || pg_column_size(j.internal::text::jsonb) from prueba_v3.esperado e join prueba_v3.resultados r using (caso) join public.jobs j on j.id = (r.resultado ->> 'id')::uuid order by e.caso"

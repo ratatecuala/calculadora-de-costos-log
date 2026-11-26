@@ -34,17 +34,22 @@ Mismos campos comunes que v1 (montos, costo, precio, recorrido según la retenci
 
 Reglas de clasificación al emitir (`src/web/jobs.ts`):
 
-| Situación | Clase · fuente |
+**El origen se registra en el momento en que se fija el valor, no se deduce al emitir** (corrección tras la [revisión de GPT](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-7182498521)). La sesión guarda, por cada campo económico (los 10 parámetros, el margen y los recargos), qué evento fijó su valor vigente y la **fecha local del dispositivo** de ese evento. Esos orígenes también van en el borrador.
+
+| Evento registrado | Clase · fuente · fecha |
 |---|---|
-| Campo vacío | `faltante` · usuario («no ingresado») |
-| Valor cargado con «Cargar ejemplo ficticio» y no editado | `simulado` · ejemplo |
-| km/L o desgaste iguales a «Mi vehículo» | `declarado` · vehiculo |
-| Valor con que parte el formulario, aceptado sin cambiar (p. ej., 0 ayudantes) | `declarado` · valorInicial |
-| Valor escrito por el usuario | `declarado` · usuario, con fecha |
+| Campo vacío (cualquier evento) | `faltante` · usuario («no ingresado») · `null` |
+| «Cargar ejemplo ficticio», sin editar después | `simulado` · ejemplo · `null` |
+| Elegir o restaurar «Mi vehículo» (km/L y desgaste) | `declarado` · vehiculo · fecha de la última edición del perfil (`null` si no se conoce, p. ej., tras recuperar un borrador) |
+| El usuario escribe el valor, aunque coincida con el del vehículo o con el inicial (p. ej., 0 ayudantes) | `declarado` · usuario · fecha local en que lo escribió |
+| Ningún evento y valor igual al inicial del formulario | `declarado` · valorInicial · fecha de emisión (cuando se aceptó) |
+| Ningún evento y otro valor (p. ej., un borrador anterior a este cambio) | `declarado` · usuario · «origen no registrado» · `null` (no se inventa) |
 
-La app aún **no produce** `medido` ni `comprobado`: llegarán con el instrumento 0B ([29](29-herramienta-medicion.md)) y los datos de referencia. Para saber qué valores vienen del ejemplo, la sesión marca cada campo cargado así; editar un campo le quita la marca solo a ese campo. Las marcas se guardan en el borrador.
+`registradoEl` también es la fecha local (antes se tomaba la UTC, que en Chile pasa al día siguiente después de las 21:00). La app aún **no produce** `medido` ni `comprobado`: llegarán con el instrumento 0B ([29](29-herramienta-medicion.md)) y los datos de referencia.
 
-El esquema es estricto y rechaza, entre otros: un parámetro sin unidad o con otra unidad, un faltante con valor, un valor sin procedencia, vigencias invertidas, versiones que no coinciden con las de la cotización, un margen distinto del registrado y un vehículo cuyo km/L o desgaste no coincide con los parámetros.
+El esquema es estricto y rechaza, entre otros: un parámetro sin unidad o con otra unidad, un faltante con valor, un valor sin procedencia, vigencias invertidas, versiones que no coinciden con las de la cotización, un margen distinto del registrado, un vehículo cuyo km/L o desgaste no coincide con los parámetros, **partidas sin km o minutos retenidos (A-38)** y **un registro de más de 11000 bytes en UTF-8**. Emitir, leer y copiar pasan por el mismo esquema, así que estas reglas se aplican en los tres caminos.
+
+El snapshot es un registro de lo emitido, **no un respaldo criptográfico**: no lleva firma ni huella y no prueba la hora.
 
 ## 4. Qué versión se emite
 
@@ -78,13 +83,16 @@ Cinco cotizaciones armadas con el **código real del cliente** se guardan como `
 
 | Caso | Bytes en el cliente | `pg_column_size` sin comprimir |
 |---|---|---|
-| manual con vehículo | 3965 | 4886 |
+| manual con vehículo | 3981 | 4910 |
 | ejemplo (simulado) | 3753 | 4610 |
 | con faltantes | 3754 | 4538 |
 | ruta simulada (km nulos) | 3334 | 4004 |
+| nombre de vehículo con caracteres de 3 y 4 bytes («€», «漢», emojis) | 4123 | 5026 |
 | **v3 máxima** (todos los textos al tope, caracteres de 2 bytes) | **10643** | **11606** |
 
 Límites: cliente 11000 bytes (`MAX_CLOUD_INTERNAL_JSON_BYTES`), base 16384 (`CHECK`). Para que el peor caso cupiera se fijaron topes: `detalle` ≤ 60, `version` ≤ 20, ≤ 10 partidas con `id` ≤ 20.
+
+**Caracteres de 3 y 4 bytes.** Los topes de texto cuentan caracteres, no bytes, así que la «v3 máxima» con caracteres de 2 bytes no era el máximo Unicode: con caracteres de 3 bytes llega a 13739 bytes. Por eso el tamaño total en UTF-8 pasó a ser parte del contrato v3: una v3 sobre 11000 bytes **no se emite**. El error es explícito y no se guarda nada a medias, de modo que toda v3 guardada se puede copiar a la cuenta sin recortes. En la práctica no se alcanza: los únicos textos que escribe el usuario son cortos (nombre del vehículo, ≤ 40 caracteres). El ensayo confirma que esos textos se guardan carácter por carácter y que la v3 de 3 bytes la rechaza el cliente con su motivo.
 
 **Pendiente:** el mismo ensayo contra staging real requiere autorización (A-59) y no se ejecutó.
 
@@ -92,10 +100,10 @@ Límites: cliente 11000 bytes (`MAX_CLOUD_INTERNAL_JSON_BYTES`), base 16384 (`CH
 
 | Prueba | Resultado (26-11, Claude, ejecutadas) |
 |---|---|
-| `tests/snapshot-v3.test.ts` | **19/19** |
-| `npm test` completo | **716/716** (antes 697) |
+| `tests/snapshot-v3.test.ts` | **24/24** |
+| `npm test` completo | **721/721** (antes 697) |
 | `tsc` y `npm run build` | sin errores |
-| Mutaciones | **6/6 detectadas**: datos internos en la cotización del cliente, volver a emitir v1, borrador que pierde las marcas, ejemplo clasificado como declarado, nube sin validar v3, partidas que ignoran A-38 |
+| Mutaciones | **6/6 detectadas** en la primera entrega: datos internos en la cotización del cliente, volver a emitir v1, borrador que pierde las marcas, ejemplo clasificado como declarado, nube sin validar v3, partidas que ignoran A-38. **6/6** tras la revisión: sin regla A-38 al leer, sin tope UTF-8, fecha de emisión en lugar de la del evento, fecha UTC en lugar de la local, vehículo sin registrar su origen, fecha inventada sin evento |
 | Ensayo PostgreSQL local (§6) | todo OK en `staging` y `todas` |
 | `scripts/e2e-flujo-completo.mjs` (Pixel 7 y PC 1366, sin flags) | **154/154**; la verificación 8 ahora exige v3 con vehículo, tramos declarados y procedencia |
 | `scripts/e2e-integracion.mjs` con la flag / `--sin-flag` | **278/278** / **24/24** (sin flag ahora exige v3 sin carga) |
@@ -105,9 +113,11 @@ No probado: Safari real, staging real, cuentas reales.
 
 ## 8. Limitaciones y decisiones pendientes
 
-- **D-A1:** con `VITE_FF_INTEGRACION_CARGA` encendida se sigue emitiendo v2 sin `economia`. Propuesta: una v4 (o v3 con carga) cuando se autorice I-2/I-3.
-- **D-A2:** la interfaz no muestra todavía la procedencia (p. ej., «valor del ejemplo» junto al campo). Requiere diseño UX y autorización.
+- **D-A1:** con `VITE_FF_INTEGRACION_CARGA` encendida se sigue emitiendo v2 sin `economia`. Recomendación aceptada por GPT: diferir la unión de carga y procedencia mientras las flags estén apagadas.
+- **D-A2:** la interfaz no muestra todavía la procedencia (p. ej., «valor del ejemplo» junto al campo). GPT recomienda mostrar la procedencia y las exclusiones al implementar A-89.
 - `medido` y `comprobado` no se producen aún; dependen de [29](29-herramienta-medicion.md) y de datos de referencia (#20, #21, C-1).
-- Los borradores guardados antes de este cambio no traen marcas de ejemplo: si se emitieron con valores del ejemplo sin editar, esos valores quedan como `declarado`.
-- **A-89 (modalidades simplificada y detallada):** v3 ya guarda los 10 parámetros con su procedencia, de modo que una cotización simplificada (sin gastos fijos) se distingue por sus faltantes o valores iniciales, no por ceros. Cuando se implemente A-89 convendrá añadir un campo `modalidad` y las exclusiones declaradas: es un campo nuevo de un esquema estricto, por lo que irá en una versión posterior (v4) sin tocar las v3 emitidas. Decisión D-A3, junto con la implementación de A-89.
+- Los borradores guardados antes de este cambio no traen orígenes: sus valores quedan como «origen no registrado», sin fecha.
+- **D-A4 · Inferencia con la ruta no retenida (A-38):** aunque km, minutos y partidas se omitan, el costo total (ya guardado en v1) junto con los parámetros puede permitir **deducir** los km o los minutos. Por ejemplo, si faltan los costos por hora, el costo queda lineal en los km. Hoy esto solo ocurre con la **ruta simulada** (datos ficticios, sin condiciones de un proveedor), porque Google real no está autorizado. **Antes de habilitar un proveedor real** hay que decidir entre: (a) guardar los parámetros igual, si las condiciones del proveedor lo permiten; (b) omitir en ese caso los valores que multiplican distancia o tiempo, dejando su procedencia; (c) no emitir v3 con una ruta no retenible. Es una decisión contractual que no se reabre aquí y que no se resuelve guardando datos del proveedor.
+- Hallazgo previo, fuera de A-88: la fecha de la cotización (`createdAt`) se toma en UTC (`QuoteForm.tsx`), así que una cotización emitida después de las 21:00 en Chile muestra la fecha del día siguiente. Afecta a v1, v2 y v3 y al documento del cliente. Corregirlo requiere autorización.
+- **A-89 (modalidades simplificada y detallada):** v3 ya guarda los 10 parámetros con su procedencia, de modo que una cotización simplificada (sin gastos fijos) se distingue por sus faltantes o valores iniciales, no por ceros. Cuando se implemente A-89 convendrá añadir un campo `modalidad` y las exclusiones declaradas: es un campo nuevo de un esquema estricto, por lo que irá en una versión posterior (v4) sin tocar las v3 emitidas. Decisión D-A3, junto con la implementación de A-89 (GPT: versión posterior explícita, preservando v1 a v3).
 - `staging` sigue con la versión del 18-11: no emite v3 hasta un despliegue autorizado.

@@ -31,6 +31,7 @@ import {
   type RouteSource,
 } from '../shared/route';
 import type { AppliedVehicle, VehicleProfile } from '../shared/vehicle';
+import { fechaLocal, fechaLocalDeIso } from '../shared/procedencia';
 import { emptyInventoryDraft, type InventoryDraft } from './modules/inventoryDraft';
 import { emptyResourcesDraft, type ResourcesDraft } from './modules/resourcesDraft';
 import { buildWaypoints, routeKey } from '../shared/waypoints';
@@ -111,6 +112,21 @@ export const PARAM_KEYS = Object.keys(EMPTY_PARAMS) as Array<keyof TripParams>;
 /** Origen de un cambio de parámetros. `ejemplo` = «Cargar ejemplo ficticio» (dato simulado, A-88). */
 export type ParamOrigin = 'usuario' | 'ejemplo';
 
+/** Campos económicos cuyo origen se registra (A-88): los parámetros del motor, el margen y los recargos. */
+export type CampoEconomico = keyof TripParams | 'margin' | 'surcharges';
+export const CAMPOS_ECONOMICOS = [...PARAM_KEYS, 'margin', 'surcharges'] as CampoEconomico[];
+
+/**
+ * Evento que fijó el valor vigente de un campo (A-88, revisión GPT de afbe740): se registra en el momento
+ * en que ocurre, no se deduce al emitir. `fecha` es la fecha local del evento (para `vehiculo`, la fecha
+ * de la última edición del perfil; `null` si no se conoce). Sin registro = valor con que parte el formulario.
+ */
+export interface OrigenDato {
+  tipo: 'usuario' | 'ejemplo' | 'vehiculo';
+  fecha: string | null;
+}
+export type OrigenesDatos = Partial<Record<CampoEconomico, OrigenDato>>;
+
 export interface SessionState {
   inputs: AddressInputs;
   habitual: RouteState;
@@ -118,10 +134,10 @@ export interface SessionState {
   params: TripParams;
   declaredZeros: ZeroDefaultCost[];
   /**
-   * A-88: parámetros cuyo valor vigente viene de «Cargar ejemplo ficticio» y no se editó después. Se
-   * guardan como `simulado` en la procedencia del snapshot v3. No cambian ningún cálculo.
+   * A-88: origen del valor vigente de cada campo económico (usuario, ejemplo ficticio o «Mi vehículo»),
+   * con su fecha. Alimenta la procedencia del snapshot v3. No cambia ningún cálculo.
    */
-  exampleParams: Array<keyof TripParams>;
+  origins: OrigenesDatos;
   tollsComparison: number | null;
   /** Margen adicional como fracción (0,15 = 15 %). */
   margin: number;
@@ -162,8 +178,8 @@ export interface DraftData {
   inputs: AddressInputs;
   params: TripParams;
   declaredZeros?: ZeroDefaultCost[];
-  /** A-88: ver `SessionState.exampleParams`. Un borrador anterior no lo trae: se recupera sin marcas. */
-  exampleParams?: Array<keyof TripParams>;
+  /** A-88: ver `SessionState.origins`. Un borrador anterior no lo trae: se recupera sin orígenes. */
+  origins?: OrigenesDatos;
   margin: number;
   surcharges: number;
   vehicle: AppliedVehicle | null;
@@ -221,7 +237,7 @@ export function initialState(): SessionState {
     comparison: emptyRoute(),
     params: { ...EMPTY_PARAMS },
     declaredZeros: [],
-    exampleParams: [],
+    origins: {},
     tollsComparison: null,
     margin: 0.15,
     surcharges: 0,
@@ -236,9 +252,27 @@ export function initialState(): SessionState {
   };
 }
 
+const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Orígenes de un borrador, sin campos desconocidos ni entradas mal formadas (A-88). */
+export function origenesValidos(raw: unknown): OrigenesDatos {
+  const out: OrigenesDatos = {};
+  if (typeof raw !== 'object' || raw === null) return out;
+  for (const k of CAMPOS_ECONOMICOS) {
+    const o = (raw as Record<string, unknown>)[k] as { tipo?: unknown; fecha?: unknown } | undefined;
+    if (!o || typeof o !== 'object') continue;
+    if (o.tipo !== 'usuario' && o.tipo !== 'ejemplo' && o.tipo !== 'vehiculo') continue;
+    const fecha = typeof o.fecha === 'string' && FECHA_ISO.test(o.fecha) ? o.fecha : null;
+    out[k] = { tipo: o.tipo, fecha };
+  }
+  return out;
+}
+
 export class QuoteSession {
   private state: SessionState;
   private readonly listeners = new Set<() => void>();
+  /** Fecha local de la última edición del perfil del vehículo elegido (A-88). No se guarda en el borrador. */
+  private vehicleDate: string | null = null;
   /** Generación por tipo de ruta: invalida respuestas tardías. */
   private readonly generation: Record<RouteKind, number> = { habitual: 0, evitarPeajes: 0 };
 
@@ -425,7 +459,7 @@ export class QuoteSession {
     this.set({
       vehicle: applied,
       params: { ...this.state.params, kmPerL: applied.kmPerL, wearPerKm: applied.wearPerKm },
-      exampleParams: this.exampleWithout(VEHICLE_FIELDS),
+      origins: this.originsWith(VEHICLE_FIELDS, { tipo: 'vehiculo', fecha: (this.vehicleDate = fechaLocalDeIso(profile.updatedAt)) }),
       textIssues: this.textIssuesWithout(['params.kmPerL', 'params.wearPerKm']),
     });
   }
@@ -443,14 +477,16 @@ export class QuoteSession {
     if (!v) return;
     this.set({
       params: { ...this.state.params, kmPerL: v.kmPerL, wearPerKm: v.wearPerKm },
-      exampleParams: this.exampleWithout(VEHICLE_FIELDS),
+      origins: this.originsWith(VEHICLE_FIELDS, { tipo: 'vehiculo', fecha: this.vehicleDate }),
       textIssues: this.textIssuesWithout(['params.kmPerL', 'params.wearPerKm']),
     });
   }
 
-  /** Marcas de ejemplo sin los campos indicados (A-88). */
-  private exampleWithout(keys: readonly (keyof TripParams)[]): Array<keyof TripParams> {
-    return this.state.exampleParams.filter((k) => !keys.includes(k));
+  /** Orígenes con los campos indicados fijados por un mismo evento (A-88). */
+  private originsWith(keys: readonly CampoEconomico[], origen: OrigenDato): OrigenesDatos {
+    const next: OrigenesDatos = { ...this.state.origins };
+    for (const k of keys) next[k] = { ...origen };
+    return next;
   }
 
   /** Inventario del borrador. No cambia el costo ni la huella del precio (D-I1). */
@@ -469,7 +505,7 @@ export class QuoteSession {
       inputs: s.inputs,
       params: s.params,
       declaredZeros: s.declaredZeros,
-      exampleParams: s.exampleParams,
+      origins: s.origins,
       margin: s.margin,
       surcharges: s.surcharges,
       vehicle: s.vehicle,
@@ -540,7 +576,7 @@ export class QuoteSession {
       params: { ...d.params },
       // Los borradores antiguos no distinguían el cero declarado del inicial. Ante la duda, protegerlo.
       declaredZeros: ZERO_DEFAULT_COSTS.filter((key) => d.params[key] === 0 && (d.declaredZeros?.includes(key) ?? true)),
-      exampleParams: PARAM_KEYS.filter((k) => d.exampleParams?.includes(k) ?? false),
+      origins: origenesValidos(d.origins),
       margin: d.margin,
       surcharges: d.surcharges,
       vehicle: d.vehicle ? { ...d.vehicle } : null,
@@ -623,13 +659,12 @@ export class QuoteSession {
     const declaredZeros = ZERO_DEFAULT_COSTS.filter((key) =>
       key in partial ? partial[key] === 0 : this.state.declaredZeros.includes(key),
     );
-    // A-88: el ejemplo marca sus campos como simulados; cualquier otra edición de un campo quita su marca.
+    // A-88: cada campo tocado registra quién lo fijó y cuándo (fecha local del evento).
     const touched = PARAM_KEYS.filter((k) => k in partial);
-    const kept = this.exampleWithout(touched);
     this.set({
       params: { ...this.state.params, ...partial, helpers: helpers ?? 0, loadMinutes: loadMinutes ?? 0 },
       declaredZeros,
-      exampleParams: origin === 'ejemplo' ? PARAM_KEYS.filter((k) => kept.includes(k) || touched.includes(k)) : kept,
+      origins: this.originsWith(touched, { tipo: origin, fecha: origin === 'ejemplo' ? null : fechaLocal() }),
       textIssues: this.textIssuesWithout(Object.keys(partial).map((k) => `params.${k}`)),
     });
   }
@@ -647,10 +682,10 @@ export class QuoteSession {
     this.set({ tollsComparison: value, textIssues: this.textIssuesWithout(['tollsComparison']) });
   }
   setMargin(margin: number): void {
-    this.set({ margin, textIssues: this.textIssuesWithout(['margin']) });
+    this.set({ margin, origins: this.originsWith(['margin'], { tipo: 'usuario', fecha: fechaLocal() }), textIssues: this.textIssuesWithout(['margin']) });
   }
   setSurcharges(value: number): void {
-    this.set({ surcharges: Math.max(0, value), textIssues: this.textIssuesWithout(['surcharges']) });
+    this.set({ surcharges: Math.max(0, value), origins: this.originsWith(['surcharges'], { tipo: 'usuario', fecha: fechaLocal() }), textIssues: this.textIssuesWithout(['surcharges']) });
   }
   setChosenPrice(value: number | null): void {
     // La huella no depende del precio: se toma con el costo vigente al escribirlo.

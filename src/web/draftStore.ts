@@ -13,7 +13,7 @@
 import { z } from 'zod';
 import { CARGO_HANDLING, MAX_CARGO_ITEMS } from '../shared/cargo';
 import { HELPER_SEGMENTS, MAX_EQUIPMENT, MAX_HELPERS } from '../shared/resources';
-import { MAX_MANUAL_LEG_KM, MAX_MANUAL_LEG_MINUTES, PARAM_KEYS, ZERO_DEFAULT_COSTS, type DraftData } from './session';
+import { MAX_MANUAL_LEG_KM, MAX_MANUAL_LEG_MINUTES, origenesValidos, ZERO_DEFAULT_COSTS, type DraftData } from './session';
 import type { KeyValueStore } from './vehicleRepository';
 
 export const DRAFT_KEY = 'cotizador.borrador.v1';
@@ -102,8 +102,8 @@ const draftDataSchema = z.object({
     otherCosts: num,
   }),
   declaredZeros: z.array(z.enum(ZERO_DEFAULT_COSTS)).max(ZERO_DEFAULT_COSTS.length).optional().catch(undefined),
-  // A-88: campos que vienen del ejemplo ficticio. Si la entrada está dañada se ignora solo esta parte.
-  exampleParams: z.array(z.enum(PARAM_KEYS as [keyof DraftData['params'], ...Array<keyof DraftData['params']>])).max(PARAM_KEYS.length).optional().catch(undefined),
+  // A-88: origen de cada campo económico. Si la entrada está dañada se descarta solo lo inválido.
+  origins: z.unknown().optional().transform((o) => (o === undefined ? undefined : origenesValidos(o))),
   margin: num,
   surcharges: num,
   vehicle: z

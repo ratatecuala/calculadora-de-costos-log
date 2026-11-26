@@ -100,6 +100,21 @@ const casos: Array<{ caso: string; job: JobRecord }> = [];
     },
   };
   casos.push({ caso: 'v3-maxima', job: { ...base, id: 'e0000000-0000-4000-8000-000000000099', number: 99, internal } });
+
+  // Control (revisión GPT): la misma v3 con caracteres de 3 bytes supera el tope; el cliente la rechaza
+  // entera y con motivo, no la recorta ni la envía.
+  const tres = JSON.parse(JSON.stringify(internal).replaceAll('ñ', '€'));
+  const r = toCloudPayload(tres);
+  if (r.ok) throw new Error('v3 con caracteres de 3 bytes sobre el tope: el cliente la aceptó');
+  console.log(`  control v3-maxima-3bytes: rechazada por el cliente (${r.reason})`);
+}
+{
+  // Textos que escribe el usuario con caracteres de 3 y 4 bytes (nombre del vehículo): sin pérdida.
+  const s = manual();
+  s.selectVehicle({ ...vehiculo, name: 'Furgón €漢字 😀🚚'.padEnd(36, '€') });
+  s.setParams({ fuelPricePerL: 1290, fixedPerHour: 1500, ownerPerHour: 6000 });
+  s.setChosenPrice(70000);
+  casos.push({ caso: 'v3-unicode-3y4bytes', job: emitir(s) });
 }
 
 const lit = (tag: string, v: unknown) => `$${tag}$${JSON.stringify(v)}$${tag}$::jsonb`;

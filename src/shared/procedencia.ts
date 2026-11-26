@@ -68,6 +68,21 @@ export const datoEconomicoSchema = z
 
 export type DatoEconomico = z.output<typeof datoEconomicoSchema>;
 
+/**
+ * Fecha AAAA-MM-DD en la zona horaria del dispositivo (no UTC): en Chile, después de las 21:00 la fecha
+ * UTC ya es la del día siguiente. `null` si la fecha no es válida.
+ */
+export function fechaLocal(d: Date = new Date()): string | null {
+  if (Number.isNaN(d.getTime())) return null;
+  const dos = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}`;
+}
+
+/** Fecha local de una marca de tiempo ISO; una fecha sola (AAAA-MM-DD) se conserva tal cual. */
+export function fechaLocalDeIso(iso: string): string | null {
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : fechaLocal(new Date(iso));
+}
+
 /** Procedencia mínima: sin fecha de dato, vigencia ni versión conocidas. */
 export function procedencia(clase: ClaseDato, tipo: TipoFuente, detalle: string | null = null, fecha: string | null = null): Procedencia {
   return { clase, fuente: { tipo, detalle }, fecha, vigenteDesde: null, vigenteHasta: null, version: null };

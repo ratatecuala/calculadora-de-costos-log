@@ -7,7 +7,7 @@
 import { EMPTY_PARAMS } from '../engine/inputs';
 import { capacityEstimate, cargoSummary, cargoTotalsIssue } from '../shared/cargo';
 import type { BusinessProfile, JobInternalV1, JobRecord } from '../shared/clientQuote';
-import { procedencia, type Procedencia } from '../shared/procedencia';
+import { fechaLocal, procedencia, type Procedencia } from '../shared/procedencia';
 import { handlingTime } from '../shared/resources';
 import type { RouteSource } from '../shared/route';
 import {
@@ -23,7 +23,7 @@ import {
 import { buildWaypoints } from '../shared/waypoints';
 import { validateInventory, type InventoryDraft } from './modules/inventoryDraft';
 import { validateResources, type ResourcesDraft } from './modules/resourcesDraft';
-import { initialState, type QuoteSession, type RouteComputation, type SessionState } from './session';
+import { initialState, type OrigenDato, type QuoteSession, type RouteComputation, type SessionState } from './session';
 
 /** El detalle de carga o de recursos tiene datos por corregir: no se emite (D-I3). */
 export class CargoInvalidError extends Error {
@@ -110,16 +110,24 @@ export class SnapshotV3Error extends Error {
  * Nada de la app produce hoy `medido`, `comprobado` ni `estimado` para estos campos: quedan para las
  * referencias y el instrumento 0B, cuando se autoricen.
  */
-export function procedenciaParametro(k: ParametroEconomico, s: SessionState, fecha: string): Procedencia {
+export function procedenciaParametro(k: ParametroEconomico, s: SessionState, fechaEmision: string): Procedencia {
   const v = s.params[k];
   if (v === null) return procedencia('faltante', 'usuario', 'no ingresado');
-  if (s.exampleParams.includes(k)) return procedencia('simulado', 'ejemplo', 'ejemplo ficticio de la app');
-  if ((k === 'kmPerL' || k === 'wearPerKm') && s.vehicle !== null && s.vehicle[k] === v) {
-    return procedencia('declarado', 'vehiculo', 'perfil «Mi vehículo»');
-  }
-  const declaradoCero = (s.declaredZeros as string[]).includes(k);
-  if (v === EMPTY_PARAMS[k] && !declaradoCero) return procedencia('declarado', 'valorInicial', 'valor inicial del formulario', fecha);
-  return procedencia('declarado', 'usuario', null, fecha);
+  return procedenciaDeOrigen(s.origins[k], v === EMPTY_PARAMS[k], fechaEmision);
+}
+
+/**
+ * Procedencia a partir del EVENTO registrado al fijar el valor (A-88, revisión GPT de afbe740), no de
+ * comparar valores al emitir. Sin evento:
+ * - valor igual al inicial del formulario → `valorInicial`, aceptado al emitir (fecha de emisión);
+ * - otro valor → `declarado` con «origen no registrado» y fecha `null` (no se inventa).
+ */
+function procedenciaDeOrigen(o: OrigenDato | undefined, esInicial: boolean, fechaEmision: string): Procedencia {
+  if (o?.tipo === 'ejemplo') return procedencia('simulado', 'ejemplo', 'ejemplo ficticio de la app');
+  if (o?.tipo === 'vehiculo') return procedencia('declarado', 'vehiculo', 'perfil «Mi vehículo»', o.fecha);
+  if (o?.tipo === 'usuario') return procedencia('declarado', 'usuario', null, o.fecha);
+  if (esInicial) return procedencia('declarado', 'valorInicial', 'valor inicial del formulario', fechaEmision);
+  return procedencia('declarado', 'usuario', 'origen no registrado', null);
 }
 
 /** Procedencia de los km o los minutos según la fuente de cada tramo. Un tramo simulado basta para `simulado`. */
@@ -143,10 +151,10 @@ export function economiaFrom(
     PARAMETROS_ECONOMICOS.map((k) => [k, { valor: s.params[k], unidad: UNIDADES_PARAMETRO[k], procedencia: procedenciaParametro(k, s, fecha) }]),
   ) as Economia['parametros'];
   const inicial = initialState();
-  const sencillo = (valor: number, esInicial: boolean, unidad: string) => ({
-    valor,
+  const sencillo = (campo: 'margin' | 'surcharges', unidad: string) => ({
+    valor: s[campo],
     unidad,
-    procedencia: esInicial ? procedencia('declarado', 'valorInicial', 'valor inicial del formulario', fecha) : procedencia('declarado', 'usuario', null, fecha),
+    procedencia: procedenciaDeOrigen(s.origins[campo], s[campo] === inicial[campo], fecha),
   });
   return {
     registradoEl: fecha,
@@ -155,8 +163,8 @@ export function economiaFrom(
       km: procedenciaRecorrido(computation.legs.map((l) => l.kmSource), fecha),
       minutos: procedenciaRecorrido(computation.legs.map((l) => l.minutesSource), fecha),
     },
-    margen: sencillo(s.margin, s.margin === inicial.margin, 'fraccion'),
-    recargos: sencillo(s.surcharges, s.surcharges === inicial.surcharges, 'CLP'),
+    margen: sencillo('margin', 'fraccion'),
+    recargos: sencillo('surcharges', 'CLP'),
     // A-38: si los km o minutos no se retienen, tampoco las partidas que permitirían reconstruirlos.
     partidas: keep.km && keep.minutes ? computation.items.map((i) => ({ id: String(i.id), categoria: i.category, monto: i.amount })) : null,
     versiones: { motor: ENGINE_VERSION, formulas: ENGINE_VERSION, datos: { combustible: null, catalogo: null, peajes: null } },
@@ -265,6 +273,6 @@ export function buildJobRecord(
   };
   const version = opts.version ?? 1;
   if (version === 1) return record;
-  if (version === 3) return { ...record, internal: snapshotV3From(record.internal, economiaFrom(s, computation, keep, meta.createdAt.slice(0, 10))) };
+  if (version === 3) return { ...record, internal: snapshotV3From(record.internal, economiaFrom(s, computation, keep, fechaLocal() ?? meta.createdAt.slice(0, 10))) };
   return { ...record, internal: snapshotV2From(record.internal, s.cargo, s.resources) };
 }
