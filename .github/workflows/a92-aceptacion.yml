@@ -1,0 +1,33 @@
+name: A-92 · Preparación de aceptación económica
+on:
+  pull_request:
+    branches: ['codex/ronda4-casos-dorados']
+    paths:
+      - '.github/workflows/a92-aceptacion.yml'
+      - 'docs/casos-dorados-a89/**'
+      - 'scripts/aceptacion-a89/**'
+      - 'tests/a89-historicos-aceptacion.test.ts'
+      - 'src/shared/snapshot.ts'
+permissions:
+  contents: read
+concurrency:
+  group: a92-aceptacion-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  preparacion:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Verificar el puente y sus controles negativos
+        run: python3 docs/casos-dorados-a89/test_aceptar.py
+      - name: Instalar dependencias fijadas
+        run: npm ci --no-audit --no-fund
+      - name: Abrir originales v1 a v3 con el lector real
+        run: ./node_modules/.bin/vitest run tests/a89-historicos-aceptacion.test.ts
