@@ -57,7 +57,7 @@ try {
     const pagina = await browser.newPage();
     try {
       await pagina.goto(base);
-      await pagina.getByRole('button', { name: 'Historial', exact: true }).click();
+      await pagina.getByRole('button', { name: 'Restaurar una copia de seguridad', exact: true }).click();
       const entrada = pagina.locator('[data-respaldo-importar]');
       const resultado = pagina.locator('[data-resultado-importar]');
       const previo = await contenidoBD(pagina);

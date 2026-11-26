@@ -1,0 +1,204 @@
+{
+  "formato": "medicion-respaldo",
+  "version": 2,
+  "exportadoEl": "2026-11-20T08:00:00.000-03:00",
+  "vehiculos": [
+    {
+      "id": "v-1",
+      "formato": 1,
+      "alias": "veh-001",
+      "tipoVehiculo": "auto",
+      "combustible": "gasolina",
+      "resolucionTripKm": 0.1,
+      "resolucionOdometroKm": 1,
+      "capacidadEstanqueL": null,
+      "porDefecto": {
+        "precioLitro": {
+          "valor": 1290,
+          "procedencia": {
+            "clase": "comprobado",
+            "fuente": {
+              "tipo": "vehiculo",
+              "detalle": null
+            },
+            "fecha": "2026-11-19",
+            "vigenteDesde": null,
+            "vigenteHasta": null,
+            "version": null
+          },
+          "fuentePrecio": "boleta"
+        },
+        "kmL": {
+          "valor": 12.4,
+          "procedencia": {
+            "clase": "declarado",
+            "fuente": {
+              "tipo": "vehiculo",
+              "detalle": null
+            },
+            "fecha": null,
+            "vigenteDesde": null,
+            "vigenteHasta": null,
+            "version": null
+          }
+        },
+        "desgasteKm": {
+          "valor": null,
+          "procedencia": {
+            "clase": "faltante",
+            "fuente": {
+              "tipo": "vehiculo",
+              "detalle": null
+            },
+            "fecha": null,
+            "vigenteDesde": null,
+            "vigenteHasta": null,
+            "version": null
+          }
+        },
+        "fijoHora": {
+          "valor": null,
+          "procedencia": {
+            "clase": "faltante",
+            "fuente": {
+              "tipo": "vehiculo",
+              "detalle": null
+            },
+            "fecha": null,
+            "vigenteDesde": null,
+            "vigenteHasta": null,
+            "version": null
+          }
+        },
+        "trabajoHora": {
+          "valor": null,
+          "procedencia": {
+            "clase": "faltante",
+            "fuente": {
+              "tipo": "vehiculo",
+              "detalle": null
+            },
+            "fecha": null,
+            "vigenteDesde": null,
+            "vigenteHasta": null,
+            "version": null
+          }
+        }
+      },
+      "creadoEl": "2026-11-20T08:00:00.000-03:00",
+      "editadoEl": "2026-11-20T08:00:00.000-03:00"
+    }
+  ],
+  "presupuestos": [
+    {
+      "id": "pres-anterior",
+      "formato": 1,
+      "vehiculoId": "v-1",
+      "datos": {
+        "version": 2,
+        "id": "viaje-001",
+        "uso": "personal",
+        "vehiculo": "veh-001",
+        "tipoVehiculo": "auto",
+        "fecha": "2026-11-20T10:00:00.000Z",
+        "versionMotor": null,
+        "plan": {
+          "baseClp": null,
+          "ajusteHasta": null,
+          "km": [
+            18,
+            "DECLARADO"
+          ],
+          "marchaMin": [
+            35,
+            "DECLARADO"
+          ]
+        },
+        "resultado": {
+          "costoClp": 5000,
+          "tipo": "cotaInferior"
+        },
+        "procedencia": {
+          "km": {
+            "clase": "declarado",
+            "fuente": {
+              "tipo": "usuario",
+              "detalle": null
+            },
+            "fecha": null,
+            "vigenteDesde": null,
+            "vigenteHasta": null,
+            "version": null
+          }
+        },
+        "origen": {
+          "tipo": "nuevo"
+        }
+      },
+      "sha256": "118a9d124fff9baec2eabee13463f5ed14c956ef30429c048163c539e8aa48d0",
+      "estado": "sellado",
+      "anuladoEl": null,
+      "motivoAnulacion": null,
+      "reemplazaA": null,
+      "creadoEl": "2026-11-20T08:00:00.000-03:00",
+      "editadoEl": "2026-11-20T08:00:00.000-03:00"
+    }
+  ],
+  "viajes": [
+    {
+      "id": "via-1",
+      "formato": 1,
+      "codigo": "viaje-001",
+      "vehiculoId": "v-1",
+      "presupuestoId": "pres-anterior",
+      "uso": "personal",
+      "estado": "cerrado",
+      "inicio": "2026-11-20T08:00:00.000-03:00",
+      "fin": "2026-11-20T08:40:00.000-03:00",
+      "zona": "America/Santiago",
+      "horaEditada": false,
+      "lecturas": {
+        "inicial": {
+          "trip": {
+            "valor": 0,
+            "clase": "medido",
+            "fotoId": null,
+            "confirmadaEl": "2026-11-20T08:00:00.000-03:00"
+          },
+          "odometro": null
+        },
+        "final": {
+          "trip": {
+            "valor": 20.3,
+            "clase": "medido",
+            "fotoId": null,
+            "confirmadaEl": "2026-11-20T08:00:00.000-03:00"
+          },
+          "odometro": null
+        }
+      },
+      "tripReiniciadoKm": null,
+      "tramos": [
+        {
+          "tipo": "marcha",
+          "inicio": "2026-11-20T08:00:00.000-03:00",
+          "fin": "2026-11-20T08:40:00.000-03:00"
+        }
+      ],
+      "recorrido": "mixto",
+      "nivelCarga": "sin",
+      "aire": false,
+      "comprobantes": [],
+      "cobertura": {
+        "peajes": null,
+        "ayudantes": null,
+        "otros": null
+      },
+      "creadoEl": "2026-11-20T08:00:00.000-03:00",
+      "editadoEl": "2026-11-20T08:00:00.000-03:00"
+    }
+  ],
+  "cargas": [],
+  "ajustes": null,
+  "fotos": []
+}
