@@ -25,6 +25,7 @@ umask 077
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$dir/../.." && pwd)"
 [[ "$(id -u)" != 0 ]] || { echo "ERROR: no ejecutar como root" >&2; exit 1; }
+python3 -I -B "$dir/test_estado_migraciones.py"
 
 if [[ -n "${PG_BIN:-}" ]]; then pgbin="$PG_BIN"; else pgbin="$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -n 1)"; fi
 for b in initdb pg_ctl psql pg_dump; do [[ -x "$pgbin/$b" ]] || { echo "ERROR: falta $b" >&2; exit 1; }; done
@@ -40,6 +41,19 @@ ok=0; fallas=0
 check() {
   if eval "$2"; then ok=$((ok + 1)); echo "OK $1"
   else fallas=$((fallas + 1)); echo "FALLA $1"; [[ -f "$t/ult.log" ]] && tail -n 6 "$t/ult.log" | sed 's/^/   | /'; fi
+}
+# Oráculo independiente del SQL de verificación: el prefijo determina los nombres
+# esperados; la detección real usa esquema y huellas. Nunca certifica todo Auth.
+comprobar_estado() {
+  local db="$1" cantidad="$2" prefijo="$3" f="$t/inv-$1" esperado='private.allocate_quote_number'
+  if (( cantidad >= 5 )); then esperado+=' private.insert_cargo_items'; fi
+  if (( cantidad >= 4 )); then esperado+=' public.create_job_with_quote'; fi
+  if (( cantidad >= 6 )); then esperado+=' public.create_job_with_quote_v2'; fi
+  esperado+=' public.create_quote_share public.get_public_quote public.revoke_quote_share'
+  adm -d "$db" -A -t -F ' | ' -v referencia=2026-11-24T12:00:00Z -f "$repo/scripts/verificar-restauracion.sql" > "$f" || return 1
+  grep -Fxq "inv.security_definer | $esperado | $esperado" "$f" || return 1
+  python3 -I "$dir/estado_migraciones.py" invariantes "$f" "$prefijo" >/dev/null || return 1
+  [[ $(grep -c 'migración aplicada:' "$t/ult.log") == "$cantidad" ]] && grep -q 'RESULTADO: DATOS VERIFICADOS' "$t/ult.log"
 }
 restos() { find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'simulacro-*' -user "$(id -un)" 2>/dev/null | wc -l; }
 antes_restos="$(restos)"
@@ -126,7 +140,7 @@ destinatario="$(grep -oE 'age1[0-9a-z]+' "$t/clave.txt" | head -n 1)"
 mkdir -p "$t/respaldos" "$t/conf"
 export PGSERVICEFILE="$t/conf/pg_service.conf" PGPASSFILE="$t/conf/pgpass"
 
-# Origen falso: base Supabase + Auth representativo + migraciones (3 o 4) + datos ficticios + servicio.
+# Origen ficticio y servicio local: prefijo elegido, Auth representativo y datos de prueba.
 origen() {
   local db="$1" con52="$2"
   adm -d postgres -c "create database $db" >/dev/null
@@ -138,11 +152,17 @@ origen() {
   done
   if [[ "$con52" -ge 1 ]]; then "${run[@]}" --single-transaction -f "$repo/supabase/migrations/20261122120000_guardado_unico_y_contador.sql" >/dev/null; fi
   # con52=2: también las migraciones de I-2 (A-81), y luego una cotización v2 con 2 líneas (abajo).
-  if [[ "$con52" == 2 ]]; then
+  if [[ "$con52" -ge 2 ]]; then
     for m in 20261125120000_lineas_de_carga.sql 20261125120100_guardado_v2.sql; do "${run[@]}" --single-transaction -f "$repo/supabase/migrations/$m" >/dev/null; done
   fi
   "${run[@]}" -f "$dir/fixtures/datos-ficticios.sql" >/dev/null
-  if [[ "$con52" == 2 ]]; then "${run[@]}" >/dev/null <<'SQL'
+  if [[ "$con52" == 3 ]]; then
+    # Una cotización antigua con fracciones y suma consistente en las cuatro columnas.
+    "${run[@]}" -c "update public.jobs set net_price=50000.55 where owner_id='a0000000-0000-4000-8000-00000000000a' and number=1;
+      update public.client_quotes set net_price=50000.55, tax_amount=9.25, total=50009.80 where owner_id='a0000000-0000-4000-8000-00000000000a' and number=1" >/dev/null
+    "${run[@]}" --single-transaction -f "$repo/supabase/migrations/20261125130000_precio_entero.sql" >/dev/null
+  fi
+  if [[ "$con52" -ge 2 ]]; then "${run[@]}" >/dev/null <<'SQL'
 begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', 'a0000000-0000-4000-8000-00000000000a', true);
@@ -188,10 +208,15 @@ for i, l in enumerate(lineas):
     m = re.match(r'^COPY ' + re.escape(tabla) + r' \((.*)\) FROM stdin;$', l)
     if m:
         cols = [c.strip().strip('"') for c in m.group(1).split(',')]
-        campos = lineas[i + 1].split('\t')
+        fila = i + 1
+        if len(sys.argv) == 6:
+            while lineas[fila] != r'\.' and lineas[fila].split('\t')[cols.index(col)] != sys.argv[5]:
+                fila += 1
+            assert lineas[fila] != r'\.', 'falta el precio histórico esperado'
+        campos = lineas[fila].split('\t')
         assert campos[cols.index(col)] != nuevo
         campos[cols.index(col)] = nuevo
-        lineas[i + 1] = '\t'.join(campos)
+        lineas[fila] = '\t'.join(campos)
         break
 else:
     sys.exit(f'no está {tabla}')
@@ -221,6 +246,7 @@ check "C· el manifiesto guarda el instante de referencia y la verificación cue
 while (( $(date +%s) < creado_vence + 4 )); do sleep 0.5; done
 if simular "$r1"; then e1=0; else e1=$?; fi
 check "E1 simulacro: DATOS VERIFICADOS (código 0), con el enlace ya vencido (Frente C)" '[[ $e1 == 0 ]] && grep -q "RESULTADO: DATOS VERIFICADOS" "$t/ult.log"'
+check "Prefijo 3 · funciones y expectativas, invariantes y restauración (anterior)" 'comprobar_estado "pre_$sello" 3 anterior'
 check "E1 compara el contenido completo de 8 tablas y aclara que no prueba Supabase Auth" 'grep -q "contenido completo de 8 tablas" "$t/ult.log" && grep -q "NO prueba que Supabase Auth funcione" "$t/ult.log"'
 check "E1 aplicó solo las 3 migraciones anteriores (nunca la de #52)" 'grep -q "ANTES de #52" "$t/ult.log" && ! grep -q "migración aplicada: 20261122120000" "$t/ult.log"'
 check "E1 Auth recreado con los tipos del origen (34 + 1 generada en users)" 'grep -qE "auth.users: 35 columnas" "$t/ult.log"'
@@ -273,10 +299,42 @@ origen "i2_$sello" 2
 r4i="$(respaldar "i2_$sello")" || r4i=""
 if simular "$r4i"; then e4=0; else e4=$?; fi
 check "E4 DATOS VERIFICADOS con I-2: 6 migraciones y contenido de 9 tablas (incluida job_cargo_items)" '[[ $e4 == 0 ]] && grep -q "se aplican las 6 migraciones" "$t/ult.log" && grep -q "contenido completo de 9 tablas" "$t/ult.log"'
+check "Prefijo 6 · funciones y expectativas, invariantes y restauración (i2)" 'comprobar_estado "i2_$sello" 6 i2'
 d4i="$(descifrar "$r4i" e4)"
 cb="$(copia "$d4i" e4b)"; alterar "$cb/data.sql" public.job_cargo_items description "Sofá alterado"; resellar "$cb"
 if simular_carpeta "$cb"; then x=0; else x=$?; fi
 check "E4b alterar la descripción de una línea de carga → HAY DIFERENCIAS en contenido.public.job_cargo_items" '[[ $x == 2 ]] && grep -q "^[-+]contenido.public.job_cargo_items " "$t/ult.log"'
+
+echo "== E4c · origen intermedio con #52 y M3, aún sin RPC v2"
+origen "m3_$sello" 1
+adm -d "m3_$sello" --single-transaction -f "$repo/supabase/migrations/20261125120000_lineas_de_carga.sql" >/dev/null
+r3="$(respaldar "m3_$sello")"
+if simular "$r3"; then x=0; else x=$?; fi
+check "E4c aplica cinco migraciones, conserva M3 sin añadir M4 ni precio entero" '[[ $x == 0 ]] && [[ $(grep -c "migración aplicada:" "$t/ult.log") == 5 ]] && ! grep -q "migración aplicada: 20261125120100" "$t/ult.log"'
+
+check "Prefijo 5 · funciones y expectativas, invariantes y restauración (m3)" 'comprobar_estado "m3_$sello" 5 m3'
+echo "== E5 · #52 + I-2 + precio entero; históricos fraccionarios y precio nuevo entero"
+origen "precio_$sello" 3
+r5="$(respaldar "precio_$sello")"
+if simular "$r5"; then x=0; else x=$?; fi
+check "E5 restaura siete migraciones y conserva los históricos y las cotizaciones enteras" '[[ $x == 0 ]] && [[ $(grep -c "migración aplicada:" "$t/ult.log") == 7 ]] && grep -q "migración aplicada: 20261125130000" "$t/ult.log" && grep -q "DATOS VERIFICADOS" "$t/ult.log"'
+check "Prefijo 7 · funciones y expectativas, invariantes y restauración (precio)" 'comprobar_estado "precio_$sello" 7 precio'
+d5="$(descifrar "$r5" e5)"
+cb="$(copia "$d5" e5precio)"; alterar "$cb/data.sql" public.jobs net_price 50000 50000.55; resellar "$cb"
+if simular_carpeta "$cb"; then x=0; else x=$?; fi
+check "E5b redondear el precio histórico del trabajo cambia contenido.public.jobs" '[[ $x == 2 ]] && grep -q "^[-+]contenido.public.jobs " "$t/ult.log"'
+cb="$(copia "$d5" e5doc)"
+alterar "$cb/data.sql" public.client_quotes tax_amount 9 9.25
+alterar "$cb/data.sql" public.client_quotes total 50009.55 50009.80
+resellar "$cb"
+if simular_carpeta "$cb"; then x=0; else x=$?; fi
+check "E5c alterar impuesto y total histórico, aún con suma válida, cambia contenido.public.client_quotes" '[[ $x == 2 ]] && grep -q "^[-+]contenido.public.client_quotes " "$t/ult.log"'
+cb="$(copia "$d5" e5trigger)"; sed -i '/^CREATE TRIGGER jobs_precio_entero /s/UPDATE OF net_price/UPDATE OF status/' "$cb/schema.sql"; resellar "$cb"
+if simular_carpeta "$cb"; then x=0; else x=$?; fi
+check "E5d trigger del origen con columnas alteradas se rechaza antes de cargar datos" '[[ $x != 0 ]] && grep -q "definiciones de precio entero.*difieren" "$t/ult.log"'
+cb="$(copia "$d5" e5fn)"; sed -i 's/trunc(new.tax_amount)/new.tax_amount/' "$cb/schema.sql"; resellar "$cb"
+if simular_carpeta "$cb"; then x=0; else x=$?; fi
+check "E5e alteración del cuerpo de la función privada, aun con manifiesto coherente, se rechaza" '[[ $x != 0 ]] && grep -q "definiciones de precio entero.*difieren" "$t/ult.log"'
 
 echo "== T · TLS: verify-full con certificado raíz; todo lo demás se rechaza (sin la excepción de prueba)"
 sin_exc() { env -u COTIZADOR_PRUEBA_LOCAL_SIN_TLS "$@"; }
@@ -354,6 +412,7 @@ origen "post_$sello" 1
 r2="$(respaldar "post_$sello")" || r2=""
 if simular "$r2"; then e2=0; else e2=$?; fi
 check "E2 simulacro: DATOS VERIFICADOS" '[[ $e2 == 0 ]] && grep -q "RESULTADO: DATOS VERIFICADOS" "$t/ult.log"'
+check "Prefijo 4 · funciones y expectativas, invariantes y restauración (posterior)" 'comprobar_estado "post_$sello" 4 posterior'
 check "E2 aplicó las 4 migraciones (estado DESPUÉS de #52 detectado)" 'grep -q "DESPUÉS de #52" "$t/ult.log" && grep -q "migración aplicada: 20261122120000" "$t/ult.log"'
 if PG_SERVICIO="o-post_$sello" SALIDA="$t/verificacion-52.txt" vigilar sololectura "$repo/scripts/verificar-solo-lectura.sh"; then x=0; else x=$?; fi
 check "A15 verificar-solo-lectura.sh: V1–V17 completas, V17 = on, salida 600" '[[ $x == 0 ]] && grep -q "V17: on" "$t/log-sololectura.txt" && grep -q "V1 ·" "$t/verificacion-52.txt" && grep -q "V16 ·" "$t/verificacion-52.txt" && [[ "$(stat -c %a "$t/verificacion-52.txt")" == 600 ]]'
@@ -362,7 +421,8 @@ check "A16 solo lectura sin la contraseña en argumentos, entorno, /proc ni resu
 echo "== E3 · volcado de TODOS los esquemas (identificadores entre comillas, tablas internas, cambios de rol)"
 c="$t/cli/respaldo-cli"; mkdir -p "$c"
 "$pgbin/pg_dump" -h "$t/s" -p "$puerto" -U postgres -d "pre_$sello" --data-only --quote-all-identifiers --use-set-session-authorization -f "$c/data.sql"
-printf -- '-- roles\n' > "$c/roles.sql"; printf -- '-- schema\n' > "$c/schema.sql"
+printf -- '-- roles\n' > "$c/roles.sql"
+"$pgbin/pg_dump" -h "$t/s" -p "$puerto" -U postgres -d "pre_$sello" --schema-only --quote-all-identifiers -f "$c/schema.sql"
 cp "$d1/auth-columnas.txt" "$c/"
 ref_c="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 adm -A -t -F ' | ' -v referencia="$ref_c" -d "pre_$sello" -f "$repo/scripts/verificar-restauracion.sql" > "$c/verificacion-origen.txt"
@@ -453,7 +513,7 @@ if RESPALDO="$r1" CLAVE_AGE="$t/otra.txt" "$dir/simulacro-restauracion.sh" > "$t
 check "C5 clave de age equivocada → «no se pudo descifrar»" '[[ $x != 0 ]] && grep -q "no se pudo descifrar" "$t/ult.log"'
 
 echo "== Mutaciones: el detector y las comprobaciones fallan si se reintroduce el defecto"
-m="$(mutante m1 simulacro/simulacro-restauracion.sh 's/estado="anterior"; migraciones=("${anteriores_52\[@\]}")/estado="anterior"; migraciones=("${anteriores_52[@]}" "$migracion_52")/')"
+m="$(mutante m1 simulacro/simulacro-restauracion.sh 's/if \[\[ "\$estado" != anterior \]\]; then migraciones/if true; then migraciones/')"
 if simular "$r1" "$m/scripts/simulacro/simulacro-restauracion.sh"; then x=0; else x=$?; fi
 check "M1 aplicar #52 a un origen anterior → se detiene («no quedó en el estado del origen»)" '[[ $x != 0 ]] && grep -q "no quedó en el estado del origen" "$t/ult.log"'
 # M2: la contraseña en la cadena de conexión (como el método antiguo) → el detector lo ve.

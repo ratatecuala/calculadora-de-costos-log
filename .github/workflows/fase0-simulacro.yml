@@ -1,0 +1,53 @@
+name: Fase 0 · Simulacro local de restauración
+
+on:
+  pull_request:
+    branches: ['claude/determined-volta-q9xvli']
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fase-0-56-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validar:
+    if: github.event.pull_request.number == 56 && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Obtener HEAD del PR
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Preparar PostgreSQL 17, Python y age
+        run: |
+          docker build --tag simulacro-pg17 - <<'DOCKERFILE'
+          FROM postgres:17-bookworm
+          RUN apt-get update && apt-get install -y --no-install-recommends age openssl python3 && rm -rf /var/lib/apt/lists/*
+          USER postgres
+          ENV PG_BIN=/usr/lib/postgresql/17/bin
+          DOCKERFILE
+          docker run --rm --network none --entrypoint bash simulacro-pg17 -euc '
+            "$PG_BIN/postgres" --version | grep -E "^postgres \(PostgreSQL\) 17\."
+            python3 --version
+            age --version
+            test "$(id -u)" -ne 0
+          '
+
+      - name: Suite completa con cinco estados, históricos y mutaciones
+        run: |
+          # El archivo Git conserva los modos originales; la suite arranca sus propios clústeres en loopback.
+          git archive HEAD | docker run --rm --interactive --network none --entrypoint bash simulacro-pg17 -euc '
+            ensayo=$(mktemp -d)
+            tar -xf - -C "$ensayo"
+            cd "$ensayo"
+            bash scripts/simulacro/probar-simulacro.sh
+          '
