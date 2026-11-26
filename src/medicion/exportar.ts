@@ -4,7 +4,7 @@
  * Las fotos NUNCA se exportan aquí (D-3).
  */
 import { distanciaViaje, intervaloDelViaje, intervalosLleno, ordenarCargas } from './calculos';
-import { aliasPresentacion, FORMATO_ANTERIOR, informeViaje, tiemposDesglosados, totalMinutos, type DatosCampo } from './campo';
+import { aliasPresentacion, fichaDeViaje, FORMATO_ANTERIOR, informeViaje, tiemposDesglosados, totalMinutos, type DatosCampo } from './campo';
 import type { CargaCombustible, Lectura, Viaje } from './modelo';
 import { esAnterior } from './modelo';
 import { huellaCorta } from './sello';
@@ -45,8 +45,8 @@ function contexto(d: Datos, v: Viaje) {
 export const COLUMNAS_VIAJES = [
   'id_viaje', 'vehiculo', 'uso', 'estado', 'fecha_inicio', 'hora_inicio', 'fecha_fin', 'hora_fin', 'zona', 'hora_editada',
   'trip_ini', 'trip_ini_clase', 'trip_fin', 'trip_fin_clase', 'odometro_ini', 'odometro_ini_clase', 'odometro_fin', 'odometro_fin_clase',
-  'km', 'km_clase', 'km_fuente', 'km_incertidumbre', 'tiempos_desglosados', 'total_min', 'marcha_min', 'espera_min', 'carga_min', 'descarga_min', 'pausa_min', 'tiempos_clase',
-  'recorrido', 'nivel_carga', 'aire', 'base_clp', 'tag_clp', 'tag_cobertura', 'ayudantes_clp', 'ayudantes_cobertura', 'otros_clp', 'otros_cobertura',
+  'km', 'km_clase', 'km_fuente', 'km_incertidumbre', 'tiempos_desglosados', 'solo_marcha_declarada', 'total_min', 'marcha_min', 'espera_min', 'carga_min', 'descarga_min', 'pausa_min', 'tiempos_clase',
+  'recorrido', 'nivel_carga', 'aire', 'base_clp', 'no_aplica', 'tag_clp', 'tag_cobertura', 'ayudantes_clp', 'ayudantes_cobertura', 'otros_clp', 'otros_cobertura',
   'presupuesto_id', 'presupuesto_estado', 'presupuesto_formato', 'modalidad', 'sello_sha256_12', 'intervalo_id', 'intervalo_uso', 'costo_previsto_clp', 'costo_previsto_tipo',
 ];
 
@@ -66,21 +66,30 @@ export function viajesCsv(d: Datos): string {
         const l = v.comprobantes.filter((r) => r.partida === k);
         return l.length ? l.reduce((s, r) => s + r.clp, 0) : null;
       };
-      const claseKm = dist.km === null ? '' : v.uso === 'simulacion' ? 'SIMULADO' : dist.fuente === 'trip-reiniciado' ? 'DECLARADO' : 'MEDIDO';
+      // Clases y minutos: los mismos de la ficha del contrato (medido ≠ declarado; sin estados, faltante).
+      let obs: ReturnType<typeof fichaDeViaje>['ficha']['observacion'] | null = null;
+      try {
+        obs = veh ? fichaDeViaje(d, v).ficha.observacion : null;
+      } catch {
+        obs = null;
+      }
+      const claseKm = obs?.km?.[1] ?? '';
+      const val = (x: [number, string] | null | undefined) => (x ? x[0] : null);
       return [
         alias.get(v.id) ?? v.codigo, veh ? (aliasVeh.get(veh.id) ?? veh.alias) : null, v.uso, v.estado, fechaDe(v.inicio), horaDe(v.inicio), fechaDe(v.fin), horaDe(v.fin), v.zona, v.horaEditada,
         ...lect(v.lecturas.inicial.trip), ...lect(v.lecturas.final.trip), ...lect(v.lecturas.inicial.odometro), ...lect(v.lecturas.final.odometro),
         dist.km, claseKm, dist.fuente, dist.km !== null ? (v.incertidumbreKm ?? null) : null,
         cerrado ? conEstados : null,
+        cerrado && !conEstados ? v.soloMarchaDeclarada === true : null,
         totalMinutos(v),
-        // Sin botones de estado el total NO es marcha: queda vacío (DATO FALTANTE).
-        cerrado && conEstados ? min.marcha : null,
-        cerrado && conEstados ? min.espera : null,
-        cerrado && conEstados ? min.carga : null,
-        cerrado && conEstados ? min.descarga : null,
+        // Sin botones de estado (ni «todo fue marcha» declarado) el total NO es marcha: queda vacío.
+        val(obs?.marchaMin),
+        val(obs?.esperaMin),
+        val(obs?.cargaMin),
+        val(obs?.descargaMin),
         cerrado && conEstados ? min.pausa : null,
-        cerrado ? (v.horaEditada ? 'DECLARADO' : 'MEDIDO') : '',
-        v.recorrido, v.nivelCarga, v.aire, v.baseClp ?? null,
+        obs?.marchaMin?.[1] ?? '',
+        v.recorrido, v.nivelCarga, v.aire, v.baseClp ?? null, v.noAplica?.length ? v.noAplica.join(' ') : null,
         suma('peajes'), v.cobertura.peajes, suma('ayudantes'), v.cobertura.ayudantes, suma('otros'), v.cobertura.otros,
         pres?.datos.id ?? null, pres?.estado ?? null, pres ? (anterior ? FORMATO_ANTERIOR : 'contrato #55') : null,
         pres && !esAnterior(pres) ? (pres.datos.plan.modalidad ?? 'detallada') : null, pres ? huellaCorta(pres.sha256) : null,
@@ -140,6 +149,13 @@ export async function comparacionCsv(d: Datos): Promise<string> {
       const dif = x.diferencia === null ? null : Math.round(x.diferencia * 1e6) / 1e6;
       filas.push([cod, k, unidad, inf.estadoPresupuesto, x.previsto, null, x.referencia, x.evidencia ?? null, dif, pct(x.porcentaje), x.sentido, null, null, k === 'km' ? notas : null]);
     }
+    // Combustible: el km/L es del INTERVALO (medido sobre el intervalo); los litros del viaje son una
+    // ASIGNACIÓN estimada, nunca consumo medido del viaje.
+    const ref = inf.referencias;
+    const inc = ref.incertidumbreCombustible;
+    filas.push([cod, 'rendimientoIntervalo', 'km/L', inf.estadoPresupuesto, null, null, ref.rendimientoMedidoIntervaloKmL, ref.rendimientoMedidoIntervaloKmL === null ? 'DATO FALTANTE' : 'medido sobre el intervalo', null, null, null, null, ref.claseComparable, ref.intervalo.motivos.join('; ') || 'intervalo utilizable']);
+    filas.push([cod, 'litrosAsignados', 'L', inf.estadoPresupuesto, null, null, ref.litrosAsignadosEstimados, ref.litrosAsignadosEstimados === null ? 'DATO FALTANTE' : 'ESTIMADO (asignado, no medido)', null, null, null, null, null, inc.litros ? `rango ${inc.litros.inferior ?? '?'}–${inc.litros.superior ?? 'abierto'} L` : `incertidumbres faltantes: ${inc.faltan.join(', ') || '—'}`]);
+    if (inc.combustibleClp) filas.push([cod, 'combustibleRango', 'CLP', inf.estadoPresupuesto, null, null, null, 'ESTIMADO (sensibilidad)', null, null, null, null, null, `rango ${inc.combustibleClp.inferior ?? '?'}–${inc.combustibleClp.superior ?? 'abierto'}`]);
     for (const [k, c] of Object.entries(inf.comparacionClp)) {
       const l = inf.conciliacionIndependiente.partidas[k as keyof typeof inf.conciliacionIndependiente.partidas];
       filas.push([

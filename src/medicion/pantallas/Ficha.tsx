@@ -4,6 +4,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { avisosLectura, avisosViaje, distanciaViaje, ultimoOdometro } from '../calculos';
+import { LEYENDA_OBJETIVOS, OBJETIVOS_12 } from '../objetivos';
 import { aliasPresentacion, CRITERIOS_12, FORMATO_ANTERIOR, informeViaje, tiemposDesglosados, totalMinutos, type ResultadoInforme } from '../campo';
 import { recodificarFoto } from '../foto';
 import type { BaseClp, Comprobante, Directa, Instrumento, NivelCarga, Recorrido, Viaje } from '../modelo';
@@ -20,6 +21,7 @@ const ETIQ_PARTIDA: Record<string, string> = {
 const ETIQ_RECORRIDO: [string, string, string][] = [
   ['km', 'Distancia', ' km'], ['marchaMin', 'Marcha', ' min'], ['esperaMin', 'Espera', ' min'], ['cargaMin', 'Carga', ' min'], ['descargaMin', 'Descarga', ' min'], ['totalMin', 'Total con estados', ' min'],
 ];
+const rango = (r: { inferior: number | null; superior: number | null } | null, f: (n: number | null) => string) => (r ? `${f(r.inferior)} – ${r.superior === null ? 'abierto' : f(r.superior)}` : null);
 const pct = (n: number | null) => (n === null ? '' : ` (${fmt(Math.round(n * 10) / 10)} %)`);
 
 /**
@@ -51,6 +53,11 @@ export function VistaComparacion({ r, totalNoDesglosado }: { r: ResultadoInforme
             Diferencia = previsto − referencia; negativa = subestimación. Datos observados: {inf.completitud.observacion.presentes} de {inf.completitud.observacion.total}.
             {inf.conciliacionIndependiente.motivos.length ? ` Motivos de comparación parcial: ${inf.conciliacionIndependiente.motivos.join('; ')}.` : ''}
           </p>
+          {inf.completitud.observacion.faltan.length ? (
+            <p className="m-nota" data-faltan>
+              Datos faltantes (no se sustituyen por cero): {inf.completitud.observacion.faltan.join(', ')}.
+            </p>
+          ) : null}
           {totalNoDesglosado !== null ? (
             <p className="m-aviso" data-total-no-desglosado>
               Tiempo total del viaje: {fmt(totalNoDesglosado, ' min')}, sin desglosar. Marcha, espera, carga y descarga: dato faltante (no se usaron los botones de estado).
@@ -124,9 +131,41 @@ export function VistaComparacion({ r, totalNoDesglosado }: { r: ResultadoInforme
               );
             })}
           </div>
-          <p className="m-nota" data-combustible>
-            Combustible: {inf.referencias.intervalo.utilizable ? `intervalo utilizable (${fmt(inf.referencias.rendimientoMedidoIntervaloKmL, ' km/L')})` : `sin asignación al viaje — ${inf.referencias.intervalo.motivos.join('; ')}`}. Las
-            recargas parciales quedan como gasto registrado: sin saldo inicial y final no se infieren los litros del viaje.
+          <section className="m-subgrupo" aria-label="Combustible e incertidumbre" data-combustible>
+            <h3>Combustible</h3>
+            <p className="m-nota">
+              {inf.referencias.intervalo.utilizable
+                ? `Intervalo de validación utilizable · rendimiento ${fmt(inf.referencias.rendimientoMedidoIntervaloKmL, ' km/L')} medido sobre el intervalo (no sobre este viaje).`
+                : `Sin asignación al viaje — ${inf.referencias.intervalo.motivos.join('; ')}.`}
+            </p>
+            <p className="m-nota" data-litros-asignados>
+              Litros asignados al viaje: {inf.referencias.litrosAsignadosEstimados === null ? 'DATO FALTANTE' : `${fmt(inf.referencias.litrosAsignadosEstimados, ' L')} — ESTIMADO (asignación proporcional), no es consumo medido del viaje`}.
+            </p>
+            <p className="m-nota" data-incertidumbre>
+              Incertidumbre:{' '}
+              {rango(inf.referencias.incertidumbreCombustible.litros, (n) => fmt(n, ' L')) ?? 'sin rango'}
+              {inf.referencias.incertidumbreCombustible.combustibleClp ? ` · ${rango(inf.referencias.incertidumbreCombustible.combustibleClp, (n) => fmtClp(n))}` : ''}
+              {inf.referencias.incertidumbreCombustible.faltan.length ? ` · faltan: ${inf.referencias.incertidumbreCombustible.faltan.join(', ')}` : ''}.
+            </p>
+            <p className="m-nota">Las recargas parciales quedan como gasto registrado: sin saldo inicial y final no se infieren los litros del viaje.</p>
+          </section>
+          <section className="m-subgrupo" aria-label="Cobertura de gastos pagados" data-cobertura>
+            <h3>Gastos pagados del viaje y cobertura</h3>
+            <ul className="m-lista">
+              {(Object.entries(inf.gastosDelViaje.porPartida) as [Directa, { clp: number | null; cobertura: 'completa' | 'parcial' | null }][]).map(([k, g]) => (
+                <li key={k} data-cobertura-partida={k}>
+                  {ETIQ_DIRECTA[k]}: {g.clp === null ? 'sin monto' : fmtClp(g.clp)} · cobertura {g.cobertura ?? 'sin indicar'}
+                </li>
+              ))}
+            </ul>
+            <p className="m-nota">
+              Subtotal: {inf.gastosDelViaje.subtotalClp === null ? 'DATO FALTANTE' : fmtClp(inf.gastosDelViaje.subtotalClp)} ({inf.gastosDelViaje.evidencia}).
+            </p>
+          </section>
+          <p className="m-nota" data-objetivo-viaje>
+            Error absoluto del total comparable:{' '}
+            {inf.conciliacionIndependiente.errorAbsolutoPct === null ? 'sin total comparable' : `${fmt(Math.round(inf.conciliacionIndependiente.errorAbsolutoPct * 10) / 10)} %`} · objetivo exploratorio por viaje ±
+            {inf.conciliacionIndependiente.objetivoMaximoPct} % (MAPE del conjunto ≤ {OBJETIVOS_12.mapeMaximoPct} %). {LEYENDA_OBJETIVOS}
           </p>
           <p className="m-nota">
             Remuneración y margen: es una meta, no un pago; la conciliación compara el costo operativo ({inf.conciliacionIndependiente.alcance}).
@@ -313,10 +352,26 @@ export function FichaViaje({ viajeId, onVolver }: { viajeId: string; onVolver: (
           <p className="m-nota" data-tiempos>
             Tiempos (de los botones de estado): marcha {min.marcha} min · espera {min.espera} min · carga {min.carga} min · descarga {min.descarga} min · pausa {min.pausa} min
           </p>
+        ) : v.fin && v.soloMarchaDeclarada ? (
+          <div data-tiempos>
+            <p className="m-nota">
+              Tiempo total: {fmt(totalMinutos(v), ' min')}, declarado como marcha completa (sin espera, carga ni descarga). Es DECLARADO, no medido.
+            </p>
+            <button type="button" className="m-btn" data-solo-marcha="quitar" onClick={() => void guardar((x) => ({ ...x, soloMarchaDeclarada: false }))}>
+              Deshacer «todo fue marcha»
+            </button>
+          </div>
         ) : (
-          <p className="m-nota" data-tiempos>
-            Tiempo total: {fmt(v.fin ? totalMinutos(v) : min.marcha, ' min')}, sin desglosar (no se usaron los botones de estado). Marcha, espera, carga y descarga quedan como dato faltante.
-          </p>
+          <div data-tiempos>
+            <p className="m-nota">
+              Tiempo total: {fmt(v.fin ? totalMinutos(v) : min.marcha, ' min')}, sin desglosar (no se usaron los botones de estado). Marcha, espera, carga y descarga quedan como dato faltante.
+            </p>
+            {v.fin && v.estado !== 'en curso' ? (
+              <button type="button" className="m-btn m-btn-sec" data-solo-marcha="confirmar" onClick={() => void guardar((x) => ({ ...x, soloMarchaDeclarada: true }))}>
+                Confirmo que todo fue marcha (declarado)
+              </button>
+            ) : null}
+          </div>
         )}
         <div className="m-fila">
           <CampoNumero id="km-incert" etiqueta="Incertidumbre de los km (± km, opcional)" valor={textoIncert} onCambio={setTextoIncert} sufijo="km" />
@@ -349,7 +404,7 @@ export function FichaViaje({ viajeId, onVolver }: { viajeId: string; onVolver: (
       </section>
 
       <section className="m-tarjeta" aria-label="Comprobantes">
-        <h2>Comprobantes (TAG, ayudantes, otros)</h2>
+        <h2>Gastos pagados en el viaje (TAG, ayudantes, otros)</h2>
         <p className="m-nota">«Completa» exige al menos una línea, aunque sea $0. Sin comprobante completo no hay comparación de esa partida. No escribas números de boleta: se usa una referencia doc-NNN-NN.</p>
         <ul className="m-lista">
           {v.comprobantes.map((c) => (
@@ -386,16 +441,38 @@ export function FichaViaje({ viajeId, onVolver }: { viajeId: string; onVolver: (
             Agregar línea
           </button>
         </div>
-        {DIRECTAS.map((k) => (
-          <Opciones<'parcial' | 'completa'>
-            key={k}
-            id={`cobertura-${k}`}
-            etiqueta={`Cobertura de ${ETIQ_DIRECTA[k]}`}
-            valor={v.cobertura[k]}
-            opciones={[['parcial', 'Parcial'], ['completa', 'Completa']]}
-            onCambio={(x) => void guardar((y) => ({ ...y, cobertura: { ...y.cobertura, [k]: x } }))}
-          />
-        ))}
+        {DIRECTAS.map((k) => {
+          const na = v.noAplica?.includes(k) ?? false;
+          const conMonto = v.comprobantes.some((c) => c.partida === k);
+          return (
+            <div key={k} className="m-opciones">
+              <label className="m-check">
+                <input
+                  type="checkbox"
+                  checked={na}
+                  disabled={!na && conMonto}
+                  data-no-aplica-viaje={k}
+                  onChange={(e) =>
+                    void guardar((y) => {
+                      const lista = (y.noAplica ?? []).filter((z) => z !== k);
+                      return e.target.checked ? { ...y, noAplica: [...lista, k], cobertura: { ...y.cobertura, [k]: null } } : { ...y, noAplica: lista };
+                    })
+                  }
+                />
+                {ETIQ_DIRECTA[k]}: no aplica en este viaje{!na && conMonto ? ' (tiene líneas: quítalas antes)' : ''}
+              </label>
+              {na ? null : (
+                <Opciones<'parcial' | 'completa'>
+                  id={`cobertura-${k}`}
+                  etiqueta={`Cobertura de ${ETIQ_DIRECTA[k]}`}
+                  valor={v.cobertura[k]}
+                  opciones={[['parcial', 'Parcial'], ['completa', 'Completa']]}
+                  onCambio={(x) => void guardar((y) => ({ ...y, cobertura: { ...y.cobertura, [k]: x } }))}
+                />
+              )}
+            </div>
+          );
+        })}
         {DIRECTAS.filter((k) => v.cobertura[k] === 'completa' && !v.comprobantes.some((c) => c.partida === k)).map((k) => (
           <p key={k} className="m-aviso">
             {ETIQ_DIRECTA[k]}: «completa» sin ninguna línea. Agrega al menos una (aunque sea $0).
@@ -403,7 +480,7 @@ export function FichaViaje({ viajeId, onVolver }: { viajeId: string; onVolver: (
         ))}
       </section>
 
-      {v.estado !== 'en curso' ? informe ? <VistaComparacion r={informe} totalNoDesglosado={v.fin && !desglose ? totalMinutos(v) : null} /> : <p className="m-nota">Calculando la comparación…</p> : null}
+      {v.estado !== 'en curso' ? informe ? <VistaComparacion r={informe} totalNoDesglosado={v.fin && !desglose && !v.soloMarchaDeclarada ? totalMinutos(v) : null} /> : <p className="m-nota">Calculando la comparación…</p> : null}
 
       {v.estado !== 'anulado' ? (
         <section className="m-tarjeta">

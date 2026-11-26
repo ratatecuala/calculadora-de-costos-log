@@ -24,7 +24,7 @@
 
 **Validaciones (D-6), todas no bloqueantes:** lectura final menor que la inicial (con «el TRIP se reinició» y km declarados), odómetro que retrocede (frente al inicial y al último conocido), sugerencia de TRIP en cero, litros ≤ 0 (la carga queda fuera de intervalos y del paquete), litros sobre la capacidad declarada, carga con fecha anterior (se reordena y avisa), odómetro de carga fuera de orden, «completa» sin línea de comprobante. Umbrales de velocidad media implícita, desvío de km, viaje abierto y recordatorio de copia: **vacíos por defecto y desactivados mientras estén vacíos**; no hay valores sugeridos (DATO FALTANTE).
 
-**A-89 / D-7:** las recargas parciales quedan como gasto registrado; sin saldo inicial y final no se infieren litros por viaje. Excluido, desconocido y cero se distinguen: `null` = DATO FALTANTE, 0 solo si se escribió o se midió; «excluida» (fijos en simplificada) la informa el contrato. **Sin botones de estado, el tiempo total del viaje no se convierte en marcha:** marcha, espera, carga y descarga quedan DATO FALTANTE y el total se muestra aparte como «sin desglosar». Los criterios estadísticos de #12 se muestran «por aprobar».
+**A-89 / D-7:** las recargas parciales quedan como gasto registrado; sin saldo inicial y final no se infieren litros por viaje. Excluido, desconocido y cero se distinguen: `null` = DATO FALTANTE, 0 solo si se escribió o se midió; «excluida» (fijos en simplificada) la informa el contrato. **Sin botones de estado, el tiempo total del viaje no se convierte en marcha:** marcha, espera, carga y descarga quedan DATO FALTANTE y el total se muestra aparte como «sin desglosar», salvo que el usuario declare «todo fue marcha» (DECLARADO, §3.1). Los criterios estadísticos de #12 se muestran «por aprobar».
 
 ## 2. Arquitectura
 
@@ -53,7 +53,75 @@
 
 **P1 · clasificación honesta.** La independencia de una referencia es la de `conciliacionIndependiente` del contrato (`comparable`), nunca «referencia no nula» (prueba: un comprobante completo sin partida prevista queda «no comparable»). Medido y declarado se distinguen por lectura; TRIP reiniciado y horas escritas después son DECLARADO. Los litros solo entran a un intervalo con boleta (COMPROBADO) o surtidor (MEDIDO); «lo recuerdo» deja los litros faltantes. Sin base tributaria no hay diferencia en pesos (motivo del contrato). Tiempos sin desglosar: §1.
 
+### 3.1 Cierre de la integración (A-91, 26-11-2026)
+
+Estado de los diez puntos que pidió el propietario:
+
+| # | Requisito | Estado |
+|---|---|---|
+| 1 | Sin contrato provisional ni adaptadores duplicados | Hecho (round anterior); `tests/medicion-aislamiento.test.ts` lo vigila. |
+| 2 | Modalidad simplificada (por defecto) y detallada, sin perder datos al cambiar | Hecho. Los fijos se ocultan en simplificada y se conservan en el formulario. |
+| 3 | Comparación de combustible, costos, incertidumbre y cobertura | Hecho. En la ficha: rendimiento del intervalo, litros asignados, rango de incertidumbre (litros y CLP) y entradas que faltan, gastos pagados con cobertura por partida, datos faltantes y error del total frente al objetivo exploratorio. |
+| 4 | Base CLP neta o con IVA sin inventar la tasa | Hecho. El usuario elige en el plan y en el viaje; sin base no hay diferencia en pesos. |
+| 5 | Calibración y validación separadas | Hecho, lo decide `vincularIntervalo` del contrato. La pantalla de combustible lo explica. Pruebas: validación posterior al ajuste es utilizable (12 km/L; 1,75 L asignados); «calibración» no valida; un intervalo no posterior al ajuste no valida. |
+| 6 | Litros asignados nunca presentados como consumo medido | Hecho. En pantalla: «ESTIMADO (asignación proporcional), no es consumo medido del viaje». El km/L se rotula «medido sobre el intervalo». En `comparacion.csv`, filas `rendimientoIntervalo`, `litrosAsignados` («ESTIMADO (asignado, no medido)») y `combustibleRango`. |
+| 7 | Formatos, huellas y exportaciones compatibles con la CLI | Hecho. El e2e importa el paquete con la CLI y `probar-interoperabilidad.mjs` pasa. |
+| 8 | Respaldo validado completo, sin importaciones parciales, sellos intactos | Hecho (round anterior). Se mantienen las pruebas negativas; la CI de Codex añade `scripts/ci-medicion/atomicidad.mjs`. |
+| 9 | «No aplica» y «todo fue marcha» | Hecho. Ver la nota de este punto después de la tabla. |
+| 10 | Uso personal sencillo y sin contabilidad | Hecho. Ver la nota de este punto después de la tabla. |
+
+**Punto 9.**
+- **«No aplica»:**
+  - En el plan hay una casilla por partida directa (TAG, ayudantes, otros). La partida sale del plan y sus campos se conservan en el formulario.
+  - En el viaje hay otra casilla por partida. Al marcarla se borra la cobertura. Si la partida tiene líneas pagadas, la casilla queda bloqueada.
+  - Si se contradice con una línea pagada, el contrato da un error y no hay informe.
+- **«Todo fue marcha»:**
+  - Hay un botón en los viajes cerrados sin estados.
+  - Marcha = total, y espera, carga y descarga = 0, todo **DECLARADO**, nunca MEDIDO.
+  - Con estados la declaración se ignora.
+  - Nuevas columnas en `viajes.csv`: `solo_marcha_declarada` y `no_aplica`.
+
+**Punto 10.**
+- En uso personal la modalidad es siempre la simplificada.
+- No se piden ni entran al plan remuneración, margen, recargos ni gastos fijos. Lo que ya estaba escrito se conserva por si se pasa a simulación.
+- Una cotización comercial se reproduce como simulación.
+
+**Objetivos de #12 (exploratorios).** En el historial, «Calcular con los viajes cerrados» (`src/medicion/objetivos.ts`) muestra:
+- revisados y denominador (solo los viajes con total comparable);
+- incompletos con su motivo;
+- MAPE, porcentaje dentro de ±10 %, subestimaciones mayores al 10 % y sesgo;
+- error en CLP cuando la referencia es 0.
+
+Metas orientativas: MAPE ≤ 5 %, ≥ 90 % dentro de ±10 % y 0 subestimaciones mayores al 10 %. Siempre se rotulan «objetivos exploratorios: orientativos, no son una aprobación ni una certificación». Sin denominador no se muestra un 0 %.
+
+**e2e contra el Worker privado.** Con `MEDICION_AUTH="usuario:contraseña"`, `scripts/e2e-medicion.mjs`:
+- usa `httpCredentials` en todos los contextos;
+- admite el origen de las URL dadas en el control «0 peticiones fuera del origen».
+
+El valor nunca se imprime. Sin la variable, el e2e sigue aceptando solo `localhost` o `127.0.0.1`.
+
 ## 4. Pruebas (ejecutadas por Claude, 26-11-2026, sobre el HEAD con el merge de #55)
+
+**Cierre A-91 (sobre `e79849d` más los cambios de este round):**
+- `npx tsc --noEmit -p .`: sin errores.
+- `npm test`: **46 archivos, 934 pruebas en verde.** `tests/medicion-datos.test.ts` tiene ahora 54 pruebas. Las 10 nuevas cubren:
+  - «no aplica» en el plan y en el viaje, con la contradicción;
+  - «todo fue marcha» DECLARADO;
+  - uso personal sin datos contables;
+  - simplificada↔detallada;
+  - validación frente a calibración y frente a un intervalo no posterior al ajuste;
+  - el resumen de objetivos y su leyenda.
+- `npm run build`: comercial de 587,88 kB, sin cambios.
+- `VITE_FF_MEDICION=1 npm run build:medicion`: JS de 348 kB (104 kB gzip).
+- `scripts/ci-medicion/paquetes.mjs` (builds con `--sourcemap=hidden`): paquetes separados.
+- `node scripts/campo/probar-interoperabilidad.mjs`: OK en ambos sentidos.
+- `bash scripts/ci-medicion/navegador.sh`, el mismo guion de la CI de Codex, en local (servidor estático en 5195 y servidor sin flag en 5196):
+  - e2e: **84 comprobaciones, 0 fallas**;
+  - «sin conexión: recarga y registro OK» en los dos perfiles;
+  - `atomicidad.mjs`: los cinco rechazos sin escrituras y la reimportación idéntica, OK.
+
+Lo que sigue es el registro de la iteración anterior.
+
 
 - **Vitest, focalizadas:** `tests/medicion-datos.test.ts` (44), `tests/medicion-calculos.test.ts` (20), `tests/medicion-aislamiento.test.ts` (108, la mayoría una por archivo comercial). Nuevas en esta iteración: resultado = `crearPresupuesto`; simplificada sin fijos y detallada con fijos; captura de base, ajuste y precisión, con rechazo de un corte posterior al sello; huella = `envolverOriginal` = canónica v3; metadata fuera del original; original con clave extra que no verifica; sello del formato anterior conservado byte a byte y «no comparable»; tiempos no desglosados → DATO FALTANTE y total aparte; minutos MEDIDO o DECLARADO; km DECLARADO con lectura declarada o TRIP reiniciado; litros solo con boleta o surtidor; independencia no automática; base tributaria; paquete que pasa `verificarPaquete` y paquete alterado rechazado; colisión de alias con sellos intactos; respaldo inválido sin escrituras (sello alterado, referencia rota, sello distinto con el mismo id, clave desconocida, tipo inválido, id repetido); conflicto que bloquea hasta decidir; lote atómico; comparación (sin presupuesto, previo, cronología sin verificar, sello alterado).
 - **Regresión completa:** `npm test` → **46 archivos, 923 pruebas en verde** (incluye las de Codex: `tests/campo-economico.test.ts` 29 y `tests/pruebas-campo.test.ts` 5). `npx tsc --noEmit -p .` sin errores.
@@ -62,7 +130,13 @@
 - **Playwright** (`scripts/e2e-medicion.mjs`, Chromium; Pixel 7 emulado y PC 1366×768, zona America/Santiago, reloj controlado), contra `vite preview` del build en `localhost:5195` y el servidor sin flag en `localhost:5196`: **77 comprobaciones, 0 fallas.** Además de lo anterior: modalidad (detallada desde la cotización, simplificada por defecto sin campo de fijos), base neta en plan y viaje (peajes «igual», fijos «excluida»), sin base no hay diferencia en pesos, informe del contrato en pantalla y en `comparacion.csv`, **paquete descargado importado con la CLI de Codex** en una carpeta temporal (original idéntico, motores idénticos, reimportación idempotente) y **respaldo con un sello alterado que no importa nada** (ni un viaje nuevo válido del mismo archivo).
 - **Pruebas de Codex que corre su workflow:** `node scripts/campo/probar-interoperabilidad.mjs` → «Chromium → paquete → CLI: original idéntico y reimportación idempotente» y «CLI → Chromium: huella canónica y versión real del motor idénticas». Vitest y build: arriba.
 
-**CI (bloqueo).** El workflow de Codex `.github/workflows/fase0-campo.yml` (`ca241a4`) se dispara con `pull_request` hacia `claude/determined-volta-q9xvli` (la base del #57), pero su único job tiene `if: github.event.pull_request.number == 55`: **para el #57 el job se omite** y no hay corrida independiente. `a83.yml` solo corre en PR hacia `main`. No se modificó ningún workflow: ampliar la condición (o crear un job para #57) queda para el propietario y Codex. Hasta entonces, las pruebas de esta sección son locales, ejecutadas por Claude.
+**CI independiente (resuelto por Codex).** Codex creó `.github/workflows/fase0-medicion.yml` y `scripts/ci-medicion/` (`e79849d`), con estos pasos:
+- typecheck, `npm test`, los dos builds y la separación de paquetes;
+- interoperabilidad con la CLI;
+- Chromium sin red con el e2e;
+- importación atómica.
+
+Según el coordinador, la corrida sobre `e79849d` salió en verde. Claude no modificó esos archivos. La corrida remota sobre el HEAD nuevo no se esperó.
 
 **No se pudo probar:** el teléfono real del propietario (cámara, permiso de almacenamiento persistente, expulsión de datos, «Compartir» un archivo), Safari/iOS y Firefox, ni la instalación en la pantalla de inicio (no hay manifiesto). Todo depende de D-1 (§7).
 
@@ -71,8 +145,8 @@
 - Los datos viven solo en el navegador que los creó: borrar sus datos o perder el teléfono los pierde. Mitigación: respaldo JSON y «última copia hace N días». La persistencia la decide el navegador (POR VALIDAR en el teléfono).
 - El modo sin conexión exige abrir una vez la versión compilada con conexión, desde un origen seguro (`https://` o `localhost`). En desarrollo no hay service worker. No funciona desde `file://`.
 - Los códigos `viaje-NNN` son por dispositivo: si se registran viajes en dos equipos sin fusionar antes, puede haber códigos repetidos con distinto `id`. La fusión no los pierde ni toca sus sellos; se muestran con alias de presentación y quedan fuera del paquete hasta exportarlos desde su equipo de origen.
-- No hay botón para confirmar «todo fue marcha» en un viaje sin estados: el total queda sin desglosar (DATO FALTANTE).
-- Las partidas «no aplica» (`noAplica`) del contrato todavía no se capturan; una partida sin datos queda desconocida, no «no aplicable».
+- «Todo fue marcha» es una declaración del usuario (DECLARADO): no reemplaza los botones de estado y no se ofrece si hubo estados.
+- Los litros que el contrato asigna a un viaje son una estimación proporcional del intervalo, nunca consumo medido; solo existen con un intervalo de validación posterior al ajuste.
 - **IndexedDB depende del origen** (esquema, dominio y puerto): si cambia la URL de la herramienta, el navegador abre una base vacía. Antes de cambiar de origen hay que **exportar la copia** y luego importarla en el nuevo.
 - **La caché sin conexión y los datos quedan en el teléfono:** revocar o cambiar la contraseña de acceso (§7) **no borra** la copia de la aplicación en la caché del service worker ni los datos de IndexedDB de un teléfono que ya la abrió. Para retirarlos hay que borrar los datos del sitio en ese navegador (o usar «Borrar todo»).
 - Sin OCR, GPS ni sincronización entre equipos (fuera del alcance).
@@ -118,6 +192,6 @@ No se recomienda publicar la herramienta dentro del staging comercial existente:
 
 - **D-1:** la prueba en el teléfono real requiere la autorización de §7.
 - **Dependencia de #55:** el PR #57 incluye el merge de la rama de Codex; su diff se reduce cuando #55 se integre en la base. Si Codex publica otra versión del contrato, se vuelve a hacer merge (nunca rebase de commits ajenos).
-- **CI para #57:** el workflow de Codex omite su job fuera del #55 (§4). Requiere decisión del propietario y un cambio de Codex.
-- **#12:** criterios estadísticos por aprobar.
+- **CI para #57:** resuelta por Codex con `fase0-medicion.yml` (§4). Falta confirmar la corrida remota sobre el HEAD que incluye A-91.
+- **#12:** criterios estadísticos por aprobar. Los objetivos que se muestran son exploratorios.
 - **Revisión independiente** (Codex o GPT) del módulo antes de cualquier publicación.

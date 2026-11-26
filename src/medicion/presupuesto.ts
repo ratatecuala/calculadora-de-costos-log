@@ -9,7 +9,7 @@
  */
 import { procedencia, type ClaseDato, type Procedencia, type TipoFuente } from '../shared/procedencia';
 import { aClase, planVacio } from './campo';
-import type { BaseClp, Corte, DatoMedicion, FuentePrecio, Modalidad, Muestra, PlanCampo, Uso, VehiculoMedicion } from './modelo';
+import type { BaseClp, Corte, DatoMedicion, Directa, FuentePrecio, Modalidad, Muestra, PlanCampo, Uso, VehiculoMedicion } from './modelo';
 
 /**
  * Clase que corresponde a cada fuente del precio (regla de #55: la clase del precio sigue a su fuente). El
@@ -76,9 +76,20 @@ export interface OpcionesPlan {
   muestraPrevista: Muestra | null;
   /** Incertidumbre absoluta de los km previstos, si la conoces. */
   incertidumbreKm: number | null;
+  /** Partidas directas que NO aplican a este servicio (distinto de desconocido y de cero). */
+  noAplica: Directa[];
 }
 
-export const opcionesIniciales = (modalidad: Modalidad = 'simplificada'): OpcionesPlan => ({ modalidad, baseClp: null, ajusteHasta: null, muestraPrevista: null, incertidumbreKm: null });
+export const opcionesIniciales = (modalidad: Modalidad = 'simplificada'): OpcionesPlan => ({ modalidad, baseClp: null, ajusteHasta: null, muestraPrevista: null, incertidumbreKm: null, noAplica: [] });
+
+/** Campos del plan que dependen de cada partida directa (se vacían en el plan si la partida no aplica). */
+export const CAMPOS_DE_DIRECTA: Record<Directa, CampoPlan[]> = { peajes: ['tag'], ayudantes: ['ayudantes', 'pagoAyudante'], otros: ['otros'] };
+
+/**
+ * Viaje PERSONAL (A-91, punto 10): solo gastos efectivamente pagados del viaje. No se piden ni se usan
+ * remuneración, margen, recargos ni gastos fijos; la modalidad es siempre la simplificada.
+ */
+export const CAMPOS_NO_PERSONALES: CampoPlan[] = ['trabajoHora', 'margenPct', 'recargos', 'fijoHora'];
 
 export type EntradaPlan = Record<CampoPlan, DatoMedicion> & { fuentePrecio: FuentePrecio | null; opciones: OpcionesPlan };
 
@@ -122,9 +133,19 @@ export function construirPlan(e: EntradaPlan, uso: Uso, resolucionKm: number | n
   const proc: Record<string, Procedencia> = {};
   const sim = uso === 'simulacion';
   const o = e.opciones;
-  const plan: PlanCampo = { ...planVacio(o.modalidad), baseClp: o.baseClp, ajusteHasta: o.ajusteHasta, muestraPrevista: o.muestraPrevista };
+  const personal = uso === 'personal';
+  const modalidad: Modalidad = personal ? 'simplificada' : o.modalidad;
+  const noAplica = [...new Set(o.noAplica ?? [])];
+  const plan: PlanCampo = { ...planVacio(modalidad), baseClp: o.baseClp, ajusteHasta: o.ajusteHasta, muestraPrevista: o.muestraPrevista };
+  if (noAplica.length) plan.noAplica = noAplica;
+  const excluidos = new Set<CampoPlan>([...(personal ? CAMPOS_NO_PERSONALES : []), ...noAplica.flatMap((k) => CAMPOS_DE_DIRECTA[k])]);
   for (const k of CAMPOS_PLAN) {
     const d = e[k];
+    // Se conserva en el formulario (para volver a cambiar), pero no entra al plan.
+    if (excluidos.has(k)) {
+      proc[k] = procedencia('faltante', d.procedencia.fuente.tipo, d.procedencia.fuente.detalle);
+      continue;
+    }
     let clase: ClaseDato = d.valor === null ? 'faltante' : d.procedencia.clase;
     if (k === 'precioLitro' && d.valor !== null) {
       if (!e.fuentePrecio) {
@@ -156,7 +177,7 @@ export function construirPlan(e: EntradaPlan, uso: Uso, resolucionKm: number | n
     plan.incertidumbreKm = [o.incertidumbreKm, sim ? 'SIMULADO' : 'DECLARADO'];
     proc.incertidumbreKm = procedencia(sim ? 'simulado' : 'declarado', 'usuario');
   }
-  if (o.modalidad === 'simplificada' && plan.fijoHora) avisos.push('Modalidad simplificada: los gastos fijos se conservan en el plan pero no se suman (cámbiala a detallada para incluirlos).');
+  if (modalidad === 'simplificada' && plan.fijoHora) avisos.push('Modalidad simplificada: los gastos fijos se conservan en el plan pero no se suman (cámbiala a detallada para incluirlos).');
   if (o.baseClp === null) avisos.push('Sin base tributaria (neto o con IVA) no habrá comparación en pesos.');
   if (o.ajusteHasta === null) avisos.push('Sin indicar cómo obtuviste el rendimiento, la independencia del combustible queda pendiente.');
   return { plan, procedencia: proc, avisos };
@@ -172,6 +193,7 @@ export function entradaDesdePlan(plan: PlanCampo, proc: Record<string, Procedenc
   e.fuentePrecio = plan.fuentePrecio;
   // Un plan histórico sin modalidad conserva su alcance detallado (guía de #55).
   e.opciones = {
+    noAplica: [...(plan.noAplica ?? [])],
     modalidad: plan.modalidad ?? 'detallada',
     baseClp: plan.baseClp ?? null,
     ajusteHasta: plan.ajusteHasta ?? null,

@@ -6,20 +6,22 @@
 import { useMemo, useState } from 'react';
 import { procedencia, type Procedencia } from '../../shared/procedencia';
 import { fichaPrevia, previsualizar } from '../campo';
-import type { BaseClp, FuentePrecio, Modalidad, Muestra, OrigenPresupuesto, PresupuestoSellado, Uso } from '../modelo';
+import type { BaseClp, Directa, FuentePrecio, Modalidad, Muestra, OrigenPresupuesto, PresupuestoSellado, Uso } from '../modelo';
 import { CAMPOS_PLAN, construirPlan, ETIQUETAS_PLAN, type CampoPlan, type EntradaPlan, type OpcionesPlan } from '../presupuesto';
 import { guardarPresupuesto, siguienteCodigo } from '../repositorio';
 import { anular, huellaCorta, sellar } from '../sello';
 import { isoLocal } from '../tiempo';
 import { aTexto, fmtClp, parseNumero, useCtx } from '../ui';
 
-const GRUPOS: [string, CampoPlan[], boolean][] = [
-  ['Distancia y tiempo', ['km', 'marchaMin', 'esperaMin', 'cargaMin', 'descargaMin'], true],
-  ['Combustible', ['precioLitro', 'kmL'], true],
-  ['TAG, peajes y otros costos del servicio', ['tag', 'otros'], true],
-  ['Ayudantes (si corresponde)', ['ayudantes', 'pagoAyudante'], true],
-  ['Desgaste (cuando exista evidencia)', ['desgasteKm'], true],
-  ['Remuneración y margen deseados', ['trabajoHora', 'margenPct', 'recargos'], true],
+/** [título, campos, partida directa que puede marcarse «no aplica», solo fuera del uso personal]. */
+const GRUPOS: [string, CampoPlan[], Directa | null, boolean][] = [
+  ['Distancia y tiempo', ['km', 'marchaMin', 'esperaMin', 'cargaMin', 'descargaMin'], null, false],
+  ['Combustible', ['precioLitro', 'kmL'], null, false],
+  ['TAG y peajes', ['tag'], 'peajes', false],
+  ['Ayudantes (si corresponde)', ['ayudantes', 'pagoAyudante'], 'ayudantes', false],
+  ['Otros costos del servicio', ['otros'], 'otros', false],
+  ['Desgaste (cuando exista evidencia)', ['desgasteKm'], null, false],
+  ['Remuneración y margen deseados', ['trabajoHora', 'margenPct', 'recargos'], null, true],
 ];
 
 const ETIQ_CLASE: Record<string, string> = {
@@ -82,6 +84,7 @@ export function FormPresupuesto(props: {
   const resultado = vista.datos?.resultado ?? null;
   if (!veh) return null;
   const op = e.opciones;
+  const personal = props.uso === 'personal';
   const opcion = (cambio: Partial<OpcionesPlan>) => setE((s) => ({ ...s, opciones: { ...s.opciones, ...cambio } }));
   const corte = (fecha: string, odometro: string) => {
     setTextoCorte({ fecha, odometro });
@@ -141,65 +144,79 @@ export function FormPresupuesto(props: {
           ))}
         </ul>
       ) : null}
-      <fieldset className="m-grupo" data-modalidad>
-        <legend>Modalidad</legend>
-        <div className="m-fila" role="radiogroup" aria-label="Modalidad">
-          {(
-            [
-              ['simplificada', 'Simplificada'],
-              ['detallada', 'Detallada'],
-            ] as [Modalidad, string][]
-          ).map(([m, t]) => (
-            <button key={m} type="button" className={op.modalidad === m ? 'm-btn m-btn-on' : 'm-btn'} aria-pressed={op.modalidad === m} onClick={() => opcion({ modalidad: m })} data-modalidad-opcion={m}>
-              {t}
-            </button>
-          ))}
-        </div>
-        <p className="m-nota">
-          {op.modalidad === 'simplificada'
-            ? 'Simplificada (recomendada): combustible, TAG, distancia y tiempo, desgaste, ayudantes y otros costos del servicio. No suma gastos fijos ni pide contabilidad anual.'
-            : 'Detallada: además suma los gastos fijos por hora productiva.'}
+      {personal ? (
+        <p className="m-nota" data-modalidad-personal>
+          Uso personal: modalidad simplificada. Solo se registran los gastos que efectivamente pagas en el viaje (combustible, TAG, ayudantes, otros); no se piden remuneración,
+          margen, gastos fijos ni datos contables.
         </p>
-      </fieldset>
-      {GRUPOS.map(([titulo, campos, abierto]) => {
-        const cuerpo = (
-          <div className="m-grilla">
-            {campos.map((k) => (
-              <label key={k} className="m-campo" htmlFor={`pres-${k}`}>
-                <span>{ETIQUETAS_PLAN[k]}</span>
-                <input id={`pres-${k}`} inputMode="decimal" autoComplete="off" value={textos[k]} onChange={(ev) => cambiar(k, ev.target.value)} />
-                <Procedencia p={construido.procedencia[k] ?? e[k].procedencia} />
-              </label>
+      ) : (
+        <fieldset className="m-grupo" data-modalidad>
+          <legend>Modalidad</legend>
+          <div className="m-fila" role="radiogroup" aria-label="Modalidad">
+            {(
+              [
+                ['simplificada', 'Simplificada'],
+                ['detallada', 'Detallada'],
+              ] as [Modalidad, string][]
+            ).map(([m, t]) => (
+              <button key={m} type="button" className={op.modalidad === m ? 'm-btn m-btn-on' : 'm-btn'} aria-pressed={op.modalidad === m} onClick={() => opcion({ modalidad: m })} data-modalidad-opcion={m}>
+                {t}
+              </button>
             ))}
-            {campos.includes('precioLitro') ? (
-              <label className="m-campo">
-                <span>Origen del precio</span>
-                <select id="pres-fuente" value={e.fuentePrecio ?? ''} onChange={(ev) => setE((s) => ({ ...s, fuentePrecio: (ev.target.value || null) as FuentePrecio | null }))}>
-                  <option value="">— sin indicar —</option>
-                  <option value="boleta">Boleta (comprobado)</option>
-                  <option value="surtidor">Surtidor (medido)</option>
-                  <option value="declaracion">Lo sé yo (declarado)</option>
-                  <option value="referencia_publicada">Referencia publicada (estimado)</option>
-                  <option value="supuesto">Supuesto (estimado)</option>
-                </select>
-              </label>
-            ) : null}
           </div>
-        );
-        return abierto ? (
+          <p className="m-nota">
+            {op.modalidad === 'simplificada'
+              ? 'Simplificada (recomendada): combustible, TAG, distancia y tiempo, desgaste, ayudantes y otros costos del servicio. No suma gastos fijos ni pide contabilidad anual. Lo que escribiste en la detallada se conserva.'
+              : 'Detallada: además suma los gastos fijos por hora productiva.'}
+          </p>
+        </fieldset>
+      )}
+      {GRUPOS.filter(([, , , comercial]) => !(comercial && personal)).map(([titulo, campos, directa]) => {
+        const noAplica = directa !== null && op.noAplica.includes(directa);
+        return (
           <fieldset key={titulo} className="m-grupo">
             <legend>{titulo}</legend>
-            {cuerpo}
+            {directa ? (
+              <label className="m-check">
+                <input
+                  type="checkbox"
+                  checked={noAplica}
+                  data-no-aplica={directa}
+                  onChange={(ev) => opcion({ noAplica: ev.target.checked ? [...op.noAplica, directa] : op.noAplica.filter((x) => x !== directa) })}
+                />
+                No aplica a este servicio
+              </label>
+            ) : null}
+            {noAplica ? (
+              <p className="m-nota">No aplica: queda fuera del costo (no es un dato faltante ni un cero). Lo que habías escrito se conserva.</p>
+            ) : (
+              <div className="m-grilla">
+                {campos.map((k) => (
+                  <label key={k} className="m-campo" htmlFor={`pres-${k}`}>
+                    <span>{ETIQUETAS_PLAN[k]}</span>
+                    <input id={`pres-${k}`} inputMode="decimal" autoComplete="off" value={textos[k]} onChange={(ev) => cambiar(k, ev.target.value)} />
+                    <Procedencia p={construido.procedencia[k] ?? e[k].procedencia} />
+                  </label>
+                ))}
+                {campos.includes('precioLitro') ? (
+                  <label className="m-campo">
+                    <span>Origen del precio</span>
+                    <select id="pres-fuente" value={e.fuentePrecio ?? ''} onChange={(ev) => setE((s) => ({ ...s, fuentePrecio: (ev.target.value || null) as FuentePrecio | null }))}>
+                      <option value="">— sin indicar —</option>
+                      <option value="boleta">Boleta (comprobado)</option>
+                      <option value="surtidor">Surtidor (medido)</option>
+                      <option value="declaracion">Lo sé yo (declarado)</option>
+                      <option value="referencia_publicada">Referencia publicada (estimado)</option>
+                      <option value="supuesto">Supuesto (estimado)</option>
+                    </select>
+                  </label>
+                ) : null}
+              </div>
+            )}
           </fieldset>
-        ) : (
-          <details key={titulo} className="m-grupo">
-            <summary>{titulo}</summary>
-            <p className="m-nota">Gastos fijos, seguros, permisos y mantenciones se detallan en la modalidad detallada. No son necesarios para registrar un viaje.</p>
-            {cuerpo}
-          </details>
         );
       })}
-      {op.modalidad === 'detallada' ? (
+      {!personal && op.modalidad === 'detallada' ? (
         <fieldset className="m-grupo">
           <legend>Gastos fijos (modalidad detallada)</legend>
           <div className="m-grilla">
@@ -283,7 +300,7 @@ export function FormPresupuesto(props: {
             </p>
             <p className="m-nota">
               Partidas faltantes: {resultado.faltan.length ? resultado.faltan.join(', ') : 'ninguna'}.
-              {op.modalidad === 'simplificada' ? ' Gastos fijos: excluidos (modalidad simplificada).' : ''}
+              {personal || op.modalidad === 'simplificada' ? ' Gastos fijos: excluidos (modalidad simplificada).' : ''}
             </p>
           </>
         ) : (

@@ -4,7 +4,8 @@
  */
 import { useState } from 'react';
 import { distanciaViaje } from '../calculos';
-import { aliasPresentacion, FORMATO_ANTERIOR, paqueteMedicion } from '../campo';
+import { aliasPresentacion, FORMATO_ANTERIOR, informeViaje, paqueteMedicion } from '../campo';
+import { LEYENDA_OBJETIVOS, OBJETIVOS_12, resumenObjetivos, type ResumenObjetivos } from '../objetivos';
 import { cargasCsv, comparacionCsv, viajesCsv } from '../exportar';
 import type { Uso, Viaje } from '../modelo';
 import { esAnterior } from '../modelo';
@@ -28,6 +29,7 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
   const [conFotos, setConFotos] = useState(false);
   const [borrar, setBorrar] = useState(false);
   const [resultado, setResultado] = useState<string | null>(null);
+  const [objetivos, setObjetivos] = useState<ResumenObjetivos | null>(null);
   const [pendiente, setPendiente] = useState<{ respaldo: Respaldo; conflictos: string[] } | null>(null);
 
   if (ficha) return <FichaViaje viajeId={ficha} onVolver={() => setFicha(null)} />;
@@ -149,6 +151,69 @@ export function PantallaHistorial({ persistente }: { persistente: boolean | null
               </li>
             ))}
         </ul>
+      </section>
+
+      <section className="m-tarjeta" aria-label="Objetivos exploratorios" data-objetivos>
+        <h2>Objetivos exploratorios (#12)</h2>
+        <p className="m-nota">
+          {LEYENDA_OBJETIVOS} Metas: MAPE ≤ {OBJETIVOS_12.mapeMaximoPct} %, al menos {OBJETIVOS_12.dentroDeDiezMinimoPct} % de los viajes dentro de ±10 % y {OBJETIVOS_12.subestimacionesMayoresADiez}{' '}
+          subestimaciones mayores al 10 %. Solo cuentan los viajes con total comparable (partidas aplicables respaldadas).
+        </p>
+        <button
+          type="button"
+          className="m-btn m-btn-sec"
+          data-objetivos-calcular
+          onClick={async () => {
+            const cerrados = d.viajes.filter((v) => v.estado === 'cerrado');
+            const casos = await Promise.all(cerrados.map(async (v) => {
+              const r = await informeViaje(datos, v);
+              return { codigo: alias.get(v.id) ?? v.codigo, informe: r.informe, error: r.error };
+            }));
+            setObjetivos(resumenObjetivos(casos));
+          }}
+        >
+          Calcular con los viajes cerrados
+        </button>
+        {objetivos ? (
+          <dl className="m-resumen" data-objetivos-resumen>
+            <div>
+              <dt>Viajes revisados</dt>
+              <dd className="num">{objetivos.revisados}</dd>
+            </div>
+            <div>
+              <dt>Denominador (con total comparable)</dt>
+              <dd className="num" data-objetivos-denominador>{objetivos.denominador}</dd>
+            </div>
+            <div>
+              <dt>MAPE</dt>
+              <dd className="num">{objetivos.mapePct === null ? 'sin datos' : `${fmt(Math.round(objetivos.mapePct * 10) / 10)} %`}</dd>
+            </div>
+            <div>
+              <dt>Dentro de ±10 %</dt>
+              <dd className="num">{objetivos.dentroDeDiezPct === null ? 'sin datos' : `${fmt(Math.round(objetivos.dentroDeDiezPct * 10) / 10)} %`}</dd>
+            </div>
+            <div>
+              <dt>Subestimaciones &gt; 10 %</dt>
+              <dd className="num">{objetivos.subestimacionesMayoresADiez}</dd>
+            </div>
+            <div>
+              <dt>Sesgo (negativo = subestima)</dt>
+              <dd className="num">{objetivos.sesgoPct === null ? 'sin datos' : `${fmt(Math.round(objetivos.sesgoPct * 10) / 10)} %`}</dd>
+            </div>
+            {objetivos.errorClpReferenciaCero.map((x) => (
+              <div key={x.codigo}>
+                <dt>{x.codigo} (referencia $0)</dt>
+                <dd className="num">{fmtClp(x.diferenciaClp)}</dd>
+              </div>
+            ))}
+            {objetivos.incompletos.length ? (
+              <div data-objetivos-incompletos>
+                <dt>Incompletos (fuera del denominador)</dt>
+                <dd>{objetivos.incompletos.map((x) => `${x.codigo}: ${x.motivo}`).join(' · ')}</dd>
+              </div>
+            ) : null}
+          </dl>
+        ) : null}
       </section>
 
       <section className="m-tarjeta" aria-label="Exportar">
