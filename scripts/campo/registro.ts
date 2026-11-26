@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 try {
   const [entrada, salida, ...extra] = process.argv.slice(2);
   if (entrada === 'fase0') {
-    if (extra.length !== (salida === 'resumen' ? 0 : 1)) throw new Error('Usa iniciar|sellar|comparar viaje-001, o resumen sin c�digo.');
+    if (extra.length !== (salida === 'resumen' ? 0 : 1)) throw new Error('Usa iniciar|sellar|comparar viaje-001, o resumen sin código.');
     const { ejecutar } = await import('./archivo.js');
     console.log(ejecutar(salida, extra[0]));
   } else {

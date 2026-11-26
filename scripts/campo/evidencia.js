@@ -8,18 +8,18 @@ function exigir(condicion, mensaje) {
   if (!condicion) throw new Error(mensaje);
 }
 
-function campos(obj, nombres) {
+function campos(obj, nombres, opcionales = []) {
   exigir(obj && typeof obj === 'object' && !Array.isArray(obj)
-    && Object.keys(obj).length === nombres.length
+    && Object.keys(obj).every(k => nombres.includes(k) || opcionales.includes(k))
     && nombres.every(k => Object.hasOwn(obj, k)), 'Campos incorrectos. Revisa la plantilla y elimina texto personal.');
 }
 
 function opcion(v, opciones, nombre) {
-  exigir(opciones.includes(v), 'Opci�n inv�lida en ' + nombre);
+  exigir(opciones.includes(v), 'Opción inválida en ' + nombre);
 }
 
 function numero(v, nombre) {
-  exigir(typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= Number.MAX_SAFE_INTEGER, 'N�mero inv�lido en ' + nombre);
+  exigir(typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= Number.MAX_SAFE_INTEGER, 'Número inválido en ' + nombre);
 }
 
 function dato(d, nombre, sim, permitidas = clases) {
@@ -31,6 +31,26 @@ function dato(d, nombre, sim, permitidas = clases) {
 }
 
 const fuentes = ['boleta', 'surtidor', 'referencia_publicada', 'declaracion', 'supuesto'];
+const maxClp = 9_999_999_999;
+// Topes técnicos del cotizador (src/web/numericLimits.ts), sin importar la UI al teléfono.
+const maximos = {km:100000,marchaMin:100000,cargaMin:100000,descargaMin:100000,esperaMin:100000,
+  precioLitro:100000,kmL:100,desgasteKm:10000,fijoHora:10000000,trabajoHora:10000000,
+  ayudantes:100,pagoAyudante:maxClp,otros:maxClp,tag:maxClp,recargos:maxClp,cobrado:maxClp,cotizado:maxClp};
+function topes(p) {
+  for (const [k,max] of Object.entries(maximos)) exigir(valor(p[k]) <= max,'Fuera de rango en '+k);
+  exigir((valor(p.cargaMin) ?? 0)+(valor(p.descargaMin) ?? 0) <= 100000,'Carga y descarga exceden el máximo del motor');
+}
+
+export function fechaValida(s) {
+  return typeof s === 'string' && /^\d{4}-\d\d-\d\d$/.test(s) && Number.isFinite(Date.parse(s))
+    && new Date(s).toISOString().slice(0,10) === s;
+}
+function instante(s) {
+  return typeof s === 'string' && fechaValida(s.slice(0,10))
+    && /^(\d{4}-\d\d-\d\d)T(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{3})?)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.test(s)
+    && Number.isFinite(Date.parse(s));
+}
+function baseIva(base) { opcion(base ?? null,[null,'neto','con_iva'],'baseClp'); }
 function precio(p, sim) {
   if (!p.precioLitro) return opcion(p.fuentePrecio, [null], 'fuentePrecio');
   opcion(p.fuentePrecio, fuentes, 'fuentePrecio');
@@ -41,27 +61,45 @@ function precio(p, sim) {
 export function validarContexto(f) {
   campos(f, ['uso','vehiculo','tipoVehiculo','plan','observacion']);
   opcion(f.uso, ['personal','flete_real','simulacion'], 'uso');
-  exigir(typeof f.vehiculo === 'string' && /^veh-\d{3,8}$/.test(f.vehiculo), 'Usa un c�digo veh-001');
+  exigir(typeof f.vehiculo === 'string' && /^veh-\d{3,8}$/.test(f.vehiculo), 'Usa un código veh-001');
   opcion(f.tipoVehiculo, ['auto','camioneta','furgon','camion_liviano','otro'], 'tipoVehiculo');
 }
 
 export function validarPlan(p, sim) {
   const numeros = [...tiempos,'kmL','precioLitro','desgasteKm','fijoHora','trabajoHora','ayudantes','pagoAyudante','tag','otros','margenPct','recargos','cotizado'];
-  campos(p, [...numeros,'fuentePrecio']);
+  campos(p, [...numeros,'fuentePrecio'], ['baseClp','ajusteHasta','muestraPrevista','resolucionKm','incertidumbreKm']);
+  opcion(p.muestraPrevista ?? null,[null,'calibracion','validacion'],'muestraPrevista');
   for (const k of numeros) dato(p[k], k, sim);
   precio(p, sim);
-  exigir(p.kmL === null || valor(p.kmL) > 0, 'El rendimiento debe ser positivo');
+  topes(p);
+  exigir(p.kmL === null || valor(p.kmL) >= 0.1, 'El rendimiento debe ser de al menos 0,1 km/L');
+  baseIva(p.baseClp);
+  for (const k of ['resolucionKm','incertidumbreKm']) dato(p[k] ?? null,k,sim);
+  if (p.ajusteHasta != null && p.ajusteHasta !== 'sin_ajuste') {
+    campos(p.ajusteHasta,['fecha','odometro']);
+    exigir(fechaValida(p.ajusteHasta.fecha),'Fecha de corte de calibración inválida');
+    numero(p.ajusteHasta.odometro,'odómetro de corte');
+  }
   exigir(p.margenPct === null || valor(p.margenPct) <= 80, 'Margen fuera del rango del motor');
 }
 
 function validarIntervalo(i, sim) {
-  campos(i, ['vehiculo','recorrido','carga','aire','registroCompleto','recargas']);
-  exigir(/^veh-\d{3,8}$/.test(i.vehiculo), 'Veh�culo de intervalo inv�lido');
+  campos(i, ['vehiculo','recorrido','carga','aire','registroCompleto','recargas'], ['muestra','zona','resolucionKm','resolucionLitros','incertidumbreLitros']);
+  if (i.zona != null) {
+    exigir(typeof i.zona==='string' && /^[A-Za-z_]+\/[A-Za-z_]+$/.test(i.zona),'Zona horaria inválida');
+    try { new Intl.DateTimeFormat('es-CL',{timeZone:i.zona}); } catch { throw new Error('Zona horaria desconocida'); }
+  }
+  opcion(i.muestra ?? null,[null,'calibracion','validacion'],'muestra');
+  for (const k of ['resolucionKm','resolucionLitros','incertidumbreLitros']) {
+    dato(i[k] ?? null,k,sim,['MEDIDO','COMPROBADO','DECLARADO']);
+    if (k !== 'incertidumbreLitros' && i[k]) exigir(valor(i[k]) > 0,'Resolución debe ser positiva');
+  }
+  exigir(/^veh-\d{3,8}$/.test(i.vehiculo), 'Vehículo de intervalo inválido');
   opcion(i.recorrido, [null,'urbano','autopista','mixto'], 'recorrido');
   opcion(i.carga, [null,'sin','parcial','completa'], 'nivel de carga');
   opcion(i.aire,[null,true,false],'aire');
   opcion(i.registroCompleto,[null,true,false],'registroCompleto');
-  exigir(Array.isArray(i.recargas), 'Lista de recargas inv�lida');
+  exigir(Array.isArray(i.recargas), 'Lista de recargas inválida');
   let anterior = null;
   let fechaAnterior = null;
   for (const r of i.recargas) {
@@ -69,13 +107,13 @@ function validarIntervalo(i, sim) {
     if (r.fecha !== null) {
       exigir(typeof r.fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.fecha)
         && Number.isFinite(Date.parse(r.fecha)) && new Date(r.fecha).toISOString().slice(0,10) === r.fecha
-        && (fechaAnterior === null || r.fecha >= fechaAnterior),'Fecha de recarga inv�lida o fuera de orden');
+        && (fechaAnterior === null || r.fecha >= fechaAnterior),'Fecha de recarga inválida o fuera de orden');
       fechaAnterior = r.fecha;
     }
     opcion(r.lleno,[true,false],'lleno');
     dato(r.odometro,'odometro',sim,['MEDIDO','COMPROBADO']);
     dato(r.litros,'litros',sim,['MEDIDO','COMPROBADO']);
-    if (r.odometro && anterior !== null) exigir(valor(r.odometro) >= anterior,'Od�metros fuera de orden');
+    if (r.odometro && anterior !== null) exigir(valor(r.odometro) >= anterior,'Odómetros fuera de orden');
     if (r.odometro) anterior = valor(r.odometro);
     exigir(!r.litros || valor(r.litros) > 0,'Litros deben ser positivos');
   }
@@ -84,32 +122,39 @@ function validarIntervalo(i, sim) {
 
 export function validarObservacion(o, sim, vehiculo) {
   const numeros = [...tiempos,'resolucionKm','pesoKg','ayudantes','minutosAyudantes','precioLitro','cobrado'];
-  campos(o,[...numeros,'inicio','tipoCarga','recorrido','nivelCarga','aire','equipo','fuentePrecio','cobertura','comprobantes','intervalo','mantencion','fijos']);
+  campos(o,[...numeros,'inicio','tipoCarga','recorrido','nivelCarga','aire','equipo','fuentePrecio','cobertura','comprobantes','intervalo','mantencion','fijos'],
+    ['fin','odometroInicial','odometroFinal','incertidumbreKm','baseClp']);
   opcion(o.recorrido,[null,'urbano','autopista','mixto'],'recorrido');
   opcion(o.nivelCarga,[null,'sin','parcial','completa'],'nivelCarga');
   opcion(o.aire,[null,true,false],'aire');
   for (const k of numeros) dato(o[k], k, sim, k === 'precioLitro' ? clases : ['MEDIDO','COMPROBADO','DECLARADO',...(k === 'pesoKg' ? ['ESTIMADO'] : [])]);
-  if (o.inicio !== null) exigir(typeof o.inicio === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d(\.\d{3})?)?(Z|[+-]\d\d:\d\d)$/.test(o.inicio) && Number.isFinite(Date.parse(o.inicio)), 'Inicio inv�lido. Incluye fecha, hora y zona.');
+  baseIva(o.baseClp);
+  topes(o);
+  for (const k of ['odometroInicial','odometroFinal','incertidumbreKm']) dato(o[k] ?? null,k,sim,['MEDIDO','COMPROBADO','DECLARADO']);
+  if (o.inicio !== null) exigir(instante(o.inicio),'Inicio inválido. Incluye fecha, hora y zona.');
+  if (o.fin != null) exigir(instante(o.fin) && (!o.inicio || Date.parse(o.fin) >= Date.parse(o.inicio)),'Fin inválido o anterior al inicio');
+  if (o.resolucionKm) exigir(valor(o.resolucionKm)>0,'Resolución debe ser positiva');
+  if (o.odometroInicial && o.odometroFinal) exigir(valor(o.odometroFinal)>=valor(o.odometroInicial),'Odómetro final anterior al inicial');
   opcion(o.tipoCarga,[null,'sin','muebles','mudanza','paquetes','materiales','otra'],'tipoCarga');
   opcion(o.equipo,[null,'ninguno','carro','rampa','elevador','varios','otro'],'equipo');
   precio(o,sim);
   campos(o.cobertura, partidasDirectas);
   for (const k of partidasDirectas) opcion(o.cobertura[k],[null,'parcial','completa'], 'cobertura');
-  exigir(Array.isArray(o.comprobantes),'Lista de comprobantes inv�lida');
+  exigir(Array.isArray(o.comprobantes),'Lista de comprobantes inválida');
   const refs = new Set();
   for (const r of o.comprobantes) {
     campos(r,['ref','partida','clp']);
-    exigir(typeof r.ref === 'string' && /^doc-\d{3,8}-\d{2,4}$/.test(r.ref) && !refs.has(r.ref),'L�nea de comprobante inv�lida o repetida');
+    exigir(typeof r.ref === 'string' && /^doc-\d{3,8}-\d{2,4}$/.test(r.ref) && !refs.has(r.ref),'Línea de comprobante inválida o repetida');
     refs.add(r.ref);
     opcion(r.partida,partidasDirectas,'partida de comprobante');
-    exigir(Number.isSafeInteger(r.clp) && r.clp >= 0,'Monto de comprobante inv�lido');
+    exigir(Number.isSafeInteger(r.clp) && r.clp >= 0 && r.clp <= maxClp,'Monto de comprobante inválido');
   }
   for (const k of partidasDirectas) {
     exigir(o.cobertura[k] !== 'completa' || o.comprobantes.some(r => r.partida === k),'Una partida completa exige respaldo, incluso para cero');
   }
   if (o.intervalo !== null) {
     validarIntervalo(o.intervalo,sim);
-    exigir(o.intervalo.vehiculo === vehiculo,'El intervalo corresponde a otro veh�culo');
+    exigir(o.intervalo.vehiculo === vehiculo,'El intervalo corresponde a otro vehículo');
   }
   for (const [k,base] of [['mantencion','kmPeriodo'],['fijos','horasProductivas']]) {
     const h = o[k];
@@ -117,7 +162,7 @@ export function validarObservacion(o, sim, vehiculo) {
     campos(h,['periodo','gastoClp',base]);
     exigir(/^\d{4}-\d{2}-\d{2}\/\d{4}-\d{2}-\d{2}$/.test(h.periodo), 'Usa dos fechas para el periodo');
     const [a,b] = h.periodo.split('/');
-    exigir([a,b].every(x => Number.isFinite(Date.parse(x)) && new Date(x).toISOString().slice(0,10) === x) && a <= b, 'Periodo inv�lido');
+    exigir([a,b].every(x => Number.isFinite(Date.parse(x)) && new Date(x).toISOString().slice(0,10) === x) && a <= b, 'Periodo inválido');
     dato(h.gastoClp,'gastoClp',sim,['COMPROBADO','DECLARADO']);
     dato(h[base],base,sim,['MEDIDO','COMPROBADO','DECLARADO']);
   }

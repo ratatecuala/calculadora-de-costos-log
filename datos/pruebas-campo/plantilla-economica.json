@@ -3,6 +3,11 @@
   "vehiculo": null,
   "tipoVehiculo": null,
   "plan": {
+    "baseClp": null,
+    "ajusteHasta": null,
+    "muestraPrevista": null,
+    "resolucionKm": null,
+    "incertidumbreKm": null,
     "km": null,
     "marchaMin": null,
     "esperaMin": null,
@@ -23,6 +28,11 @@
     "cotizado": null
   },
   "observacion": {
+    "baseClp": null,
+    "fin": null,
+    "odometroInicial": null,
+    "odometroFinal": null,
+    "incertidumbreKm": null,
     "inicio": null,
     "km": null,
     "marchaMin": null,
