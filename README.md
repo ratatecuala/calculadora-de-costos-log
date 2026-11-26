@@ -16,7 +16,7 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 
 - **Cotización manual (PR #34).** El ingreso de km y minutos es la acción principal. El ejemplo pide confirmación si sustituye costos. El precio final se escribe en pesos o se copia con «Usar precio sugerido» cuando el cálculo está completo. La CI prueba el flujo hasta PDF y WhatsApp en teléfono emulado y escritorio con datos ficticios.
 
-**Actualizado: 25-11-2026 (hora de Chile).** Esta sección es el punto de continuidad: un chat o colaborador nuevo debe poder seguir desde aquí sin memorias privadas.
+**Actualizado: 26-11-2026 (hora de Chile).** Esta sección es el punto de continuidad: un chat o colaborador nuevo debe poder seguir desde aquí sin memorias privadas.
 
 | Dato | Valor |
 |---|---|
@@ -31,6 +31,7 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 | `main` | Solo publica este README de continuidad. **El código y los documentos técnicos siguen en la rama del PR #34, que no está integrado.** Toda fusión requiere aprobación del propietario |
 | Conflicto con `main` | **Resuelto en la rama**: se integró `main` conservando el README de desarrollo (`main` solo tenía el README de portada) |
 | Estrategia (A-85) | **Hipótesis por validar:** herramienta de **control económico** para transportistas («¿Estás ganando dinero o solo cubriendo gastos?»). El cotizador surge de conocer los costos. Sin prometer ganancias ni exactitud sin evidencia. Seguimiento visual en un tablero privado de Trello; GitHub es la fuente de verdad |
+| Organización del equipo (A-86) | **Deep Research**: investigación externa de fondo. **GPT**: estrategia, encargos, KPIs, evaluación, auditoría y coordinación. **Claude Code**: arquitectura, integración y documentación. **Codex**: ingeniería, instrumentos, pruebas y CI. **Propietario**: aprobaciones. Reglas obligatorias en [AGENTS.md §3](AGENTS.md#3-responsabilidades-y-sistema-de-trabajo) y [A-86](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7181563285). No duplicar investigaciones ni ampliar autorizaciones. |
 | Siguiente acción | **Fase 0 en cuatro bloques** (A-84 y A-85, [08](docs/08-hoja-de-ruta.md#fases-y-puertas-de-aprobación-a-84-revisada-por-a-85)):<br>• **0A:** revisar el CI de A-83 e I-2 ([checks del PR](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34/checks));<br>• **0B:** mediciones reales con el Chery y aprobar los criterios de [#12](https://github.com/ratatecuala/calculadora-de-costos-log/issues/12);<br>• **0C:** *benchmark* de precios y entrevistas de posicionamiento;<br>• **0D:** pasos de staging de [25](docs/25-lista-staging-52.md) y aviso de privacidad.<br>Ninguna fase se desbloquea sola; los presupuestos y plazos son DATO FALTANTE |
 
 **Cómo retomar:** leer este README → [AGENTS.md](AGENTS.md) (reglas y autorizaciones) → [07 · Decisiones](docs/07-decisiones.md) → [13 · Staging](docs/13-staging.md) → los últimos comentarios del PR #34.
