@@ -1,0 +1,537 @@
+/**
+ * Ficha de un viaje: lecturas (inicial y final), km automáticos, tiempos derivados, detalles, comprobantes
+ * y comparación disponible. Todo se puede registrar después del viaje (hora editable).
+ */
+import { useEffect, useMemo, useState } from 'react';
+import { avisosLectura, avisosViaje, distanciaViaje, ultimoOdometro } from '../calculos';
+import { LEYENDA_OBJETIVOS, OBJETIVOS_12 } from '../objetivos';
+import { nombreVehiculo } from '../alta';
+import { aliasPresentacion, CRITERIOS_12, FORMATO_ANTERIOR, informeViaje, tiemposDesglosados, totalMinutos, type ResultadoInforme } from '../campo';
+import { recodificarFoto } from '../foto';
+import type { BaseClp, Comprobante, Directa, Instrumento, NivelCarga, Recorrido, Viaje } from '../modelo';
+import { DIRECTAS, esAnterior } from '../modelo';
+import { registrarLectura } from '../repositorio';
+import { huellaCorta } from '../sello';
+import { aInputLocal, desdeInputLocal, isoLocal, minutosPorTipo } from '../tiempo';
+import { Avisos, CampoLectura, CampoNumero, Confirmar, fechaHoraLegible, fmt, fmtClp, parseNumero, useCtx } from '../ui';
+
+const ETIQ_DIRECTA: Record<Directa, string> = { peajes: 'TAG y peajes', ayudantes: 'Ayudantes', otros: 'Otros' };
+const ETIQ_PARTIDA: Record<string, string> = {
+  combustible: 'Combustible', peajes: 'TAG y peajes', ayudantes: 'Ayudantes', otros: 'Otros costos', desgaste: 'Desgaste', gastosFijos: 'Gastos fijos',
+};
+const ETIQ_RECORRIDO: [string, string, string][] = [
+  ['km', 'Distancia', ' km'], ['marchaMin', 'Marcha', ' min'], ['esperaMin', 'Espera', ' min'], ['cargaMin', 'Carga', ' min'], ['descargaMin', 'Descarga', ' min'], ['totalMin', 'Total con estados', ' min'],
+];
+const rango = (r: { inferior: number | null; superior: number | null } | null, f: (n: number | null) => string) => (r ? `${f(r.inferior)} – ${r.superior === null ? 'abierto' : f(r.superior)}` : null);
+const pct = (n: number | null) => (n === null ? '' : ` (${fmt(Math.round(n * 10) / 10)} %)`);
+
+/**
+ * Comparación con el INFORME del contrato de #55 (`compararFicha`): presupuesto sellado, recalculado con
+ * lo observado (misma fórmula, otra entrada: no es validación) y referencia; la conciliación
+ * independiente y su estado los decide el contrato. Nunca hay un «aprobado».
+ */
+export function VistaComparacion({ r, totalNoDesglosado }: { r: ResultadoInforme; totalNoDesglosado: number | null }) {
+  const inf = r.informe;
+  return (
+    <section className="m-tarjeta" aria-label="Comparación" data-comparacion>
+      <h2>¿Cómo te fue?</h2>
+      {r.notas.map((n) => (
+        <p key={n} className="m-aviso" data-nota-comparacion>
+          {n}
+        </p>
+      ))}
+      {!inf ? (
+        <p className="m-aviso" data-error-comparacion>
+          Sin comparación: {r.error}
+        </p>
+      ) : (
+        <>
+          <dl className="m-datos" data-resumen-simple>
+            <div>
+              <dt>Kilómetros</dt>
+              <dd>
+                {inf.recorrido.km?.referencia != null ? fmt(inf.recorrido.km.referencia, ' km') : 'sin dato'}
+                {inf.recorrido.km?.previsto != null ? ` (estimaste ${fmt(inf.recorrido.km.previsto, ' km')})` : ''}
+              </dd>
+            </div>
+            <div>
+              <dt>Pagaste en TAG, ayudantes y otros</dt>
+              <dd>{inf.gastosDelViaje.subtotalClp === null ? 'falta anotar algo' : fmtClp(inf.gastosDelViaje.subtotalClp)}</dd>
+            </div>
+            <div>
+              <dt>Litros de este viaje</dt>
+              <dd>{inf.referencias.litrosAsignadosEstimados === null ? 'aún no se pueden calcular' : `${fmt(inf.referencias.litrosAsignadosEstimados, ' L')} (estimado)`}</dd>
+            </div>
+          </dl>
+          <details className="m-avanzado" data-detalle-tecnico>
+            <summary>Ver detalle técnico</summary>
+          <p>
+            Presupuesto: <strong data-estado-presupuesto>{inf.estadoPresupuesto}</strong> · modalidad {inf.conciliacionIndependiente.modalidad} · conciliación{' '}
+            <strong data-conciliacion>{inf.conciliacionIndependiente.estado}</strong> ({inf.conciliacionIndependiente.aprobacion}).
+          </p>
+          <p className="m-nota">
+            Diferencia = previsto − referencia; negativa = subestimación. Datos observados: {inf.completitud.observacion.presentes} de {inf.completitud.observacion.total}.
+            {inf.conciliacionIndependiente.motivos.length ? ` Motivos de comparación parcial: ${inf.conciliacionIndependiente.motivos.join('; ')}.` : ''}
+          </p>
+          {inf.completitud.observacion.faltan.length ? (
+            <p className="m-nota" data-faltan>
+              Datos faltantes (no se sustituyen por cero): {inf.completitud.observacion.faltan.join(', ')}.
+            </p>
+          ) : null}
+          {totalNoDesglosado !== null ? (
+            <p className="m-aviso" data-total-no-desglosado>
+              Tiempo total del viaje: {fmt(totalNoDesglosado, ' min')}, sin desglosar. Marcha, espera, carga y descarga: dato faltante (no se usaron los botones de estado).
+            </p>
+          ) : null}
+          <div className="m-tarjetas">
+            {ETIQ_RECORRIDO.map(([k, etiqueta, u]) => {
+              const x = inf.recorrido[k];
+              if (!x) return null;
+              return (
+                <article key={k} className="m-cmp" data-partida={k}>
+                  <h3>{etiqueta}</h3>
+                  <dl>
+                    <div>
+                      <dt>Previsto</dt>
+                      <dd className="num">{fmt(x.previsto, u)}</dd>
+                    </div>
+                    <div>
+                      <dt>Observado</dt>
+                      <dd className="num">
+                        {fmt(x.referencia, u)} <small>{x.evidencia ?? ''}</small>
+                      </dd>
+                    </div>
+                    {x.diferencia !== null ? (
+                      <div>
+                        <dt>Diferencia</dt>
+                        <dd className="num" data-diferencia>
+                          {fmt(Math.round(x.diferencia * 1e6) / 1e6, u)}
+                          {pct(x.porcentaje)} · {x.sentido}
+                        </dd>
+                      </div>
+                    ) : null}
+                  </dl>
+                </article>
+              );
+            })}
+            {Object.entries(inf.comparacionClp).map(([k, c]) => {
+              const l = inf.conciliacionIndependiente.partidas[k as keyof typeof inf.conciliacionIndependiente.partidas];
+              return (
+                <article key={k} className="m-cmp" data-partida={k}>
+                  <h3>{ETIQ_PARTIDA[k] ?? k}</h3>
+                  <dl>
+                    <div>
+                      <dt>Sellado</dt>
+                      <dd className="num">{fmtClp(c.original.previsto)}</dd>
+                    </div>
+                    <div>
+                      <dt>Recalculado</dt>
+                      <dd className="num">{fmtClp(c.recalculado.previsto)}</dd>
+                    </div>
+                    <div>
+                      <dt>Referencia</dt>
+                      <dd className="num">
+                        {fmtClp(c.original.referencia)} <small>{l?.evidencia ?? c.evidencia ?? 'DATO FALTANTE'}</small>
+                      </dd>
+                    </div>
+                    {c.original.diferencia !== null ? (
+                      <div>
+                        <dt>Diferencia</dt>
+                        <dd className="num" data-diferencia>
+                          {fmtClp(c.original.diferencia)}
+                          {pct(c.original.porcentaje)} · {c.original.sentido}
+                        </dd>
+                      </div>
+                    ) : null}
+                  </dl>
+                  <p className="m-nota" data-estado-partida>
+                    {l ? `${l.estado}${l.requerida ? (l.comparable ? ' · comparable con evidencia independiente' : ' · sin comparación independiente') : ''}` : ''}
+                  </p>
+                </article>
+              );
+            })}
+          </div>
+          <section className="m-subgrupo" aria-label="Combustible e incertidumbre" data-combustible>
+            <h3>Combustible</h3>
+            <p className="m-nota">
+              {inf.referencias.intervalo.utilizable
+                ? `Intervalo de validación utilizable · rendimiento ${fmt(inf.referencias.rendimientoMedidoIntervaloKmL, ' km/L')} medido sobre el intervalo (no sobre este viaje).`
+                : `Sin asignación al viaje — ${inf.referencias.intervalo.motivos.join('; ')}.`}
+            </p>
+            <p className="m-nota" data-litros-asignados>
+              Litros asignados al viaje: {inf.referencias.litrosAsignadosEstimados === null ? 'DATO FALTANTE' : `${fmt(inf.referencias.litrosAsignadosEstimados, ' L')} — ESTIMADO (asignación proporcional), no es consumo medido del viaje`}.
+            </p>
+            <p className="m-nota" data-incertidumbre>
+              Incertidumbre:{' '}
+              {rango(inf.referencias.incertidumbreCombustible.litros, (n) => fmt(n, ' L')) ?? 'sin rango'}
+              {inf.referencias.incertidumbreCombustible.combustibleClp ? ` · ${rango(inf.referencias.incertidumbreCombustible.combustibleClp, (n) => fmtClp(n))}` : ''}
+              {inf.referencias.incertidumbreCombustible.faltan.length ? ` · faltan: ${inf.referencias.incertidumbreCombustible.faltan.join(', ')}` : ''}.
+            </p>
+            <p className="m-nota">Las recargas parciales quedan como gasto registrado: sin saldo inicial y final no se infieren los litros del viaje.</p>
+          </section>
+          <section className="m-subgrupo" aria-label="Cobertura de gastos pagados" data-cobertura>
+            <h3>Gastos pagados del viaje y cobertura</h3>
+            <ul className="m-lista">
+              {(Object.entries(inf.gastosDelViaje.porPartida) as [Directa, { clp: number | null; cobertura: 'completa' | 'parcial' | null }][]).map(([k, g]) => (
+                <li key={k} data-cobertura-partida={k}>
+                  {ETIQ_DIRECTA[k]}: {g.clp === null ? 'sin monto' : fmtClp(g.clp)} · cobertura {g.cobertura ?? 'sin indicar'}
+                </li>
+              ))}
+            </ul>
+            <p className="m-nota">
+              Subtotal: {inf.gastosDelViaje.subtotalClp === null ? 'DATO FALTANTE' : fmtClp(inf.gastosDelViaje.subtotalClp)} ({inf.gastosDelViaje.evidencia}).
+            </p>
+          </section>
+          <p className="m-nota" data-objetivo-viaje>
+            Error absoluto del total comparable:{' '}
+            {inf.conciliacionIndependiente.errorAbsolutoPct === null ? 'sin total comparable' : `${fmt(Math.round(inf.conciliacionIndependiente.errorAbsolutoPct * 10) / 10)} %`} · objetivo exploratorio por viaje ±
+            {inf.conciliacionIndependiente.objetivoMaximoPct} % (MAPE del conjunto ≤ {OBJETIVOS_12.mapeMaximoPct} %). {LEYENDA_OBJETIVOS}
+          </p>
+          <p className="m-nota">
+            Remuneración y margen: es una meta, no un pago; la conciliación compara el costo operativo ({inf.conciliacionIndependiente.alcance}).
+          </p>
+          <p className="m-nota" data-criterios>
+            {CRITERIOS_12}
+          </p>
+          </details>
+        </>
+      )}
+    </section>
+  );
+}
+
+function Opciones<T extends string | boolean>(props: { etiqueta: string; valor: T | null; opciones: [T, string][]; onCambio: (v: T | null) => void; id: string }) {
+  return (
+    <div className="m-opciones" role="group" aria-label={props.etiqueta} data-opciones={props.id}>
+      <span>{props.etiqueta}</span>
+      <div className="m-fila">
+        {props.opciones.map(([v, t]) => (
+          <button key={String(v)} type="button" className={props.valor === v ? 'm-btn m-btn-on' : 'm-btn'} aria-pressed={props.valor === v} onClick={() => props.onCambio(props.valor === v ? null : v)}>
+            {t}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function FichaViaje({ viajeId, onVolver }: { viajeId: string; onVolver: () => void }) {
+  const { a, d, recargar, avisar } = useCtx();
+  const v = d.viajes.find((x) => x.id === viajeId);
+  const veh = v ? (d.vehiculos.find((x) => x.id === v.vehiculoId) ?? null) : null;
+  const pres = v?.presupuestoId ? (d.presupuestos.find((p) => p.id === v.presupuestoId) ?? null) : null;
+  const [informe, setInforme] = useState<ResultadoInforme | null>(null);
+  const [textoIncert, setTextoIncert] = useState(v?.incertidumbreKm != null ? String(v.incertidumbreKm).replace('.', ',') : '');
+  const [reinicio, setReinicio] = useState(v?.tripReiniciadoKm != null);
+  const [anulando, setAnulando] = useState(false);
+  const [partida, setPartida] = useState<Directa>('peajes');
+  const [monto, setMonto] = useState('');
+  const [kmReinicio, setKmReinicio] = useState(v?.tripReiniciadoKm !== null && v?.tripReiniciadoKm !== undefined ? String(v.tripReiniciadoKm).replace('.', ',') : '');
+  useEffect(() => {
+    let vivo = true;
+    if (v && v.estado !== 'en curso') void informeViaje(d, v).then((r) => vivo && setInforme(r));
+    return () => {
+      vivo = false;
+    };
+  }, [d, v]);
+  const alias = useMemo(() => aliasPresentacion(d.viajes.map((x) => ({ id: x.id, alias: x.codigo }))), [d.viajes]);
+  if (!v) return <p>Viaje no encontrado.</p>;
+  const selloOk = informe?.sello?.ok ?? null;
+
+  const guardar = async (cambio: (x: Viaje) => Viaje) => {
+    await a.guardar('viajes', { ...cambio(v), editadoEl: isoLocal() });
+    await recargar();
+  };
+  const dist = distanciaViaje(v, veh);
+  const min = minutosPorTipo(v.tramos, v.fin);
+  const ultimo = ultimoOdometro(v.vehiculoId, d.viajes, d.cargas, v.id);
+  const desglose = tiemposDesglosados(v);
+  const avisos = avisosViaje(v, veh, pres && !esAnterior(pres) ? (pres.datos.plan.km?.[0] ?? null) : null, d.ajustes.umbrales);
+
+  const lectura = (momento: 'inicial' | 'final', inst: Instrumento, etiqueta: string) => (
+    <CampoLectura
+      id={`${momento}-${inst}`}
+      etiqueta={etiqueta}
+      actual={v.lecturas[momento][inst]?.valor ?? null}
+      avisosDe={(valor) => avisosLectura(inst, momento, valor, v, inst === 'odometro' && momento === 'inicial' ? ultimo : null)}
+      onGuardar={async ({ valor, foto, conservar }) => {
+        await registrarLectura(a, v, momento, inst, valor, { ahora: isoLocal(), foto, conservar, recodificar: recodificarFoto });
+        await recargar();
+        avisar('Lectura guardada');
+      }}
+    />
+  );
+
+  const siguienteRef = () => {
+    const n = /^viaje-(\d+)$/.exec(v.codigo)?.[1] ?? '000';
+    let i = v.comprobantes.length + 1;
+    let ref = `doc-${n}-${String(i).padStart(2, '0')}`;
+    while (v.comprobantes.some((c) => c.ref === ref)) ref = `doc-${n}-${String(++i).padStart(2, '0')}`;
+    return ref;
+  };
+
+  return (
+    <div className="m-ficha" data-ficha={v.codigo}>
+      <section className="m-tarjeta">
+        <div className="m-fila m-entre">
+          <h2>
+            {alias.get(v.id) ?? v.codigo} · {v.estado}
+          </h2>
+          <button type="button" className="m-btn" onClick={onVolver}>
+            Volver
+          </button>
+        </div>
+        <p>
+          {veh ? nombreVehiculo(veh) : ''} · {v.uso === 'simulacion' ? 'simulación (ficticia)' : 'uso personal'} · salida {fechaHoraLegible(v.inicio)} · llegada {fechaHoraLegible(v.fin)}
+          {v.horaEditada ? ' · horas escritas después' : ''}
+        </p>
+        <p data-estimacion>
+          {pres ? (selloOk === false ? 'Con estimación previa, pero su sello no verifica (revisa el detalle técnico).' : 'Con estimación previa (guardada antes de salir).') : 'Sin estimación previa.'}
+        </p>
+        <details>
+          <summary>Corregir horas (si registras después)</summary>
+          <div className="m-grilla">
+            <label className="m-campo">
+              <span>Inicio</span>
+              <input
+                type="datetime-local"
+                defaultValue={aInputLocal(v.inicio)}
+                onBlur={(e) => {
+                  const iso = desdeInputLocal(e.target.value);
+                  if (iso && iso !== v.inicio) void guardar((x) => ({ ...x, inicio: iso, horaEditada: true, tramos: x.tramos.map((t, i) => (i === 0 ? { ...t, inicio: iso } : t)) }));
+                }}
+              />
+            </label>
+            {v.fin ? (
+              <label className="m-campo">
+                <span>Fin</span>
+                <input
+                  type="datetime-local"
+                  defaultValue={aInputLocal(v.fin)}
+                  onBlur={(e) => {
+                    const iso = desdeInputLocal(e.target.value);
+                    if (iso && iso !== v.fin) void guardar((x) => ({ ...x, fin: iso, horaEditada: true, tramos: x.tramos.map((t, i, arr) => (i === arr.length - 1 ? { ...t, fin: iso } : t)) }));
+                  }}
+                />
+              </label>
+            ) : null}
+          </div>
+        </details>
+      </section>
+
+      <section className="m-tarjeta" aria-label="Lecturas">
+        <h2>Kilómetros</h2>
+        <p className="m-nota">Basta con el TRIP o con el kilometraje total. Si anotas los dos, mejor.</p>
+        <div className="m-grilla">
+          {lectura('inicial', 'trip', 'TRIP al salir')}
+          {lectura('inicial', 'odometro', 'Kilometraje total al salir')}
+          {lectura('final', 'trip', 'TRIP al llegar')}
+          {lectura('final', 'odometro', 'Kilometraje total al llegar')}
+        </div>
+        <label className="m-check">
+          <input
+            type="checkbox"
+            checked={reinicio}
+            onChange={(e) => {
+              setReinicio(e.target.checked);
+              if (!e.target.checked && v.tripReiniciadoKm !== null) void guardar((x) => ({ ...x, tripReiniciadoKm: null }));
+            }}
+            data-reinicio
+          />
+          El TRIP se reinició durante el viaje
+        </label>
+        {reinicio ? (
+          <div className="m-fila">
+            <CampoNumero id="km-reinicio" etiqueta="Km recorridos (escríbelos)" valor={kmReinicio} onCambio={setKmReinicio} sufijo="km" />
+            <button
+              type="button"
+              className="m-btn m-btn-sec"
+              onClick={() => {
+                const n = parseNumero(kmReinicio);
+                if (n !== null && n >= 0) void guardar((x) => ({ ...x, tripReiniciadoKm: n }));
+              }}
+            >
+              Guardar km
+            </button>
+          </div>
+        ) : null}
+        <p className="m-resultado" data-km>
+          Distancia: <strong className="num">{fmt(dist.km, ' km')}</strong>
+          {dist.fuente ? ` (${dist.fuente === 'odometro' ? 'kilometraje total' : dist.fuente === 'trip' ? 'TRIP' : 'TRIP reiniciado, lo dijiste tú'})` : ''}
+          {dist.motivo ? <small> · {dist.motivo}</small> : null}
+        </p>
+        {desglose ? (
+          <p className="m-nota" data-tiempos>
+            Tiempos (de los botones de estado): marcha {min.marcha} min · espera {min.espera} min · carga {min.carga} min · descarga {min.descarga} min · pausa {min.pausa} min
+          </p>
+        ) : v.fin && v.soloMarchaDeclarada ? (
+          <div data-tiempos>
+            <p className="m-nota">
+              Tiempo total: {fmt(totalMinutos(v), ' min')}, declarado como marcha completa (sin espera, carga ni descarga). Es DECLARADO, no medido.
+            </p>
+            <button type="button" className="m-btn" data-solo-marcha="quitar" onClick={() => void guardar((x) => ({ ...x, soloMarchaDeclarada: false }))}>
+              Deshacer «todo fue marcha»
+            </button>
+          </div>
+        ) : (
+          <div data-tiempos>
+            <p className="m-nota">
+              Tiempo total: {fmt(v.fin ? totalMinutos(v) : min.marcha, ' min')}, sin desglosar (no se usaron los botones de estado). Marcha, espera, carga y descarga quedan como dato faltante.
+            </p>
+            {v.fin && v.estado !== 'en curso' ? (
+              <button type="button" className="m-btn m-btn-sec" data-solo-marcha="confirmar" onClick={() => void guardar((x) => ({ ...x, soloMarchaDeclarada: true }))}>
+                Confirmo que todo fue marcha (declarado)
+              </button>
+            ) : null}
+          </div>
+        )}
+        <Avisos avisos={avisos} />
+      </section>
+
+      <section className="m-tarjeta" aria-label="Detalles">
+        <h2>Cómo fue el viaje (opcional)</h2>
+        <Opciones<Recorrido> id="recorrido" etiqueta="Recorrido" valor={v.recorrido} opciones={[['urbano', 'Urbano'], ['autopista', 'Autopista'], ['mixto', 'Mixto']]} onCambio={(x) => void guardar((y) => ({ ...y, recorrido: x }))} />
+        <Opciones<NivelCarga> id="carga" etiqueta="Nivel de carga" valor={v.nivelCarga} opciones={[['sin', 'Sin carga'], ['parcial', 'Parcial'], ['completa', 'Completa']]} onCambio={(x) => void guardar((y) => ({ ...y, nivelCarga: x }))} />
+        <Opciones<boolean> id="aire" etiqueta="Aire acondicionado" valor={v.aire} opciones={[[true, 'Sí'], [false, 'No']]} onCambio={(x) => void guardar((y) => ({ ...y, aire: x }))} />
+      </section>
+
+      <section className="m-tarjeta" aria-label="Comprobantes">
+        <h2>Lo que pagaste en el viaje</h2>
+        <p className="m-nota">TAG y peajes, ayudantes u otros gastos. Si pagaste $0, anótalo igual. No escribas números de boleta.</p>
+        <ul className="m-lista">
+          {v.comprobantes.map((c) => (
+            <li key={c.ref} className="m-item">
+              <span>
+                {c.ref} · {ETIQ_DIRECTA[c.partida]} · {fmtClp(c.clp)}
+              </span>
+              <button type="button" className="m-btn" onClick={() => void guardar((x) => ({ ...x, comprobantes: x.comprobantes.filter((y) => y.ref !== c.ref) }))}>
+                Quitar
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="m-fila">
+          <select aria-label="Partida" value={partida} onChange={(e) => setPartida(e.target.value as Directa)}>
+            {DIRECTAS.map((k) => (
+              <option key={k} value={k}>
+                {ETIQ_DIRECTA[k]}
+              </option>
+            ))}
+          </select>
+          <CampoNumero id="comp-monto" etiqueta="Monto" valor={monto} onCambio={setMonto} sufijo="$" />
+          <button
+            type="button"
+            className="m-btn m-btn-sec"
+            onClick={() => {
+              const n = parseNumero(monto);
+              if (n === null || n < 0) return;
+              const c: Comprobante = { ref: siguienteRef(), partida, clp: Math.round(n) };
+              setMonto('');
+              void guardar((x) => ({ ...x, comprobantes: [...x.comprobantes, c] }));
+            }}
+          >
+            Agregar monto
+          </button>
+        </div>
+        {DIRECTAS.map((k) => {
+          const na = v.noAplica?.includes(k) ?? false;
+          const conMonto = v.comprobantes.some((c) => c.partida === k);
+          return (
+            <div key={k} className="m-opciones">
+              <label className="m-check">
+                <input
+                  type="checkbox"
+                  checked={na}
+                  disabled={!na && conMonto}
+                  data-no-aplica-viaje={k}
+                  onChange={(e) =>
+                    void guardar((y) => {
+                      const lista = (y.noAplica ?? []).filter((z) => z !== k);
+                      return e.target.checked ? { ...y, noAplica: [...lista, k], cobertura: { ...y.cobertura, [k]: null } } : { ...y, noAplica: lista };
+                    })
+                  }
+                />
+                {ETIQ_DIRECTA[k]}: no hubo en este viaje{!na && conMonto ? ' (tiene montos: quítalos antes)' : ''}
+              </label>
+              {na ? null : (
+                <Opciones<'parcial' | 'completa'>
+                  id={`cobertura-${k}`}
+                  etiqueta={`¿Anotaste todo lo de ${ETIQ_DIRECTA[k]}?`}
+                  valor={v.cobertura[k]}
+                  opciones={[['parcial', 'Faltan algunos'], ['completa', 'Está todo']]}
+                  onCambio={(x) => void guardar((y) => ({ ...y, cobertura: { ...y.cobertura, [k]: x } }))}
+                />
+              )}
+            </div>
+          );
+        })}
+        {DIRECTAS.filter((k) => v.cobertura[k] === 'completa' && !v.comprobantes.some((c) => c.partida === k)).map((k) => (
+          <p key={k} className="m-aviso">
+            {ETIQ_DIRECTA[k]}: marcaste «está todo» pero no hay montos. Agrega al menos uno (aunque sea $0).
+          </p>
+        ))}
+      </section>
+
+      <details className="m-avanzado" data-avanzado="ficha">
+        <summary>Opciones avanzadas</summary>
+        <section className="m-tarjeta" aria-label="Precisión">
+          <p className="m-nota" data-sello-ficha>
+            Presupuesto:{' '}
+            {pres ? (
+              <>
+                {pres.datos.id} · sello <code>{huellaCorta(pres.sha256)}</code> · {pres.estado}
+                {esAnterior(pres) ? ` · ${FORMATO_ANTERIOR}` : ` · modalidad ${pres.datos.plan.modalidad ?? 'detallada'}`}
+                {selloOk === false ? ' · ¡el sello no verifica!' : selloOk ? ' · sello verificado' : ''}
+              </>
+            ) : (
+              'sin presupuesto previo'
+            )}
+          </p>
+          <Opciones<NonNullable<BaseClp>>
+            id="base"
+            etiqueta="Los montos que anotaste son"
+            valor={v.baseClp ?? null}
+            opciones={[['neto', 'Netos'], ['con_iva', 'Con IVA']]}
+            onCambio={(x) => void guardar((y) => ({ ...y, baseClp: x }))}
+          />
+          <div className="m-fila">
+            <CampoNumero id="km-incert" etiqueta="Incertidumbre de los km (± km, opcional)" valor={textoIncert} onCambio={setTextoIncert} sufijo="km" />
+            <button
+              type="button"
+              className="m-btn m-btn-sec"
+              onClick={() => {
+                const n = parseNumero(textoIncert);
+                void guardar((x) => ({ ...x, incertidumbreKm: n !== null && n >= 0 ? n : null }));
+              }}
+            >
+              Guardar
+            </button>
+          </div>
+        </section>
+      </details>
+
+      {v.estado !== 'en curso' ? informe ? <VistaComparacion r={informe} totalNoDesglosado={v.fin && !desglose && !v.soloMarchaDeclarada ? totalMinutos(v) : null} /> : <p className="m-nota">Calculando la comparación…</p> : null}
+
+      {v.estado !== 'anulado' ? (
+        <section className="m-tarjeta">
+          {anulando ? (
+            <Confirmar
+              texto="¿Anular este viaje? No se borra: queda en el historial como anulado y fuera de las comparaciones."
+              si="Sí, anular"
+              peligro
+              onSi={() => {
+                setAnulando(false);
+                void guardar((x) => ({ ...x, estado: 'anulado' })).then(() => avisar('Viaje anulado'));
+              }}
+              onNo={() => setAnulando(false)}
+            />
+          ) : (
+            <button type="button" className="m-btn" onClick={() => setAnulando(true)}>
+              Anular viaje
+            </button>
+          )}
+        </section>
+      ) : null}
+    </div>
+  );
+}

@@ -1,0 +1,64 @@
+name: Fase 0 · Campo y compatibilidad móvil
+
+on:
+  pull_request:
+    branches: ['claude/determined-volta-q9xvli']
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fase-0-55-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validar:
+    if: github.event.pull_request.number == 55 && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Obtener HEAD del PR
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      - name: Instalar dependencias bloqueadas
+        id: deps
+        run: npm ci
+
+      - name: Aislar las pruebas en la red local
+        id: red
+        run: |
+          sudo ip netns add campo
+          sudo ip -n campo link set lo up
+
+      - name: Regresión completa con Vitest
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' && steps.red.outcome == 'success' }}
+        run: sudo ip netns exec campo sudo -u "$(id -un)" env HOME="$HOME" PATH="$PATH" CI=true npm test -- --reporter=verbose
+
+      - name: Compilar TypeScript y Vite
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' && steps.red.outcome == 'success' }}
+        run: sudo ip netns exec campo sudo -u "$(id -un)" env HOME="$HOME" PATH="$PATH" CI=true npm run build
+
+      - name: Preparar Chromium de prueba
+        id: chromium
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' && steps.red.outcome == 'success' }}
+        run: |
+          npm install --prefix "$RUNNER_TEMP/qa-navegador" --no-audit --no-fund --ignore-scripts playwright@1.56.1
+          "$RUNNER_TEMP/qa-navegador/node_modules/.bin/playwright" install chromium --only-shell
+
+      - name: Interoperabilidad entre Chromium y CLI
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        run: |
+          sudo ip netns exec campo sudo -u "$(id -un)" env HOME="$HOME" PATH="$PATH" CI=true \
+            NODE_PATH="$RUNNER_TEMP/qa-navegador/node_modules" node scripts/campo/probar-interoperabilidad.mjs

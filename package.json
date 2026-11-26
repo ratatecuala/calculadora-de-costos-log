@@ -12,7 +12,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build:staging": "tsc -p tsconfig.json --noEmit && vite build --mode staging && node scripts/embed-assets.mjs",
-    "deploy:staging": "npm run build:staging && wrangler deploy"
+    "deploy:staging": "npm run build:staging && wrangler deploy",
+    "dev:medicion": "vite --config vite.medicion.config.ts",
+    "build:medicion": "tsc -p tsconfig.json --noEmit && vite build --config vite.medicion.config.ts",
+    "build:medicion-privada": "VITE_FF_MEDICION=1 npm run build:medicion && node scripts/medicion-worker/empaquetar.mjs"
   },
   "engines": {
     "node": ">=20"

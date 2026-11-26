@@ -14,6 +14,7 @@ calibracion/
 # Dependencias y artefactos (desde E1)
 node_modules/
 dist/
+dist-medicion/
 build/
 coverage/
 .wrangler/
@@ -23,3 +24,6 @@ test-results/
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Worker privado de medición (artefacto)
+build-medicion/

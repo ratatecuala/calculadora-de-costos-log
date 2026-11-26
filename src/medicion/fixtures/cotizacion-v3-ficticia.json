@@ -1,0 +1,50 @@
+{
+  "folio": "FICT-0001",
+  "ficticia": true,
+  "nota": "Cotización v3 FICTICIA para probar la herramienta de medición. No corresponde a ningún viaje, persona ni vehículo real.",
+  "snapshot": {
+    "schemaVersion": 3,
+    "formulaVersion": "motor-1.0.1",
+    "routeSource": "declarado",
+    "km": 18,
+    "minutes": 35,
+    "costEstimate": 9982,
+    "costType": "cotaInferior",
+    "suggestedPrice": 13000,
+    "margin": 0.2,
+    "missing": ["gastosFijos"],
+    "engineVersion": "motor-1.0.1",
+    "vehicle": null,
+    "economia": {
+      "registradoEl": "2026-11-20",
+      "parametros": {
+        "fuelPricePerL": { "valor": 1290, "unidad": "CLP/L", "procedencia": { "clase": "declarado", "fuente": { "tipo": "usuario", "detalle": null }, "fecha": "2026-11-20", "vigenteDesde": null, "vigenteHasta": null, "version": null } },
+        "kmPerL": { "valor": 12.4, "unidad": "km/L", "procedencia": { "clase": "declarado", "fuente": { "tipo": "usuario", "detalle": null }, "fecha": "2026-11-20", "vigenteDesde": null, "vigenteHasta": null, "version": null } },
+        "wearPerKm": { "valor": 45, "unidad": "CLP/km", "procedencia": { "clase": "declarado", "fuente": { "tipo": "usuario", "detalle": null }, "fecha": "2026-11-20", "vigenteDesde": null, "vigenteHasta": null, "version": null } },
+        "fixedPerHour": { "valor": null, "unidad": "CLP/h", "procedencia": { "clase": "faltante", "fuente": { "tipo": "usuario", "detalle": null }, "fecha": null, "vigenteDesde": null, "vigenteHasta": null, "version": null } },
+        "ownerPerHour": { "valor": 6000, "unidad": "CLP/h", "procedencia": { "clase": "declarado", "fuente": { "tipo": "usuario", "detalle": null }, "fecha": "2026-11-20", "vigenteDesde": null, "vigenteHasta": null, "version": null } },
+        "helpers": { "valor": 0, "unidad": "personas", "procedencia": { "clase": "declarado", "fuente": { "tipo": "valorInicial", "detalle": null }, "fecha": "2026-11-20", "vigenteDesde": null, "vigenteHasta": null, "version": null } },
+        "helperFee": { "valor": null, "unidad": "CLP", "procedencia": { "clase": "faltante", "fuente": { "tipo": "usuario", "detalle": null }, "fecha": null, "vigenteDesde": null, "vigenteHasta": null, "version": null } },
+        "loadMinutes": { "valor": 20, "unidad": "min", "procedencia": { "clase": "declarado", "fuente": { "tipo": "usuario", "detalle": null }, "fecha": "2026-11-20", "vigenteDesde": null, "vigenteHasta": null, "version": null } },
+        "tolls": { "valor": 1800, "unidad": "CLP", "procedencia": { "clase": "declarado", "fuente": { "tipo": "usuario", "detalle": null }, "fecha": "2026-11-20", "vigenteDesde": null, "vigenteHasta": null, "version": null } },
+        "otherCosts": { "valor": 0, "unidad": "CLP", "procedencia": { "clase": "declarado", "fuente": { "tipo": "valorInicial", "detalle": null }, "fecha": "2026-11-20", "vigenteDesde": null, "vigenteHasta": null, "version": null } }
+      },
+      "recorrido": {
+        "km": { "clase": "declarado", "fuente": { "tipo": "ruta", "detalle": "recorrido manual" }, "fecha": "2026-11-20", "vigenteDesde": null, "vigenteHasta": null, "version": null },
+        "minutos": { "clase": "declarado", "fuente": { "tipo": "ruta", "detalle": "recorrido manual" }, "fecha": "2026-11-20", "vigenteDesde": null, "vigenteHasta": null, "version": null }
+      },
+      "margen": { "valor": 0.2, "unidad": "fraccion", "procedencia": { "clase": "declarado", "fuente": { "tipo": "usuario", "detalle": null }, "fecha": "2026-11-20", "vigenteDesde": null, "vigenteHasta": null, "version": null } },
+      "recargos": { "valor": 0, "unidad": "CLP", "procedencia": { "clase": "declarado", "fuente": { "tipo": "valorInicial", "detalle": null }, "fecha": "2026-11-20", "vigenteDesde": null, "vigenteHasta": null, "version": null } },
+      "partidas": [
+        { "id": "combustible", "categoria": "desembolso", "monto": 1872.5806451612905 },
+        { "id": "peajes", "categoria": "desembolso", "monto": 1800 },
+        { "id": "ayudantes", "categoria": "desembolso", "monto": 0 },
+        { "id": "otros", "categoria": "desembolso", "monto": 0 },
+        { "id": "desgaste", "categoria": "desgaste", "monto": 810 },
+        { "id": "gastosFijos", "categoria": "fijo", "monto": null },
+        { "id": "remuneracion", "categoria": "remuneracion", "monto": 5500 }
+      ],
+      "versiones": { "motor": "motor-1.0.1", "formulas": "motor-1.0.1", "datos": { "combustible": null, "catalogo": null, "peajes": null } }
+    }
+  }
+}

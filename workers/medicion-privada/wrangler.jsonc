@@ -1,0 +1,13 @@
+// Worker PRIVADO de la herramienta de medición (A-91 Frente B; docs/31 §7). Plan gratuito, costo $0.
+// Separado del staging: otro nombre, otro script, otro secreto; no toca wrangler.jsonc de la raíz.
+// Sin secretos en este archivo: MEDICION_BASIC_AUTH se carga con `wrangler secret put` desde fuera del repo.
+// Sin Durable Objects, KV, D1, R2, analítica ni observabilidad: el servidor no guarda nada.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "medicion-privada",
+  "main": "../../build-medicion/worker-entry.mjs",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": false }
+}
