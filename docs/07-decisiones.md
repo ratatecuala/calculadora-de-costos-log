@@ -1,5 +1,7 @@
 # 07 · Registro de decisiones — estado actualizado
 
+> **Registro 26-11-2026:** [directrices del propietario y primera consolidación](27-consolidacion-fase-0.md) ([#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7181997317)): objetivo de error económico máximo 10 %, competitividad sin alterar costos, automatización de captura y validación del Chery antes de solicitar piloto experimental. Umbrales operativos, muestras, nuevas funciones y cambios de alcance quedan por aprobar. No modifica A-84/A-85 ni autoriza programación.
+
 **Criterio:** lo aprobado por el propietario se distingue de alternativas propuestas. Este archivo se está actualizando en el **PR #34**, todavía sin fusionar. **Última sincronización: 22-11-2026**, con A-69 (D-I8 parcial: [22 §15](22-diseno-integracion-cotizador.md)) y A-70 (P2 de D-I8 corregido, [22 §16](22-diseno-integracion-cotizador.md); rediseño del contador en #52, [23](23-revision-52-insert-directo.md)) y la [auditoría final de I-1 + I-1b](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743). Las secciones antiguas conservan su texto original; cuando su estado cambió, se indica con una nota de estado actual. Nombre comercial **PENDIENTE**; no reutilizar el nombre anterior como marca.
 
 ## Aprobado / dirección explícita del propietario

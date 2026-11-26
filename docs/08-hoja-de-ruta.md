@@ -1,5 +1,7 @@
 # 08 · Hoja de ruta y backlog
 
+> **Seguimiento 26-11-2026:** [consolidación de primera ronda de fase 0](27-consolidacion-fase-0.md): #20 bloqueado para integración, A-87 aceptada documentalmente, #55 pendiente de correcciones y regresión. Objetivo económico 10 % acordado; protocolo y próximos trabajos propuestos. Las puertas vigentes no cambian.
+
 ## Fases y puertas de aprobación (A-84, revisada por A-85)
 
 Decisiones y reglas obligatorias: [07 · A-84 y A-85](07-decisiones.md). Fechas en **hora de Chile**.

@@ -1,5 +1,7 @@
 # 05 · Pruebas, calibración y validación del lanzamiento gratuito
 
+> **Actualización 26-11-2026 (#12):** objetivo del propietario: error económico máximo del 10 %. Protocolo y muestras aún propuestos; no hay calibración demostrada. Instrumento 0B en PR #55 borrador con correcciones y regresión pendientes. Ver [27 §1 y §4](27-consolidacion-fase-0.md).
+
 **Estado vigente (22-11-2026, con D-I8 parcial, A-70, A-71, A-73 y la migración local de #52, A-74):** `npm test` **636/636** y casos dorados **64/64**; detalle por archivo en «Pruebas del cotizador ampliado» y cifras vigentes al final. Las metas numéricas de validación real se aprobarán en #12; **no** se han hecho viajes de validación con transportistas.
 
 *Estado original (16-11-2026, histórico): estrategia de control propuesta, sin código ni viajes de validación ejecutados.*

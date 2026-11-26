@@ -1,5 +1,7 @@
 # Calculadora y cotizador de fletes — nombre pendiente
 
+> **Continuidad 26-11-2026:** [primera ronda consolidada](docs/27-consolidacion-fase-0.md): Deep Research #20, A-87 de Claude y PR #55 de Codex. Objetivo económico 10 %; método y muestra pendientes. No integrar #55 hasta corregir hallazgos y verificar regresión.
+
 > **Nombre comercial:** PENDIENTE DE DECISIÓN (#13). El nombre técnico del repositorio no es la marca.
 
 Herramienta web **gratuita** para **transportistas independientes y fletes livianos en Chile**: calcula cuánto cuesta un traslado, ayuda a decidir el precio y genera una **cotización profesional** para el cliente sin revelarle los costos internos.

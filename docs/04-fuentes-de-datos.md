@@ -1,5 +1,7 @@
 # 04 · Fuentes de datos y restricciones de uso
 
+> **Actualización 26-11-2026 (#20):** Deep Research confirma documentalmente CNE/Bencina en Línea; autenticación real y licencia específica de reutilización pendientes. Jerarquía, caché y contingencia propuestas en [27 §2](27-consolidacion-fase-0.md#2-deep-research-20--combustible). No autoriza integración ni uso automático.
+
 **Estado:** guía de investigación para la primera calculadora gratuita. **No habilita ninguna API ni facturación**. Las cifras, cuotas, licencias y cobertura deben verificarse antes de implementar. Nombre comercial pendiente.
 
 Convención: **VERIFICADO CON ENLACE** · **PROPUESTO** · **POR VALIDAR**. Fuente externa y fecha visibles al usuario cuando afectan el cálculo.

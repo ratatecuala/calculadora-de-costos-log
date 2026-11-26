@@ -1,0 +1,49 @@
+# 27 · Consolidación de fase 0 — primera ronda (26-11-2026, Chile)
+
+**Estado:** evidencia documental y revisión independiente por GPT. [Registro del propietario y síntesis en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7181997317). A-82/A-84/A-85/A-86/A-87 vigentes. No habilita programación, cambios de fórmulas, merge, APIs, gastos, migraciones, flags ni despliegues. El PR #55 es borrador separado; no está integrado.
+
+## 1. Directrices del propietario y propuestas
+
+**ACORDADO:** objetivo máximo de error económico del 10 %, evitar subestimación que erosione la remuneración/excedente, contrastar competitividad con mercado sin manipular costos. Validar primero el Chery personal antes de pedir un piloto experimental supervisado; no extrapolar resultados a vehículos comerciales. Reducir tareas manuales y automatizar cuando exista evidencia y autorización. Paralelismo según dependencias, archivos exclusivos y A-82/A-86.
+
+**PROPUESTO, por aprobar en #12:** error firmado = (estimación previa − referencia independiente) / referencia × 100, error absoluto ≤10 % como objetivo; denominador positivo, cero se analiza en CLP; informar cobertura, distribución, sesgo de subestimación y errores por partida. Ejemplo ilustrativo: costo previsto 30.000, referencia 37.000, precio 40.000: error −18,9 %, excedente previsto 10.000 y observado 3.000; no confundir remuneración propia con desembolso. El KPI formal, proporción de casos que deben cumplir, tamaños mínimos, criterios de exclusión e incertidumbre quedan por aprobar. No sustituye criterios pendientes de #12.
+
+**Muestra propuesta:** 30 viajes cotidianos del Chery y 5 intervalos lleno a lleno (referencias exploratorias, no puerta automática; n≥3 por clase según A-85, tamaño por error de llenado). Luego 10 fletes exploratorios por camioneta/furgón/camión liviano; ampliar a varios vehículos y muestras independientes antes de declarar calibración por categoría. Distinguir piloto de medición supervisado y piloto comercial de fase 1: la puerta 0 vigente requiere evidencia 0A–0D; cualquier excepción para medir vehículos comerciales requiere autorización explícita y privacidad. No contar simulaciones como validación económica ni demanda.
+
+**Protocolo propuesto:** presupuesto sellado antes de salir, parámetros/versión/fuentes; observación con TRIP, resolución, tiempos de marcha, espera y carga/descarga, comprobantes TAG y otros desembolsos. Separar costo presupuestado, recálculo con ruta observada y referencia independiente por partidas. Litros medidos por intervalo no equivalen a litros de un viaje; asignación por viaje es estimada. Calibrar con intervalos comparables y validar en intervalos posteriores no usados para ajustar. Gastos de periodo asignados por km/horas productivas; remuneración propia es objetivo, no pago real. Si faltan partidas materiales, solo comparación parcial, nunca PASS de costo total. Definir base tributaria comparable y no duplicar IVA/desembolsos. Horizonte desgaste, error de llenado, presupuesto y plazo: DATO FALTANTE.
+
+**Captura privada propuesta:** iniciar/finalizar viaje desde teléfono, TRIP u odómetro con foto opcional y confirmación manual, horas automáticas, recargas (boleta, litros, precio, lleno/parcial), historial y exportación Excel/CSV. Sin OCR obligatorio, GPS, IA ni integración comercial en esta ronda. Datos de vehículo una vez; registro de TAG/mantenciones por periodo. Conservar fotos/datos fuera del repositorio, minimizar datos y definir consentimiento, almacenamiento y borrado antes de recibir datos de terceros. No prometer que el sistema aprende hasta demostrar mejora predictiva. API de cargas personales Copec u otras estaciones: por investigar mediante DR, no asumida disponible.
+
+## 2. Deep Research #20 — combustible
+
+Informe recibido 26-11-2026, revisión documental GPT (sin repetir investigación). Fuentes citadas: [CNE API](https://api.cne.cl/), [documentación regional](https://apidocs.cne.cl/combustibles-liquidos-23961818e0), [Bencina en Línea](https://appbencinaenlinea.cne.cl/), [resolución CNE 492/2023 en BCN](https://www.bcn.cl/leychile/navegar?idNorma=1197078), [política aplicación móvil](https://appbencinaenlinea.cne.cl/politica), [estadísticas CNE](https://www.cne.cl/estadisticas/hidrocarburo/), [Energía Abierta histórico](https://energiaabierta.cl/datasets-estadistica/precios-historicos-de-bencina-en-linea/), [ENAP estructura](https://www.enap.cl/estructura-de-precios). Fecha de consulta reportada: 26-11-2026.
+- Evidencia documental: precios minoristas declarados por estaciones, 93/95/97/diésel, granularidad estación/comuna en BEL. API CNE anuncia gratuidad, registro y Bearer; endpoint regional documentado como en desarrollo, esquema de estaciones insuficiente. ENAP mayorista no sustituye precio retail.
+- Bloqueos: prueba autenticada no realizada, token/renovación/cuotas/campos y licencia de almacenamiento y reutilización no confirmados. Política móvil BEL limita uso particular/no comercial; no inferir que aplica o no a API. Históricos declaran periodicidades inconsistentes. No usar endpoints no documentados ni scraping como alternativa automática.
+- Propuesta: precio pagado/confirmado → estación elegida → mediana comunal de observaciones válidas → referencia regional → nacional último recurso. Mostrar procedencia, territorio, método, fecha observada y consulta; override manual prevalece; cotización emitida inmutable. Viajes interregionales: estimar según dónde se carga, no promedio arbitrario. Caché central servidor, secreto fuera del cliente, último dato válido marcado, fallback manual. 4–6 consultas diarias (120–180/mes) y costo incremental $0 son escenarios condicionados a tamaño/paginación, cuotas, plan y licencias; no garantías ni configuración autorizada.
+- #20 abierto, investigación avanzada; #8 registro y prueba solo con autorización. Obtener condiciones específicas, confirmar cobertura y muestra real antes de implementación. No copiar la cifra de referencia mensual como precio actual. El informe completo original queda en el chat del proyecto; esta síntesis no reemplaza sus fuentes.
+
+## 3. Claude A-87
+
+[docs/26](26-preparacion-fase-0.md), commit [175413c](https://github.com/ratatecuala/calculadora-de-costos-log/commit/175413c), seis archivos documentales, aceptado por inspección. Propuesta de contrato de procedencia y snapshot v3: parámetros efectivos, fuente/estado/versiones; revisar todos los productores, lectores, tipos, validadores, copia local→nube, recuperación, RPC v1/v2 y límites de tamaño UTF-8 y jsonb. No asumir que no requiere migración. No activar flags de carga ni exponer internos al cliente/PDF/enlace público. Mantener lectura y números históricos v1/v2. Probar escrituras v3 con carga apagada y compatibilidad del entorno real; si la nube no está lista, conservar registro local y bloquear copia explícitamente, nunca perder datos. TAG manual mientras no se autoricen rutas; ayuda por pórtico futura. Desgaste y fijos: asistentes de derivación, no cambios de fórmulas. Staging: cuatro migraciones pendientes según repositorio; no ejecutar db push. Verificar estado remoto con autorización; respaldar y restaurar antes de cada paso correspondiente.
+
+## 4. Codex PR #55
+
+[Borrador #55](https://github.com/ratatecuala/calculadora-de-costos-log/pull/55) sobre base 175413c, commit 8b04332, diez archivos, 14/14 pruebas Node reportadas; no ejecutadas por GPT. La CI verde corresponde a la base; no hay corrida asociada a #55, workflow solo PR hacia main. Se inspeccionó el código y [registró revisión](https://github.com/ratatecuala/calculadora-de-costos-log/pull/55#issuecomment-7181993301). No listo para integración:
+- P1 espera registrada pero excluida del costo del motor actual; explicitar cobertura e impacto, proponer tratamiento sin cambiar fórmula.
+- P1 no hay referencia económica total independiente; diferenciar comparación de dos salidas del mismo motor y conciliación por partidas.
+- P1 relación temporal e independencia intervalo/viaje insuficiente; no usar promedio ajustado con el mismo intervalo como validación fuera de muestra.
+- P2 versión del motor y resolución/incertidumbre en sello, límites numéricos y UX. CLI/JSON no es captura cotidiana del propietario. Regresión y build pendientes con dependencias reales. No fusionar #55 automáticamente.
+
+## 5. Siguiente ronda propuesta (no autorizada automáticamente)
+
+| Responsable | Frente | Dependencias y límites |
+|---|---|---|
+| Codex | Corregir #55, pruebas y revisión | Solo scripts/campo, datos ficticios y pruebas específicas; conservar sello, privacidad, distinguir referencias. CI/regresión al integrar previa autorización. |
+| Claude | Diseño detallado e implementación v3, solo tras aprobación | Archivos de snapshot/contratos/almacenamiento, aislados de #55; privacidad, compatibilidad, flags apagadas y pruebas de lectura/escritura. |
+| Claude | Diseño de captura móvil privada, en paralelo con v3 | Solo diseño y flujo, sin servicio remoto; depende del contrato 0B para implementar; evitar editar scripts de Codex. |
+| Codex | Simulacro precio entero | Frente separado scripts/simulacro, solo tras aprobación; fixtures locales. |
+| GPT | Protocolo #12, benchmark 0C y auditoría | Aprobar criterios con propietario; sin inventar evidencia. |
+| Deep Research | TAG #21, calibración #12, mercado 0C, C-1/C-2, privacidad #17 | Encargos independientes según prioridad; complementar #20 y acceso a recargas por proveedores sin duplicar; no contactar terceros sin autorización. |
+| Propietario | Mediciones cotidianas y respaldo | Captura simple; no exponer documentos ni datos personales. |
+
+Reutilizar issues existentes, no duplicar, un responsable por entregable; hasta dos agentes secundarios según A-82, integración secuencial. No desbloquear piloto ni implementar propuestas sin decisión explícita. Trello privado solo coordinación; GitHub fuente de verdad.
