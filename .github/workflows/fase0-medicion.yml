@@ -1,0 +1,87 @@
+name: Fase 0 · Medición móvil
+
+on:
+  pull_request:
+    branches: ['claude/determined-volta-q9xvli']
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fase0-medicion-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  medicion:
+    if: github.event.pull_request.number == 57 && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Obtener el commit del PR
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Preparar Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      - name: Instalar dependencias del proyecto
+        run: npm ci
+
+      - name: Crear red de pruebas con solo loopback
+        id: red
+        run: |
+          sudo ip netns add medicion
+          sudo ip -n medicion link set lo up
+
+      - name: Comprobar TypeScript
+        run: bash scripts/ci-medicion/local.sh npm run typecheck
+
+      - name: Ejecutar la regresión completa de Vitest
+        if: ${{ !cancelled() && steps.red.outcome == 'success' }}
+        run: bash scripts/ci-medicion/local.sh npm test -- --reporter=verbose
+
+      - name: Compilar paquete comercial
+        id: comercial
+        if: ${{ !cancelled() && steps.red.outcome == 'success' }}
+        run: bash scripts/ci-medicion/local.sh npm run build -- --sourcemap=hidden
+
+      - name: Comprobar que el build privado exige activación explícita
+        if: ${{ !cancelled() && steps.red.outcome == 'success' }}
+        run: |
+          if bash scripts/ci-medicion/local.sh node_modules/.bin/vite build --config vite.medicion.config.ts > "$RUNNER_TEMP/desactivada.log" 2>&1; then
+            echo 'El build de medición se activó por defecto' >&2
+            exit 1
+          fi
+          grep -F 'DESACTIVADA' "$RUNNER_TEMP/desactivada.log"
+
+      - name: Compilar medición en el entorno de prueba
+        id: privado
+        if: ${{ !cancelled() && steps.red.outcome == 'success' }}
+        run: bash scripts/ci-medicion/local.sh env VITE_FF_MEDICION=1 npm run build:medicion -- --sourcemap=hidden
+
+      - name: Verificar aislamiento de los dos paquetes compilados
+        if: ${{ !cancelled() && steps.privado.outcome == 'success' && steps.comercial.outcome == 'success' }}
+        run: bash scripts/ci-medicion/local.sh node scripts/ci-medicion/paquetes.mjs
+
+      - name: Instalar Chromium para pruebas
+        id: chromium
+        if: ${{ !cancelled() && steps.red.outcome == 'success' }}
+        run: |
+          npm install --prefix "$RUNNER_TEMP/qa-navegador" --ignore-scripts --no-fund --no-audit playwright@1.56.1
+          "$RUNNER_TEMP/qa-navegador/node_modules/.bin/playwright" install chromium --only-shell
+
+      - name: Verificar huellas y sellos en ambas direcciones entre navegador y CLI
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        run: bash scripts/ci-medicion/local.sh node scripts/campo/probar-interoperabilidad.mjs
+
+      - name: Probar el flujo móvil y de escritorio, sin conexión e importación atómica
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' && steps.privado.outcome == 'success' }}
+        run: bash scripts/ci-medicion/local.sh bash scripts/ci-medicion/navegador.sh
