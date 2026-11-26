@@ -150,7 +150,10 @@ if [[ "$estado" == precio ]]; then psql_l -f "$dir/verificar-precio-restaurado.s
 psql_l -A -t -F ' | ' -v referencia="$referencia" -f "$repo/scripts/verificar-restauracion.sql" > "$trabajo/restaurado.txt"
 controles="$(grep -c ' | ' "$trabajo/restaurado.txt" || true)"
 contenido="$(grep -c '^contenido\.' "$trabajo/restaurado.txt" || true)"
-if diff -u "$carpeta/verificacion-origen.txt" "$trabajo/restaurado.txt" > "$trabajo/diferencias.txt"; then
+python3 -I "$dir/estado_migraciones.py" invariantes "$carpeta/verificacion-origen.txt" "$estado" > "$trabajo/origen-comparable.txt"
+if diff -u "$trabajo/origen-comparable.txt" "$trabajo/restaurado.txt" > "$trabajo/diferencias.txt"; then
+  # Incluso dos informes idénticos deben cumplir sus invariantes.
+  python3 -I "$dir/estado_migraciones.py" invariantes "$trabajo/restaurado.txt" "$estado" > /dev/null
   echo "RESULTADO: DATOS VERIFICADOS. Los $controles controles coinciden con el origen: contenido completo de $contenido tablas (las de la app, auth.users y auth.identities), conteos, numeración y privilegios."
   echo "   Alcance: integridad de los datos. NO prueba que Supabase Auth funcione (inicio de sesión) ni una restauración en un proyecto Supabase nuevo."
 else

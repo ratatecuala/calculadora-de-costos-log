@@ -110,6 +110,20 @@ class EstadoMigracionesTest(unittest.TestCase):
             with self.subTest(), self.assertRaises(estado.EstadoInvalido):
                 self.detectar(6, huella=huella)
 
+    def test_invariantes_coincidentes_no_bastan_si_ambas_incumplen(self):
+        with self.assertRaisesRegex(estado.EstadoInvalido, "inv.numeros_duplicados"):
+            estado.verificar_invariantes("inv.numeros_duplicados_por_cuenta | 1 | 0\n", "anterior")
+
+    def test_expectativa_historica_solo_se_corrige_para_m3(self):
+        m3 = ("private.allocate_quote_number private.insert_cargo_items public.create_job_with_quote "
+              "public.create_quote_share public.get_public_quote public.revoke_quote_share")
+        m4 = m3.replace(" public.create_quote_share", " public.create_job_with_quote_v2 public.create_quote_share")
+        fila = f"inv.security_definer | {m3} | {m4}\n"
+        self.assertEqual(estado.verificar_invariantes(fila, "m3"), f"inv.security_definer | {m3} | {m3}\n")
+        for invalido, prefijo in ((fila, "i2"), (fila.replace("private.insert_cargo_items ", "", 1), "m3")):
+            with self.subTest(), self.assertRaises(estado.EstadoInvalido):
+                estado.verificar_invariantes(invalido, prefijo)
+
     def test_comparacion_cli_detecta_ddl_alterado(self):
         with tempfile.TemporaryDirectory() as d:
             origen, restaurado = Path(d, "origen.sql"), Path(d, "local.sql")

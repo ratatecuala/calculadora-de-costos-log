@@ -115,8 +115,33 @@ def comprobar_dependencias(esquema, estado):
         raise EstadoInvalido("schema.sql y la verificación discrepan sobre #52, M3 o M4")
 
 
+def verificar_invariantes(texto, estado):
+    """Compara valor y esperado sin divulgar los valores. Admite el reporte M3 de A-81."""
+    base_m3 = ("private.allocate_quote_number private.insert_cargo_items public.create_job_with_quote "
+               "public.create_quote_share public.get_public_quote public.revoke_quote_share")
+    esperado_antiguo = base_m3.replace(" public.create_quote_share", " public.create_job_with_quote_v2 public.create_quote_share")
+    salida = []
+    for linea in texto.splitlines(keepends=True):
+        if linea.startswith("inv."):
+            columnas = linea.rstrip("\r\n").split(" | ")
+            if len(columnas) != 3:
+                raise EstadoInvalido("fila de invariante ilegible")
+            nombre, valor, esperado = columnas
+            if (estado == "m3" and nombre == "inv.security_definer" and valor == base_m3
+                    and esperado == esperado_antiguo):
+                # Sólo se corrige la expectativa antigua en memoria. El respaldo no se modifica.
+                linea = linea.replace(" | " + esperado, " | " + valor)
+            elif valor != esperado:
+                raise EstadoInvalido("invariante incumplida: " + nombre)
+        salida.append(linea)
+    return "".join(salida)
+
+
 def main():
     accion, origen, otro = sys.argv[1:]
+    if accion == "invariantes":
+        sys.stdout.write(verificar_invariantes(Path(origen).read_text(encoding="utf-8"), otro))
+        return
     esquema = Path(origen).read_text(encoding="utf-8")
     src = descripcion_precio(esquema)
     if accion == "estado":
