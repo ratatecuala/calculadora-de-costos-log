@@ -1,6 +1,6 @@
 # Calculadora de fletes (nombre pendiente) — Reglas obligatorias para agentes
 
-Este archivo es la **puerta de entrada operativa** para Claude, ChatGPT, Codex y cualquier otro agente que trabaje en este repositorio. Se inspira en el flujo de LIVIO 2.0, VetPo y Voli, adaptado exclusivamente a este proyecto. El nombre comercial aún no ha sido elegido.
+Este archivo es la **puerta de entrada operativa** para Claude Code, ChatGPT, ChatGPT Deep Research, Codex y cualquier otro agente que trabaje en este repositorio. Se inspira en el flujo de LIVIO 2.0, VetPo y Voli, adaptado exclusivamente a este proyecto. El nombre comercial aún no ha sido elegido.
 
 ## 1. Antes de trabajar
 
@@ -9,7 +9,7 @@ Este archivo es la **puerta de entrada operativa** para Claude, ChatGPT, Codex y
 3. Identificar la tarea concreta, sus archivos afectados, cómo se comprobará y **qué aprobación permite ejecutarla**.
 4. Si no existe autorización expresa para el alcance, **detenerse y pedirla**. Que un issue exista, una propuesta esté documentada o una IA la recomiende no equivale a permiso.
 5. Al detectar contradicciones, priorizar una decisión reciente y explícita del propietario, dejar evidencia en el issue y proponer la actualización documental. No presentar como aprobado algo que todavía no lo está.
-6. **Regla de investigación:** no iniciar investigaciones externas profundas sin aviso y autorización previa del propietario. El canal acordado para investigaciones profundas es **GPT Deep Research**; Claude recibe el informe, comprueba su encaje y ejecuta solo tareas documentales o técnicas autorizadas. Una comparación preliminar no constituye aprobación del proveedor ni habilitación de APIs. Leer [auditoría de Google](docs/11-auditoria-google-maps.md) y [alternativas de mapas](docs/12-alternativas-mapas.md).
+6. **Regla permanente de investigación (A-86):** el único canal de investigación externa de fondo es **ChatGPT Deep Research**, con aviso y autorización previa del propietario. GPT prepara el encargo y audita el informe; Claude Code y Codex no realizan investigaciones externas independientes de dominio ni duplican encargos. Pueden consultar documentación técnica oficial, comprobar citas concretas y revisar evidencia existente para tareas autorizadas; si falta investigación sustantiva, registran el bloqueo y solicitan un encargo a Deep Research mediante GPT. Una comparación preliminar no aprueba proveedores ni habilita APIs. Leer [auditoría de Google](docs/11-auditoria-google-maps.md) y [alternativas de mapas](docs/12-alternativas-mapas.md).
 
 ## 2. Situación y alcance vigente
 
@@ -40,9 +40,21 @@ Este archivo es la **puerta de entrada operativa** para Claude, ChatGPT, Codex y
 
 | Participante | Responsabilidad |
 |---|---|
-| **Propietario** | Decide alcance, prioridades, gastos, cuentas, despliegues y aprobaciones de PR |
-| **Claude / Claude Code** | Arquitectura, implementación de tareas autorizadas, pruebas, documentación y entrega |
-| **ChatGPT** | Coordinación, revisión crítica independiente de PR, requisitos, fórmulas y pruebas |
+| **Propietario** | Autoridad final: alcance, prioridades, presupuesto, cuentas, aprobaciones de tareas, puertas de fase, despliegues y merge. Recopila o autoriza datos de campo y contactos con terceros. |
+| **ChatGPT Deep Research** | Investigación externa de fondo: normativa y tributos, fuentes oficiales, CNE y TAG, catálogo C-1, costos según carga C-2, estudios de consumo/desgaste, mercado y evidencia de calibración. Entrega informes citados; no implementa conclusiones. |
+| **ChatGPT (GPT)** | Dirección estratégica y producto, requisitos, metodología y KPIs, prioridades, encargos a Deep Research, evaluación de informes, auditoría independiente de PR/fórmulas/pruebas, coordinación de Claude y Codex y seguimiento de Trello. No sustituye al propietario. |
+| **Claude / Claude Code** | Arquitectura, integraciones (Supabase y Cloudflare), diseño de datos, implementación de funcionalidades autorizadas, pruebas de integración, documentación y continuidad técnica. Aplica evidencia aprobada, no inicia investigación de dominio independiente. |
+| **Codex** | Ingeniería e implementación autorizada, motor de costos, instrumentos de medición, procesamiento de datos, pruebas matemáticas y automatizadas, CI, validación de migraciones locales, detección de fallos y revisión independiente del código. Puede asumir funcionalidades completas delimitadas, no solo tareas pequeñas. |
+
+**Flujo obligatorio (A-86):**
+1. El propietario define el objetivo y autoriza el alcance; GPT identifica requisitos, riesgos y criterios de aceptación.
+2. Si se requiere investigación de fondo, GPT prepara un único encargo para Deep Research. El informe incluye fuentes primarias y enlaces, fecha de consulta, evidencia por afirmación, metodología, limitaciones, incertidumbre, condiciones de reutilización y datos faltantes. No confundir una hipótesis con un hecho ni una fuente secundaria con primaria.
+3. GPT evalúa la evidencia; Claude y/o Codex comprueban viabilidad técnica, formulan propuestas y solicitan aprobación antes de implementar. No importar datos ni modificar fórmulas por el mero hecho de recibir un informe.
+4. Se asigna un responsable principal por entregable, con issue, alcance, archivos, dependencias, autorización y pruebas de aceptación. Claude y Codex comparten capacidades: elegir por necesidad de la tarea, no por jerarquía; coordinar cambios y evitar duplicación.
+5. Un agente distinto del autor revisa cambios críticos (§6.6); Codex puede revisar implementaciones de Claude y viceversa, y GPT conserva la revisión independiente exigida por el protocolo. Distinguir pruebas ejecutadas de resultados solo inspeccionados.
+6. Registrar evidencia, commit, pruebas, limitaciones, bloqueos y siguiente acción en GitHub; actualizar Trello como seguimiento visual. Cumplir A-82: contexto mínimo, pruebas pertinentes, sin investigaciones ni regresiones redundantes, sin reducir cobertura. Ningún agente amplía sus propios permisos.
+
+Esta asignación es una regla operativa del proyecto, no un ranking de capacidades ni autorización para ejecutar todas las tareas de un rol. Referencia: [A-86 en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7181563285).
 
 - **GitHub:** fuente de verdad de código, documentación, decisiones e issues.
 - **Trello:** tablero privado de la fase 0 (A-85), para la coordinación visual entre el propietario, Claude, Codex y GPT. **GitHub es la fuente de verdad técnica**. No duplicar cada issue como una tarjeta y no publicar el enlace del tablero en el repositorio. Reorganizarlo sigue requiriendo autorización (§5).
@@ -63,7 +75,7 @@ Para cifras y datos: **HECHO VERIFICADO** (fuente y fecha), **ESTIMACIÓN**, **S
 
 ## 5. Autorizaciones y límites
 
-**Sin autorización específica se permite:** lectura, auditoría, investigaciones sin gasto, documentación y preparación de issues o PR documentales dentro del alcance autorizado.
+**Sin autorización específica se permite:** lectura, auditoría, comprobaciones puntuales de fuentes y documentación técnica sin gasto, documentación y preparación de issues o PR documentales dentro del alcance autorizado. Las investigaciones externas de fondo se rigen por §1.6 y A-86.
 
 **Requiere aprobación específica del propietario:** iniciar programación E1; integrar cualquier PR a `main`; habilitar facturación o gastos; crear/conectar cuentas o servicios; publicar una URL; cambiar fórmulas, fuentes de datos, alcance o arquitectura; incorporar datos reales de terceros; modificar textos legales; renombrar/eliminar repositorios, ramas o documentos; reorganizar Trello.
 
