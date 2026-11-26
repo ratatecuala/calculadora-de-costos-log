@@ -16,8 +16,12 @@
  * estado, finalizar, lectura final (foto conservada: se comprueba que se guarda SIN EXIF), km automáticos,
  * comparación, recargas parcial y llena, historial con filtros, exportaciones (descargas), respaldo e
  * importación sin duplicados, persistencia tras recargar, modo sin conexión, «borrar todo» con
- * confirmación propia. Exige 0 errores de consola, 0 diálogos nativos, 0 peticiones fuera de localhost y
- * sin desplazamiento horizontal.
+ * confirmación propia. Exige 0 errores de consola, 0 diálogos nativos, 0 peticiones fuera del origen y
+ * sin desplazamiento horizontal. También: uso personal sin datos contables, simplificada↔detallada sin
+ * perder datos, «no aplica», objetivos exploratorios de #12 y litros asignados como ESTIMADO.
+ *
+ * Despliegue privado con contraseña: con MEDICION_AUTH="usuario:contraseña" todos los contextos usan
+ * httpCredentials y se admite el origen de las URL dadas (no solo localhost). El valor nunca se imprime.
  *
  * Contrato de #55: el presupuesto se sella con `crearPresupuesto`/`envolverOriginal`, la comparación es el
  * informe de `compararFicha` y el paquete descargado se IMPORTA con la CLI de Codex (`npm run campo --
@@ -61,10 +65,34 @@ const { expect } = require('playwright/test');
 
 const [base, sinFlag, capturas] = process.argv.slice(2);
 const local = (u) => ['localhost', '127.0.0.1'].includes(new URL(u).hostname);
-if (!base || !local(base) || (sinFlag && sinFlag !== '-' && !local(sinFlag))) {
+// MEDICION_AUTH="usuario:contraseña" (opcional): contextos con httpCredentials para un despliegue privado
+// protegido con contraseña. El valor NUNCA se imprime. Sin ella, solo se admiten servidores locales.
+const auth = (() => {
+  const v = process.env.MEDICION_AUTH;
+  if (!v) return null;
+  const i = v.indexOf(':');
+  if (i < 1) {
+    console.error('MEDICION_AUTH debe tener la forma usuario:contraseña (no se muestra el valor).');
+    process.exit(2);
+  }
+  return { username: v.slice(0, i), password: v.slice(i + 1) };
+})();
+const valida = (u) => {
+  try {
+    return auth ? ['http:', 'https:'].includes(new URL(u).protocol) : local(u);
+  } catch {
+    return false;
+  }
+};
+if (!base || !valida(base) || (sinFlag && sinFlag !== '-' && !valida(sinFlag))) {
   console.error('Uso: node scripts/e2e-medicion.mjs http://localhost:PUERTO [http://localhost:PUERTO-sin-flag | -] [carpeta-capturas]');
   process.exit(2);
 }
+
+// Orígenes permitidos: los servidores locales y, con MEDICION_AUTH, el origen de las URL dadas.
+const origenes = new Set([base, sinFlag].filter((u) => u && u !== '-').map((u) => new URL(u).origin));
+const permitida = (u) => ['blob:', 'data:'].includes(u.protocol) || ['localhost', '127.0.0.1'].includes(u.hostname) || origenes.has(u.origin);
+const contextoBase = auth ? { httpCredentials: auth } : {};
 
 const tamaños = [
   ['Pixel 7', { ...devices['Pixel 7'], timezoneId: 'America/Santiago', locale: 'es-CL' }, 'cotizacion'],
@@ -152,7 +180,7 @@ async function guardarLectura(page, id, valor) {
 
 async function recorrido(browser, nombre, opciones, camino) {
   console.log(`\n${nombre}`);
-  const context = await browser.newContext({ ...opciones, acceptDownloads: true });
+  const context = await browser.newContext({ ...opciones, ...contextoBase, acceptDownloads: true });
   const page = await context.newPage();
   const errores = [];
   const dialogos = [];
@@ -165,7 +193,7 @@ async function recorrido(browser, nombre, opciones, camino) {
   });
   context.on('request', (r) => {
     const u = new URL(r.url());
-    if (!['localhost', '127.0.0.1'].includes(u.hostname) && !['blob:', 'data:'].includes(u.protocol)) externas.push(r.url());
+    if (!permitida(u)) externas.push(r.url());
   });
   await page.clock.install({ time: new Date('2026-11-26T09:00:00-03:00') });
 
@@ -189,15 +217,41 @@ async function recorrido(browser, nombre, opciones, camino) {
     await page.locator('[data-cotizacion-ficticia]').click();
     await expect(page.getByText('Origen: cotización v3 FICT-0001 (ficticia)')).toBeVisible();
     check('la cotización v3 trae km y procedencia', (await page.locator('#pres-km').inputValue()) === '18' && (await page.getByText('declarado · recorrido').count()) > 0);
-    check('cotización: modalidad detallada (como el cotizador)', (await page.locator('[data-modalidad-opcion="detallada"]').getAttribute('aria-pressed')) === 'true');
+    // Uso personal (A-91): solo gastos pagados; sin modalidad, remuneración, margen ni gastos fijos.
+    check(
+      'uso personal: sin modalidad, remuneración, margen ni gastos fijos',
+      (await page.locator('[data-modalidad-personal]').count()) === 1 &&
+        (await page.locator('[data-modalidad]').count()) === 0 &&
+        (await page.locator('#pres-trabajoHora').count()) === 0 &&
+        (await page.locator('#pres-margenPct').count()) === 0 &&
+        (await page.locator('#pres-fijoHora').count()) === 0,
+    );
   } else {
+    // Simulación: simplificada por defecto; cambiar a detallada y volver no pierde lo escrito.
+    await page.getByRole('button', { name: 'Simulación (ficticia)' }).click();
+    await page.locator('[data-nuevo-presupuesto]').click();
+    check('simulación: modalidad simplificada por defecto y sin gastos fijos', (await page.locator('[data-modalidad-opcion="simplificada"]').getAttribute('aria-pressed')) === 'true' && (await page.locator('#pres-fijoHora').count()) === 0);
+    await page.locator('[data-modalidad-opcion="detallada"]').click();
+    await page.locator('#pres-fijoHora').fill('3000');
+    await page.locator('[data-modalidad-opcion="simplificada"]').click();
+    check('simplificada oculta los gastos fijos', (await page.locator('#pres-fijoHora').count()) === 0);
+    await page.locator('[data-modalidad-opcion="detallada"]').click();
+    check('volver a detallada conserva lo escrito', (await page.locator('#pres-fijoHora').inputValue()) === '3000');
+    // «No aplica» oculta los campos de la partida y los conserva al desmarcar.
+    await page.locator('#pres-tag').fill('700');
+    await page.locator('[data-no-aplica="peajes"]').check();
+    check('«no aplica» oculta el TAG', (await page.locator('#pres-tag').count()) === 0);
+    await page.locator('[data-no-aplica="peajes"]').uncheck();
+    check('desmarcar «no aplica» conserva el TAG', (await page.locator('#pres-tag').inputValue()) === '700');
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+    await page.getByRole('button', { name: 'Uso personal' }).click();
     await page.locator('[data-nuevo-presupuesto]').click();
     check('prellenado con los valores del vehículo', (await page.locator('#pres-precioLitro').inputValue()) === '1290' && (await page.locator('#pres-kmL').inputValue()) === '12,4');
     check('sin km no se puede sellar', await page.getByRole('button', { name: 'Sellar presupuesto' }).isDisabled());
     await page.locator('#pres-km').fill('18');
     await page.locator('#pres-marchaMin').fill('35');
     await page.locator('#pres-tag').fill('1800');
-    check('modalidad simplificada por defecto y sin campo de gastos fijos', (await page.locator('[data-modalidad-opcion="simplificada"]').getAttribute('aria-pressed')) === 'true' && (await page.locator('#pres-fijoHora').count()) === 0);
+    check('uso personal: modalidad simplificada fija y sin gastos fijos', (await page.locator('[data-modalidad-personal]').count()) === 1 && (await page.locator('#pres-fijoHora').count()) === 0);
     await page.locator('[data-precision] summary').click();
     await page.locator('#pres-base').selectOption('neto');
     await page.locator('#pres-ajuste').selectOption('sin');
@@ -263,7 +317,10 @@ async function recorrido(browser, nombre, opciones, camino) {
   await expect(cmp.locator('[data-estado-presupuesto]')).toHaveText('previo al viaje o simulación');
   await expect(cmp.locator('[data-partida="km"] [data-diferencia]')).toContainText('subestimación');
   await expect(cmp.locator('[data-partida="marchaMin"]')).toContainText('35 min');
-  await expect(cmp.locator('[data-combustible]')).toContainText('sin asignación al viaje');
+  await expect(cmp.locator('[data-combustible]')).toContainText('Sin asignación al viaje');
+  await expect(cmp.locator('[data-litros-asignados]')).toContainText('DATO FALTANTE');
+  await expect(cmp.locator('[data-cobertura-partida="peajes"]')).toContainText('cobertura completa');
+  await expect(cmp.locator('[data-objetivo-viaje]')).toContainText('objetivo exploratorio');
   await expect(cmp.locator('[data-partida="peajes"]')).toContainText('COMPROBADO');
   if (camino === 'nuevo') {
     // Misma base (neto) en el plan y en la observación: hay diferencia en pesos; los fijos quedan excluidos.
@@ -303,6 +360,9 @@ async function recorrido(browser, nombre, opciones, camino) {
   await expect(page.locator('[data-viaje]')).toHaveCount(0);
   await page.getByLabel('Filtrar por estado').selectOption('');
   await expect(page.locator('[data-viaje]')).toHaveCount(1);
+  await page.locator('[data-objetivos-calcular]').click();
+  await expect(page.locator('[data-objetivos-resumen]')).toBeVisible();
+  check('objetivos exploratorios (#12): denominador y leyenda, nunca «aprobado»', /exploratorios/.test(await page.locator('[data-objetivos]').innerText()) && !/aprobad[oa]/i.test(await page.locator('[data-objetivos]').innerText()));
   const viajes = await descargar(page, page.locator('[data-exportar="viajes"]'));
   check('viajes.csv con BOM, «;» y coma decimal', viajes.nombre === 'viajes.csv' && viajes.texto.startsWith('﻿id_viaje;') && viajes.texto.includes(';20,3;'));
   const cargas = await descargar(page, page.locator('[data-exportar="cargas"]'));
@@ -393,7 +453,7 @@ async function recorrido(browser, nombre, opciones, camino) {
 
   check('0 errores de consola', errores.length === 0, errores.join(' | '));
   check('0 diálogos nativos (alert/confirm)', dialogos.length === 0, dialogos.join(' | '));
-  check('0 peticiones fuera de localhost', externas.length === 0, externas.join(' | '));
+  check('0 peticiones fuera del origen', externas.length === 0, externas.join(' | '));
   await context.close();
 }
 
@@ -408,13 +468,14 @@ try {
     }
   }
   if (sinFlag && sinFlag !== '-') {
-    const page = await browser.newPage();
+    const ctxSin = await browser.newContext(contextoBase);
+    const page = await ctxSin.newPage();
     await page.goto(sinFlag);
     await expect(page.getByRole('heading', { name: 'Herramienta de medición desactivada' })).toBeVisible();
     const db = await page.evaluate(async () => (indexedDB.databases ? (await indexedDB.databases()).map((d) => d.name) : []));
     check('sin la flag: «desactivada» y sin crear la base local', !db.includes('medicion.v1'), JSON.stringify(db));
     ok++;
-    await page.close();
+    await ctxSin.close();
   }
 } finally {
   await browser.close();

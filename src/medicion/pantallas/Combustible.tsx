@@ -158,6 +158,10 @@ export function PantallaCombustible() {
         <p className="m-nota">
           Solo para calibración controlada: aparecen cuando registras dos cargas «lleno». El km/L lo calcula el contrato de #55 con un intervalo completo, odómetros y litros de boleta o surtidor.
         </p>
+        <p className="m-nota" data-calibracion-validacion>
+          Calibración y validación van separadas: un intervalo marcado «Calibración» sirve para ajustar y nunca valida un presupuesto. Para validar, el presupuesto debe reservar
+          «validación» antes del viaje y el intervalo debe ser posterior al último ajuste. Los litros que el contrato asigne a un viaje son una estimación, no consumo medido del viaje.
+        </p>
         {intervalos.length === 0 ? <p className="m-nota">Sin intervalos todavía.</p> : null}
         {intervalos.map((i) => {
           const m = i.hasta.cierreIntervalo;
@@ -173,7 +177,7 @@ export function PantallaCombustible() {
               </h3>
               <p>
                 {fmt(i.km, ' km')} por odómetro · {i.parciales.length} carga(s) parcial(es) entre medio ·{' '}
-                <span data-km-l>{medicion ? `${fmt(Math.round(medicion.kmL * 100) / 100, ' km/L')} (medido)` : 'km/L: dato faltante (falta marcar el registro completo, un odómetro o litros de boleta/surtidor)'}</span>
+                <span data-km-l>{medicion ? `${fmt(Math.round(medicion.kmL * 100) / 100, ' km/L')} medido sobre el intervalo` : 'km/L: dato faltante (falta marcar el registro completo, un odómetro o litros de boleta/surtidor)'}</span>
               </p>
               <div className="m-grilla">
                 <label className="m-campo">

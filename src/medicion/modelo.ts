@@ -183,6 +183,13 @@ export interface Viaje {
   cobertura: Record<Directa, 'parcial' | 'completa' | null>;
   /** Base tributaria de los importes observados (neto o con IVA). Ausente o `null` = DATO FALTANTE. */
   baseClp?: BaseClp;
+  /** Partidas directas que el usuario confirma que NO aplican a este viaje (≠ desconocidas, ≠ cero). */
+  noAplica?: Directa[];
+  /**
+   * El usuario no usó los botones de estado y DECLARA que todo el viaje fue marcha (sin espera, carga ni
+   * descarga). Los minutos quedan DECLARADO, nunca MEDIDO.
+   */
+  soloMarchaDeclarada?: boolean;
   /** Incertidumbre absoluta de los km del viaje que declara el usuario. Ausente o `null` = DATO FALTANTE. */
   incertidumbreKm?: number | null;
   creadoEl: string;

@@ -206,7 +206,11 @@ export function fichaDeViaje(d: DatosCampo, v: Viaje): FichaLocal {
   const cerrado = v.fin !== null;
   const min = minutosPorTipo(v.tramos, v.fin);
   const desglose = cerrado && tiemposDesglosados(v);
-  if (cerrado && !desglose) notas.push('Tiempos sin desglosar (no se usaron los botones de estado): marcha, espera, carga y descarga quedan como DATO FALTANTE.');
+  // «Todo fue marcha»: solo si el usuario lo DECLARA en un viaje cerrado sin estados. Nunca MEDIDO.
+  const soloMarcha = cerrado && !desglose && v.soloMarchaDeclarada === true;
+  const total = soloMarcha ? totalMinutos(v) : null;
+  if (cerrado && !desglose && !soloMarcha) notas.push('Tiempos sin desglosar (no se usaron los botones de estado): marcha, espera, carga y descarga quedan como DATO FALTANTE.');
+  if (soloMarcha) notas.push('Todo el viaje se declaró como marcha (sin espera, carga ni descarga): minutos DECLARADO, no medidos.');
   const claseT: Clase = v.horaEditada ? 'DECLARADO' : 'MEDIDO';
   const lec = (l: Lectura | null): Dato => (l ? dato(l.valor, l.clase === 'medido' ? 'MEDIDO' : 'DECLARADO') : null);
   const usadas = dist.fuente === 'odometro' ? [v.lecturas.inicial.odometro, v.lecturas.final.odometro] : [v.lecturas.inicial.trip, v.lecturas.final.trip];
@@ -228,15 +232,16 @@ export function fichaDeViaje(d: DatosCampo, v: Viaje): FichaLocal {
     km: dato(dist.km, claseKm),
     incertidumbreKm: dist.km !== null ? dato(v.incertidumbreKm, 'DECLARADO') : null,
     resolucionKm: res !== null && res > 0 && dist.km !== null ? dato(res, 'DECLARADO') : null,
-    marchaMin: desglose ? dato(min.marcha, claseT) : null,
-    esperaMin: desglose ? dato(min.espera, claseT) : null,
-    cargaMin: desglose ? dato(min.carga, claseT) : null,
-    descargaMin: desglose ? dato(min.descarga, claseT) : null,
+    marchaMin: desglose ? dato(min.marcha, claseT) : soloMarcha ? dato(total, 'DECLARADO') : null,
+    esperaMin: desglose ? dato(min.espera, claseT) : soloMarcha && total !== null ? dato(0, 'DECLARADO') : null,
+    cargaMin: desglose ? dato(min.carga, claseT) : soloMarcha && total !== null ? dato(0, 'DECLARADO') : null,
+    descargaMin: desglose ? dato(min.descarga, claseT) : soloMarcha && total !== null ? dato(0, 'DECLARADO') : null,
     recorrido: v.recorrido,
     nivelCarga: v.nivelCarga,
     aire: v.aire,
     precioLitro,
     fuentePrecio: precioLitro ? (conPrecio?.fuentePrecio ?? null) : null,
+    ...(v.noAplica?.length ? { noAplica: [...v.noAplica] } : {}),
     comprobantes: v.comprobantes.map((c) => ({ ...c })),
     cobertura: { ...v.cobertura },
     intervalo: intervalo ? intervaloFicha(intervalo, veh, sim, v.zona) : null,

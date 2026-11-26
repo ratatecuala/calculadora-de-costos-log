@@ -22,10 +22,11 @@ import {
   previsualizar,
   verificarSelloLocal,
 } from '../src/medicion/campo';
+import { LEYENDA_OBJETIVOS, OBJETIVOS_12, resumenObjetivos } from '../src/medicion/objetivos';
 import { BOM, cargasCsv, celda, COLUMNAS_COMPARACION, COLUMNAS_VIAJES, comparacionCsv, csv, viajesCsv } from '../src/medicion/exportar';
 import cotizacion from '../src/medicion/fixtures/cotizacion-v3-ficticia.json';
 import type { PresupuestoAnterior, PresupuestoLocal, PresupuestoSellado, Tramo, Viaje } from '../src/medicion/modelo';
-import { construirPlan, declarado, entradaDesdePlan, entradaDesdeVehiculo, entradaVacia, leerCotizacion, type OpcionesPlan } from '../src/medicion/presupuesto';
+import { CAMPOS_NO_PERSONALES, construirPlan, declarado, entradaDesdePlan, entradaDesdeVehiculo, entradaVacia, leerCotizacion, type OpcionesPlan } from '../src/medicion/presupuesto';
 import {
   CONSERVAR_FOTO_POR_DEFECTO,
   exportarRespaldo,
@@ -132,8 +133,8 @@ describe('presupuesto con el contrato de #55 (sin motor propio)', () => {
     const e = entradaBase();
     e.fijoHora = declarado(6000);
     const ver = (modalidad: 'simplificada' | 'detallada') => {
-      const { plan, avisos } = construirPlan({ ...e, opciones: { ...e.opciones, modalidad } }, 'personal', null);
-      return { r: previsualizar(fichaPrevia('personal', 'veh-001', 'auto', plan), 'viaje-001', '2026-11-20T10:00:00.000Z').datos!.resultado, avisos };
+      const { plan, avisos } = construirPlan({ ...e, opciones: { ...e.opciones, modalidad } }, 'simulacion', null);
+      return { r: previsualizar(fichaPrevia('simulacion', 'veh-001', 'auto', plan), 'viaje-001', '2026-11-20T10:00:00.000Z').datos!.resultado, avisos };
     };
     const s = ver('simplificada');
     const d = ver('detallada');
@@ -147,8 +148,8 @@ describe('presupuesto con el contrato de #55 (sin motor propio)', () => {
     const e = entradaBase();
     e.descargaMin = entradaVacia().descargaMin;
     e.trabajoHora = declarado(6000);
-    const { plan } = construirPlan(e, 'personal', null);
-    const r = previsualizar(fichaPrevia('personal', 'veh-001', 'auto', plan), 'viaje-001', '2026-11-20T10:00:00.000Z').datos!.resultado;
+    const { plan } = construirPlan(e, 'simulacion', null);
+    const r = previsualizar(fichaPrevia('simulacion', 'veh-001', 'auto', plan), 'viaje-001', '2026-11-20T10:00:00.000Z').datos!.resultado;
     expect(r.partidas.remuneracion).toBeNull();
     expect(r.tipo).toBe('cotaInferior');
   });
@@ -198,8 +199,9 @@ describe('cotización guardada → presupuesto', () => {
     expect(c.entrada.opciones.modalidad).toBe('detallada');
     expect(c.entrada.kmL.procedencia.clase).toBe('declarado');
     expect(c.entrada.margenPct.valor).toBe(20);
-    const { plan } = construirPlan(c.entrada, 'personal', null);
-    expect(previsualizar(fichaPrevia('personal', 'veh-001', 'auto', plan), 'viaje-001', '2026-11-20T10:00:00.000Z').datos!.resultado.costoClp).toBe(cotizacion.snapshot.costEstimate);
+    // Una cotización comercial se reproduce como simulación (el uso personal no usa remuneración ni margen).
+    const { plan } = construirPlan(c.entrada, 'simulacion', null);
+    expect(previsualizar(fichaPrevia('simulacion', 'veh-001', 'auto', plan), 'viaje-001', '2026-11-20T10:00:00.000Z').datos!.resultado.costoClp).toBe(cotizacion.snapshot.costEstimate);
   });
 
   it('v1/v2: sin parámetros, quedan faltantes (nunca recalculados)', () => {
@@ -640,5 +642,163 @@ describe('comparación con `compararFicha` del contrato', () => {
     expect(r.sello?.ok).toBe(false);
     expect(r.notas.join(' ')).toMatch(/no se verificó/);
     expect(r.informe!.estadoPresupuesto).toBe('sin presupuesto previo');
+  });
+});
+
+describe('A-91: «no aplica», «todo fue marcha», uso personal y modalidades', () => {
+  it('«no aplica» en el plan: la partida queda fuera (distinto de faltante y de cero) y lo escrito se conserva en el formulario', () => {
+    const e = entradaBase({ noAplica: ['peajes'] });
+    const { plan, procedencia: proc } = construirPlan(e, 'simulacion', null);
+    expect(plan.noAplica).toEqual(['peajes']);
+    expect(plan.tag).toBeNull();
+    expect(proc.tag!.clase).toBe('faltante');
+    expect(e.tag.valor).toBe(1800); // el formulario conserva el valor
+    const r = previsualizar(fichaPrevia('simulacion', 'veh-001', 'auto', plan), 'viaje-001', '2026-11-20T10:00:00.000Z');
+    expect(r.error).toBeNull();
+    // Sin «no aplica» la misma entrada sí lleva el TAG.
+    expect(construirPlan(entradaBase(), 'simulacion', null).plan.tag).toEqual([1800, 'SIMULADO']);
+    expect(entradaDesdePlan(plan, proc).opciones.noAplica).toEqual(['peajes']);
+  });
+
+  it('«no aplica» en la observación del viaje; contradicción con una línea pagada ⇒ error del contrato', async () => {
+    const p = await presupuestoSellado('2026-11-20T10:00:00.000Z', 'viaje-001', { noAplica: ['peajes'] });
+    const v = viaje({ presupuestoId: p.id, noAplica: ['peajes'] });
+    const d = { vehiculos: [vehiculo()], presupuestos: [p], viajes: [v], cargas: [] };
+    expect(fichaDeViaje(d, v).ficha.observacion.noAplica).toEqual(['peajes']);
+    const r = (await informeViaje(d, v)).informe!;
+    expect(r.conciliacionIndependiente.partidas.peajes.estado).toBe('no aplicable');
+    expect(r.conciliacionIndependiente.partidas.peajes.requerida).toBe(false);
+    // El viaje dice «no aplica» y el presupuesto no: alcance diferente.
+    const p2 = await presupuestoSellado('2026-11-20T10:00:00.000Z', 'viaje-001');
+    const v2 = { ...v, presupuestoId: p2.id };
+    const r2 = (await informeViaje({ ...d, presupuestos: [p2], viajes: [v2] }, v2)).informe!;
+    expect(r2.conciliacionIndependiente.partidas.peajes.estado).toBe('alcance diferente');
+    // Contradicción: «no aplica» con una línea pagada de esa partida.
+    const malo = viaje({ noAplica: ['peajes'], comprobantes: [{ ref: 'doc-001-01', partida: 'peajes', clp: 900 }] });
+    const res = await informeViaje({ ...d, presupuestos: [], viajes: [malo] }, malo);
+    expect(res.informe).toBeNull();
+    expect(res.error).toMatch(/no aplicables contradictorias/);
+    // viajes.csv lo exporta.
+    const fila = viajesCsv(d).replace(BOM, '').split('\r\n')[1]!.split(';');
+    expect(fila[COLUMNAS_VIAJES.indexOf('no_aplica')]).toBe('peajes');
+  });
+
+  it('«todo fue marcha» solo si se DECLARA en un viaje cerrado sin estados: DECLARADO, nunca MEDIDO', () => {
+    const v = viaje({ soloMarchaDeclarada: true });
+    const d = { vehiculos: [vehiculo()], presupuestos: [], viajes: [v], cargas: [] };
+    const { ficha, notas } = fichaDeViaje(d, v);
+    expect(ficha.observacion).toMatchObject({ marchaMin: [40, 'DECLARADO'], esperaMin: [0, 'DECLARADO'], cargaMin: [0, 'DECLARADO'], descargaMin: [0, 'DECLARADO'] });
+    expect(notas.join(' ')).toMatch(/declaró como marcha/);
+    const fila = viajesCsv(d).replace(BOM, '').split('\r\n')[1]!.split(';');
+    expect(fila[COLUMNAS_VIAJES.indexOf('solo_marcha_declarada')]).toBe('sí');
+    expect(fila[COLUMNAS_VIAJES.indexOf('marcha_min')]).toBe('40');
+    expect(fila[COLUMNAS_VIAJES.indexOf('tiempos_clase')]).toBe('DECLARADO');
+    // Sin la declaración, el mismo viaje deja los minutos faltantes.
+    expect(fichaDeViaje({ ...d, viajes: [viaje()] }, viaje()).ficha.observacion.marchaMin).toBeNull();
+    // Con botones de estado la declaración no se usa (mandan los estados medidos).
+    const conEstados = viaje({ tramos: tramosConEstados(), soloMarchaDeclarada: true });
+    expect(fichaDeViaje({ ...d, viajes: [conEstados] }, conEstados).ficha.observacion.marchaMin).toEqual([25, 'MEDIDO']);
+  });
+
+  it('uso personal: sin remuneración, margen, recargos ni gastos fijos; siempre simplificada; lo escrito se conserva', () => {
+    const e = entradaBase({ modalidad: 'detallada' });
+    e.trabajoHora = declarado(6000);
+    e.margenPct = declarado(20);
+    e.fijoHora = declarado(3000);
+    const { plan, procedencia: proc } = construirPlan(e, 'personal', null);
+    expect(plan.modalidad).toBe('simplificada');
+    for (const k of CAMPOS_NO_PERSONALES) {
+      expect((plan as unknown as Record<string, unknown>)[k] ?? null).toBeNull();
+      expect(proc[k]!.clase).toBe('faltante');
+    }
+    expect(e.trabajoHora.valor).toBe(6000);
+    const r = previsualizar(fichaPrevia('personal', 'veh-001', 'auto', plan), 'viaje-001', '2026-11-20T10:00:00.000Z').datos!.resultado;
+    expect(r.partidas.gastosFijos).toBeNull();
+    expect(r.partidas.combustible).toBeGreaterThan(0);
+    // La misma entrada en simulación sí usa la modalidad detallada.
+    expect(construirPlan(e, 'simulacion', null).plan.modalidad).toBe('detallada');
+  });
+
+  it('cambiar de detallada a simplificada y volver no pierde datos', () => {
+    const e = entradaBase({ modalidad: 'detallada' });
+    e.fijoHora = declarado(6000);
+    expect(construirPlan(e, 'simulacion', null).plan.fijoHora).toEqual([6000, 'SIMULADO']);
+    const simple = { ...e, opciones: { ...e.opciones, modalidad: 'simplificada' as const } };
+    construirPlan(simple, 'simulacion', null);
+    expect(simple.fijoHora.valor).toBe(6000);
+    const otraVez = construirPlan({ ...simple, opciones: { ...simple.opciones, modalidad: 'detallada' } }, 'simulacion', null).plan;
+    expect(otraVez.fijoHora).toEqual([6000, 'SIMULADO']);
+  });
+});
+
+describe('A-91: calibración y validación separadas; litros asignados nunca medidos', () => {
+  const cierre = (muestra: 'validacion' | 'calibracion') => ({ muestra, recorrido: 'mixto' as const, carga: 'sin' as const, aire: false, registroCompleto: true });
+  const caso = async (muestra: 'validacion' | 'calibracion', ajusteHasta: OpcionesPlan['ajusteHasta'] = 'sin_ajuste') => {
+    const p = await presupuestoSellado('2026-11-20T10:00:00.000Z', 'viaje-001', { muestraPrevista: 'validacion', ajusteHasta });
+    const v = viaje({
+      presupuestoId: p.id,
+      lecturas: { inicial: { trip: lec(0), odometro: lec(1120) }, final: { trip: lec(21), odometro: lec(1141) } },
+    });
+    const cargas = [
+      carga('2026-11-19T12:00:00.000-03:00', 40, 1000, true),
+      carga('2026-11-21T12:00:00.000-03:00', 25, 1300, true, { cierreIntervalo: cierre(muestra) }),
+    ];
+    const d = { vehiculos: [vehiculo()], presupuestos: [p], viajes: [v], cargas };
+    return { d, r: (await informeViaje(d, v)).informe! };
+  };
+
+  it('intervalo de validación posterior al ajuste: utilizable; litros ASIGNADOS (estimados), nunca medidos', async () => {
+    const { d, r } = await caso('validacion');
+    expect(r.referencias.intervalo.utilizable).toBe(true);
+    expect(r.referencias.rendimientoMedidoIntervaloKmL).toBe(12);
+    expect(r.referencias.litrosAsignadosEstimados).toBeCloseTo(1.75, 6);
+    const filas = (await comparacionCsv(d)).replace(BOM, '').split('\r\n').map((l) => l.split(';'));
+    const ev = COLUMNAS_COMPARACION.indexOf('evidencia_referencia');
+    expect(filas.find((f) => f[1] === 'litrosAsignados')![ev]).toBe('ESTIMADO (asignado, no medido)');
+    expect(filas.find((f) => f[1] === 'rendimientoIntervalo')![ev]).toBe('medido sobre el intervalo');
+  });
+
+  it('un intervalo marcado «calibración» nunca valida', async () => {
+    const { r } = await caso('calibracion');
+    expect(r.referencias.intervalo.utilizable).toBe(false);
+    expect(r.referencias.litrosAsignadosEstimados).toBeNull();
+  });
+
+  it('un intervalo que no es posterior al ajuste no valida', async () => {
+    const { r } = await caso('validacion', { fecha: '2026-11-19', odometro: 1000 });
+    expect(r.referencias.intervalo.utilizable).toBe(false);
+    expect(r.referencias.intervalo.motivos.join(' ')).toMatch(/posterior al ajuste/);
+  });
+});
+
+describe('A-91: objetivos exploratorios de #12 (orientativos, nunca aprobación)', () => {
+  const inf = (referencia: number | null, diferencia: number | null, porcentaje: number | null) =>
+    ({ conciliacionIndependiente: { motivos: [], faltan: [], totalComparable: diferencia === null ? null : { previsto: (referencia ?? 0) + diferencia, referencia, diferencia, porcentaje, sentido: 'x' } } }) as never;
+
+  it('denominador, incompletos, MAPE, dentro de ±10 %, subestimaciones, sesgo y error en CLP con referencia cero', () => {
+    const r = resumenObjetivos([
+      { codigo: 'viaje-001', informe: inf(1000, 40, 4) },
+      { codigo: 'viaje-002', informe: inf(1000, -150, -15) },
+      { codigo: 'viaje-003', informe: inf(1000, 80, 8) },
+      { codigo: 'viaje-004', informe: inf(0, 500, null) },
+      { codigo: 'viaje-005', informe: inf(null, null, null) },
+      { codigo: 'viaje-006', informe: null, error: 'sello no verifica' },
+    ]);
+    expect(r.revisados).toBe(6);
+    expect(r.denominador).toBe(3);
+    expect(r.mapePct).toBeCloseTo(9, 9);
+    expect(r.dentroDeDiezPct).toBeCloseTo((2 / 3) * 100, 9);
+    expect(r.subestimacionesMayoresADiez).toBe(1);
+    expect(r.sesgoPct).toBeCloseTo(-1, 9);
+    expect(r.errorClpReferenciaCero).toEqual([{ codigo: 'viaje-004', diferenciaClp: 500 }]);
+    expect(r.incompletos.map((x) => x.codigo)).toEqual(['viaje-005', 'viaje-006']);
+    expect(r.incompletos[1]!.motivo).toBe('sello no verifica');
+  });
+
+  it('sin denominador no hay métricas (nunca 0 %); la leyenda no aprueba ni certifica', () => {
+    expect(resumenObjetivos([])).toMatchObject({ denominador: 0, mapePct: null, dentroDeDiezPct: null, sesgoPct: null });
+    expect(OBJETIVOS_12).toEqual({ mapeMaximoPct: 5, dentroDeDiezMinimoPct: 90, subestimacionesMayoresADiez: 0 });
+    expect(LEYENDA_OBJETIVOS).toMatch(/exploratorios/);
+    expect(LEYENDA_OBJETIVOS).toMatch(/no son una aprobación/);
   });
 });

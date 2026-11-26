@@ -238,6 +238,8 @@ const viajeSchema = z
     cobertura: z.object({ peajes: cobertura, ayudantes: cobertura, otros: cobertura }).strict(),
     baseClp: base.optional(),
     incertidumbreKm: noNeg.nullable().optional(),
+    noAplica: z.array(z.enum(['peajes', 'ayudantes', 'otros'])).max(3).optional(),
+    soloMarchaDeclarada: z.boolean().optional(),
     creadoEl: instante,
     editadoEl: instante,
   })
