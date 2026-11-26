@@ -58,7 +58,7 @@ export function Calculator({ session, onCreateQuote, vehicles, onManageVehicles,
   function loadExample() {
     if (session.wouldReplaceCosts(EXAMPLE) &&
         !window.confirm('Se sustituirán los costos actuales del viaje por los valores ficticios del ejemplo. ¿Cargar el ejemplo?')) return;
-    session.setParams(EXAMPLE);
+    session.setParams(EXAMPLE, 'ejemplo');
   }
   const mapsUrl = (() => {
     const { origin, destination, base, startAtBase, returnToBase } = s.inputs;

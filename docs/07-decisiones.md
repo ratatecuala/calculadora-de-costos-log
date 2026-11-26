@@ -545,6 +545,16 @@ Registrada literalmente en [#43](https://github.com/ratatecuala/calculadora-de-c
 
 Resultado: [26 · Preparación técnica de la fase 0](26-preparacion-fase-0.md) (**PROPUESTO**). También se corrigieron los pasos 1.1 y 1.2 de [25](25-lista-staging-52.md), que no mencionaban las migraciones de I-2 y de precio entero ni el workflow de CI.
 
+## Autorización del 26-11-2026 (hora de Chile): segunda ronda de la fase 0 (A-88)
+
+Registrada literalmente en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7182067903). **APROBADA** con el alcance indicado.
+
+| ID | Decisión | Alcance |
+|---|---|---|
+| A-88 | **Frente A:** implementar el contrato de procedencia y el snapshot v3 de las cotizaciones (parámetros usados; fuente, fecha, vigencia, versión y clase de cada dato; v1 y v2 intactas; sin recalcular emitidas; todos los caminos local/nube; flags apagadas; nada interno al PDF, WhatsApp ni enlace público; límites de Supabase comprobados). **Frente B:** diseño técnico y documental de una herramienta privada de medición en el teléfono, reutilizando el PR #55 | Si v3 necesita migración: documentar y pedir autorización antes de crearla. Frente B **sin implementación**. **Prohibido:** investigación externa independiente, API CNE, flags, APIs, fórmulas, migraciones remotas, despliegues, servicios, merge, datos privados, tocar `scripts/campo/` y `scripts/simulacro/` |
+
+Resultado: Frente A **implementado y ensayado en local, sin migración** ([28](28-snapshot-v3-procedencia.md)); Frente B **PROPUESTO** ([29](29-herramienta-medicion.md)), con las decisiones D-1 a D-7 pendientes.
+
 ## A-89 · Modalidades simplificada y detallada (26-11-2026)
 
 **APROBADA como dirección de producto y documentación**. [Autorización del propietario](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7182307655).

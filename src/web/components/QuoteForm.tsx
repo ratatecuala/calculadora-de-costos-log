@@ -8,7 +8,7 @@ import { buildJobRecord } from '../jobs';
 import { alternarIncluye, includesPorDefecto } from '../modules/integracion';
 import { validateInventory } from '../modules/inventoryDraft';
 import { Fold } from './Fold';
-import { saveQuote } from '../saveQuote';
+import { saveQuote, snapshotParaEmitir } from '../saveQuote';
 import type { QuoteSession } from '../session';
 import type { QuoteRepository } from '../storage';
 
@@ -91,7 +91,7 @@ export function QuoteForm({ session, repository, onSaved, onCancel, cargoEnabled
       const result = await saveQuote(
         repository,
         (number, version) =>
-          buildJobRecord(session, form, business, { id: crypto.randomUUID(), number, createdAt: new Date().toISOString().slice(0, 10) }, { version }),
+          buildJobRecord(session, form, business, { id: crypto.randomUUID(), number, createdAt: new Date().toISOString().slice(0, 10) }, { version: snapshotParaEmitir(version) }),
         business,
         // La versión del snapshot la decide saveQuote con el repositorio fijado (docs/22 §2.1).
         { cargoFlag: FEATURE_FLAGS.integracionCarga, cargaNube: FEATURE_FLAGS.cargaNube },

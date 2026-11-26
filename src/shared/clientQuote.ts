@@ -9,7 +9,7 @@ export interface BusinessProfile {
   email: string;
 }
 
-import type { SnapshotV2 } from './snapshot';
+import type { SnapshotV2, SnapshotV3 } from './snapshot';
 
 export type JobStatus = 'borrador' | 'enviada' | 'aceptada' | 'rechazada' | 'realizada';
 
@@ -77,11 +77,17 @@ export interface JobInternalV1 {
     } | null;
   }
 
-export type JobInternal = JobInternalV1 | SnapshotV2;
+/** v3 (A-88): toda cotización nueva sin detalle de carga; guarda parámetros y procedencia (`economia`). */
+export type JobInternal = JobInternalV1 | SnapshotV2 | SnapshotV3;
 
 /** ¿Es un snapshot v2? (Una v1 no tiene `schemaVersion`.) */
 export function isSnapshotV2(internal: JobInternal): internal is SnapshotV2 {
   return (internal as { schemaVersion?: unknown }).schemaVersion === 2;
+}
+
+/** ¿Es un snapshot v3 (A-88)? */
+export function isSnapshotV3(internal: JobInternal): internal is SnapshotV3 {
+  return (internal as { schemaVersion?: unknown }).schemaVersion === 3;
 }
 
 export interface ClientQuote {

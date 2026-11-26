@@ -40,7 +40,7 @@ interface MigrationLog {
   [userId: string]: { at: string; jobs: string[]; vehicles: string[]; deferred?: DeferredJob[] };
 }
 
-export type ClaseCopia = 'v1' | 'v2-resumen' | DeferredJob['clase'];
+export type ClaseCopia = 'v1' | 'v2-resumen' | 'v3' | DeferredJob['clase'];
 
 export interface Clasificada {
   job: JobRecord;
@@ -65,6 +65,7 @@ export interface OpcionesCopia {
  * - v1 legible: elegible, y se envía el registro ORIGINAL tal cual, igual que hasta hoy.
  * - v2 sin líneas: elegible con el `internal` validado y medido en bytes (C2).
  * - v2 con líneas: diferida hasta I-2.
+ * - v3 (A-88): elegible con el `internal` validado y medido en bytes; nunca tiene líneas.
  */
 export function clasificarParaCopia(job: JobRecord, opciones: OpcionesCopia = {}): Clasificada {
   if ([job.netPrice, job.tax?.amount ?? 0].some(monto => Number.isFinite(monto) && !Number.isInteger(monto))) {
@@ -75,6 +76,10 @@ export function clasificarParaCopia(job: JobRecord, opciones: OpcionesCopia = {}
   if (!p.ok) return { job, clase: 'ilegible', motivo: p.reason };
   if (typeof internal !== 'object' || internal === null || !('schemaVersion' in internal)) {
     return { job, clase: 'v1', envio: job };
+  }
+  if ((internal as { schemaVersion?: unknown }).schemaVersion === 3) {
+    // A-88: v3 sin líneas de carga, validada y medida por `toCloudPayload`; va por `create_job_with_quote`.
+    return { job, clase: 'v3', envio: { ...job, internal: p.internal as JobRecord['internal'] } };
   }
   if (p.cargoItems.length > 0) {
     // I-2: con `cargaNube` se copia con la v2, con TODAS sus líneas (el registro local completo).

@@ -18,7 +18,8 @@ Este archivo es la **puerta de entrada operativa** para Claude Code, ChatGPT, Ch
 - **Estado vigente (25-11-2026, hora de Chile):** el producto avanza por **fases con puertas de aprobación** (A-84 y A-85, [08](docs/08-hoja-de-ruta.md)). La fase 0 tiene cuatro bloques: 0A MVP, 0B validación económica, 0C competitividad y 0D seguridad y piloto. Hechos **solo en local**, sin aplicar en Supabase:
   - #52 (A-74 y A-76);
   - I-2 paso 1, detrás de `VITE_FF_CARGA_NUBE` apagada (A-81);
-  - precio entero en el cliente (A-81) y en la base (A-83).
+  - precio entero en el cliente (A-81) y en la base (A-83);
+  - snapshot v3 con procedencia de los datos económicos (A-88, [28](docs/28-snapshot-v3-procedencia.md)), sin migración.
 
   **Siguen sin autorización:**
   - aplicar migraciones en Supabase, desplegar y encender flags;

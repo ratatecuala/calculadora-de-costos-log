@@ -191,7 +191,8 @@ try {
       await page.getByRole('button', { name: 'Guardar cotización' }).click();
       await page.getByText('COTIZACIÓN').first().waitFor();
       const v = await page.evaluate(() => JSON.parse(localStorage.getItem('cotizador.trabajos.v1'))[0].internal);
-      check('sin flag: se guarda v1 (sin schemaVersion)', !('schemaVersion' in v));
+      // A-88: sin la flag de carga se emite v3 (sin detalle de carga, con la economía y su procedencia).
+      check('sin flag: se guarda v3 sin carga', v.schemaVersion === 3 && !('cargo' in v) && typeof v.economia === 'object');
       check('sin flag: no se crea borrador', await page.evaluate(() => localStorage.getItem('cotizador.borrador.v1') === null));
       check('sin errores en la consola', errores.length === 0, errores.join(' | '));
       await ctx.close();

@@ -61,6 +61,8 @@ Los datos personales (ubicaciones, domicilios, patentes, boletas) quedan **fuera
 
 ### Fase 0 · cuatro bloques en paralelo
 
+**Segunda ronda (A-88, 26-11-2026):** 0A: contrato de procedencia y snapshot v3 **implementados en la rama, sin migración**, ensayados en local y sin desplegar ([28](28-snapshot-v3-procedencia.md)). 0B: diseño de la herramienta privada de medición en el teléfono, **PROPUESTO** ([29](29-herramienta-medicion.md)); su implementación y el acceso desde el teléfono (D-1) requieren autorización.
+
 **Preparación técnica (A-87, 26-11-2026):** la matriz por componente económico (combustible, TAG, C-1, C-2, rendimiento, desgaste y procedencia), las instrucciones de staging para el propietario, la coordinación con Codex y el orden recomendado están en [26](26-preparacion-fase-0.md). **PROPUESTO:** cada paso pide su aprobación.
 
 **Dependencias:**

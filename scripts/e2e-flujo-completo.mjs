@@ -291,7 +291,10 @@ try {
     const lista = await page.locator('.layout').first().innerText();
     check('8 la cotización aparece en «Mis trabajos» con su precio', lista.includes('0001') && lista.includes(PRECIO_CLP), lista.slice(0, 300));
     const guardada = await page.evaluate(() => JSON.parse(localStorage.getItem('cotizador.trabajos.v1') ?? '[]'));
-    check('8 se guardó v1 con el vehículo y los tramos declarados', guardada.length === 1 && !('schemaVersion' in guardada[0].internal) && guardada[0].internal.vehicle?.kmPerL === 8.7 && guardada[0].internal.km === 64.5 && guardada[0].netPrice === 87000, JSON.stringify(guardada[0]?.internal));
+    // A-88: con las flags de carga apagadas, toda cotización nueva se emite como snapshot v3 (sin carga, con `economia`).
+    const g = guardada[0]?.internal;
+    check('8 se guardó v3 con el vehículo y los tramos declarados', guardada.length === 1 && g?.schemaVersion === 3 && g.vehicle?.kmPerL === 8.7 && g.km === 64.5 && guardada[0].netPrice === 87000, JSON.stringify(g));
+    check('8 la v3 registra la procedencia (vehículo declarado, recorrido declarado)', g?.economia?.parametros?.kmPerL?.procedencia?.fuente?.tipo === 'vehiculo' && g.economia.recorrido?.km?.clase === 'declarado' && Array.isArray(g.economia.partidas), JSON.stringify(g?.economia ?? null).slice(0, 300));
 
     // 9. Sin red externa ni consultas de ruta en todo el flujo manual.
     check('9 ninguna consulta de ruta (/api/route)', rutas === 0, String(rutas));

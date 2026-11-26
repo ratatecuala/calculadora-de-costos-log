@@ -10,7 +10,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createBoundClient } from './client';
-import { isSnapshotV2, type BusinessProfile, type ClientQuote, type JobRecord } from '../../shared/clientQuote';
+import { isSnapshotV2, isSnapshotV3, type BusinessProfile, type ClientQuote, type JobRecord } from '../../shared/clientQuote';
 import { snapshotV2Schema, toCloudPayload } from '../../shared/snapshot';
 import type { JobPatch, QuoteRepository } from '../storage';
 import { cargoItemFromRow, clientQuoteFromRow, jobFromRow, jobWithQuotePayload, type CargoItemRow, type ClientQuoteRow, type JobRow } from './mappers';
@@ -125,7 +125,15 @@ export class CloudQuoteRepository implements QuoteRepository {
         p_cargo_items: p.cargoItems,
       }));
     } else {
-      ({ data, error } = await this.supabase.rpc('create_job_with_quote', jobWithQuotePayload(job, null)));
+      // A-88: una v3 se valida y se mide antes de enviarla (tope de 16 KB de `jobs.internal`). Va por el
+      // mismo RPC que la v1: la base solo exige un objeto JSON; no hace falta ninguna migración.
+      let envio = job;
+      if (isSnapshotV3(job.internal)) {
+        const p = toCloudPayload(job.internal);
+        if (!p.ok) throw new CloudError(`No se guardó en tu cuenta: ${p.reason}.`);
+        envio = { ...job, internal: p.internal as JobRecord['internal'] };
+      }
+      ({ data, error } = await this.supabase.rpc('create_job_with_quote', jobWithQuotePayload(envio, null)));
     }
     if (error || !data) throw new CloudError(SAVE_FAILED, error);
     // El número lo asigna la base, de forma atómica (A-47): se usa el que devuelve.

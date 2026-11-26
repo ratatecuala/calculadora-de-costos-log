@@ -7,8 +7,14 @@
  *   En el navegador lleva la lista completa (`cargo.items`); en la nube, con D-4 = (b) (A-61),
  *   solo el resumen, y las líneas viajan aparte en `p_cargo_items` (`toCloudPayload`).
  *
- * Ninguna función de este archivo modifica su entrada: devuelven copias.
- * Este archivo NO se usa todavía en la aplicación (la integración es la puerta P2).
+ * - **Versión 3** (`schemaVersion: 3`, A-88): la de toda cotización nueva SIN detalle de carga (flags de
+ *   carga apagadas). Campos comunes + vehículo ampliado + `economia`: los parámetros económicos
+ *   efectivamente usados, su procedencia (`src/shared/procedencia.ts`), las partidas calculadas y las
+ *   versiones. No lleva inventario ni recursos: con detalle de carga se sigue emitiendo v2 (I-2 sin cambios).
+ *   En la nube viaja por `create_job_with_quote` igual que una v1 (jsonb objeto, ≤ 16 KB): sin migración.
+ *
+ * Ninguna función de este archivo modifica su entrada: devuelven copias. Nada aquí recalcula una
+ * cotización emitida: v1, v2 y v3 se leen tal como se guardaron.
  */
 import { z } from 'zod';
 import {
@@ -19,6 +25,7 @@ import {
   cargoTotalsSchema,
   type CargoItem,
 } from './cargo';
+import { datoEconomicoSchema, procedenciaSchema } from './procedencia';
 import { handlingTimeSchema, resourcesSchema } from './resources';
 
 const finite = z.number().finite();
@@ -119,6 +126,85 @@ export const snapshotV2Schema = z
   .strict();
 
 export type SnapshotV2 = z.output<typeof snapshotV2Schema>;
+
+/** Parámetros económicos del viaje que guarda la v3, con su unidad (los de `TripParams`). */
+export const UNIDADES_PARAMETRO = {
+  fuelPricePerL: 'CLP/L',
+  kmPerL: 'km/L',
+  wearPerKm: 'CLP/km',
+  fixedPerHour: 'CLP/h',
+  ownerPerHour: 'CLP/h',
+  helpers: 'personas',
+  helperFee: 'CLP',
+  loadMinutes: 'min',
+  tolls: 'CLP',
+  otherCosts: 'CLP',
+} as const;
+export type ParametroEconomico = keyof typeof UNIDADES_PARAMETRO;
+export const PARAMETROS_ECONOMICOS = Object.keys(UNIDADES_PARAMETRO) as ParametroEconomico[];
+
+const conUnidad = (unidad: string) => datoEconomicoSchema.refine((d) => d.unidad === unidad, `La unidad debe ser ${unidad}`);
+const parametrosShape = Object.fromEntries(PARAMETROS_ECONOMICOS.map((k) => [k, conUnidad(UNIDADES_PARAMETRO[k])])) as {
+  [K in ParametroEconomico]: ReturnType<typeof conUnidad>;
+};
+
+const fechaIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha AAAA-MM-DD');
+const version = z.string().min(1).max(40);
+
+/** Partida calculada al emitir (`CostItem` del motor). `monto: null` = faltante, nunca 0. */
+export const partidaSchema = z
+  .object({
+    id: z.string().min(1).max(20),
+    categoria: z.enum(['desembolso', 'desgaste', 'fijo', 'remuneracion']),
+    monto: finite.nullable(),
+  })
+  .strict();
+
+export const economiaSchema = z
+  .object({
+    /** Fecha de emisión de la cotización (la del registro). */
+    registradoEl: fechaIso,
+    parametros: z.object(parametrosShape).strict(),
+    /** Procedencia de los km y minutos (sus valores, si se pueden retener, están en `km` y `minutes`). */
+    recorrido: z.object({ km: procedenciaSchema, minutos: procedenciaSchema }).strict(),
+    margen: conUnidad('fraccion'),
+    recargos: conUnidad('CLP'),
+    /**
+     * Partidas tal como se calcularon al emitir. `null` si los km o minutos no se pueden retener (A-38):
+     * con el precio del combustible y el rendimiento, la partida de combustible revelaría los km.
+     */
+    partidas: z.array(partidaSchema).max(10).nullable(),
+    versiones: z
+      .object({
+        motor: version,
+        formulas: version,
+        /** Versión de cada conjunto de datos de referencia usado. `null` = no se usó ninguno (todo declarado). */
+        datos: z.object({ combustible: version.nullable(), catalogo: version.nullable(), peajes: version.nullable() }).strict(),
+      })
+      .strict(),
+  })
+  .strict();
+
+export type Economia = z.output<typeof economiaSchema>;
+
+export const snapshotV3Schema = z
+  .object({
+    schemaVersion: z.literal(3),
+    formulaVersion: z.string().min(1).max(40),
+    ...commonShape,
+    missing: z.array(z.string().min(1).max(MAX_MISSING_CHARS)).max(MAX_MISSING_ITEMS),
+    vehicle: vehicleV2Schema.nullable(),
+    economia: economiaSchema,
+  })
+  .strict()
+  .refine((s) => s.economia.versiones.motor === s.engineVersion && s.economia.versiones.formulas === s.formulaVersion, 'Las versiones de `economia` no coinciden con las de la cotización')
+  .refine((s) => s.economia.margen.valor === s.margin, 'El margen de `economia` no coincide con el de la cotización')
+  .refine(
+    (s) => s.vehicle === null || (s.vehicle.kmPerL === s.economia.parametros.kmPerL.valor && s.vehicle.wearPerKm === s.economia.parametros.wearPerKm.valor),
+    'Los valores del vehículo no coinciden con los parámetros usados',
+  );
+
+export type SnapshotV3 = z.output<typeof snapshotV3Schema>;
 export type CargoSnapshot = z.output<typeof cargoSnapshotSchema>;
 
 /**
@@ -130,7 +216,7 @@ export type SnapshotView = Omit<SnapshotV2, 'schemaVersion' | 'formulaVersion'> 
 };
 
 export type ReadSnapshotResult =
-  | { ok: true; sourceVersion: 1 | 2; view: SnapshotView }
+  | { ok: true; sourceVersion: 1 | 2 | 3; view: SnapshotView }
   | { ok: false; reason: string };
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -196,7 +282,25 @@ export function readSnapshot(raw: unknown): ReadSnapshotResult {
     const { schemaVersion: _v, ...rest } = structuredClone(parsed.data);
     return { ok: true, sourceVersion: 2, view: rest };
   }
+  if (raw.schemaVersion === 3) {
+    const parsed = snapshotV3Schema.safeParse(raw);
+    if (!parsed.success) return { ok: false, reason: `Snapshot v3 inválido: ${issues(parsed.error)}` };
+    const { schemaVersion: _v, economia: _e, ...rest } = structuredClone(parsed.data);
+    // La v3 no tiene inventario ni recursos. La economía se lee aparte (`readEconomia`), solo para el dueño.
+    return { ok: true, sourceVersion: 3, view: { ...rest, cargo: null, resources: null } };
+  }
   return { ok: false, reason: `Versión de snapshot desconocida: ${String(raw.schemaVersion)}` };
+}
+
+/**
+ * Parámetros, procedencia, partidas y versiones de una cotización v3 (copia). `null` para v1 y v2,
+ * que no los guardaban: nunca se reconstruyen ni se recalculan (A-88). Uso interno del dueño: no
+ * forma parte de `ClientQuote` (PDF, WhatsApp y enlace público).
+ */
+export function readEconomia(raw: unknown): Economia | null {
+  if (!isObject(raw) || raw.schemaVersion !== 3) return null;
+  const parsed = snapshotV3Schema.safeParse(raw);
+  return parsed.success ? structuredClone(parsed.data.economia) : null;
 }
 
 export type CloudPayloadResult =
@@ -235,6 +339,17 @@ export function toCloudPayload(raw: unknown): CloudPayloadResult {
     const parsed = snapshotV1Schema.safeParse(raw);
     if (!parsed.success) return { ok: false, reason: `Snapshot v1 ilegible: ${issues(parsed.error)}` };
     return { ok: true, internal: structuredClone(raw), cargoItems: [] };
+  }
+  if (raw.schemaVersion === 3) {
+    // v3 (A-88): sin líneas de carga; va por `create_job_with_quote`. Se valida y se mide como una v2.
+    const p3 = snapshotV3Schema.safeParse(raw);
+    if (!p3.success) return { ok: false, reason: `Snapshot inválido: ${issues(p3.error)}` };
+    const internal3 = structuredClone(p3.data);
+    const bytes3 = new TextEncoder().encode(JSON.stringify(internal3)).length;
+    if (bytes3 > MAX_CLOUD_INTERNAL_JSON_BYTES) {
+      return { ok: false, reason: `El resumen interno ocupa ${bytes3} bytes y supera el tope de ${MAX_CLOUD_INTERNAL_JSON_BYTES}: no se copia` };
+    }
+    return { ok: true, internal: internal3, cargoItems: [] };
   }
   const parsed = snapshotV2Schema.safeParse(raw);
   if (!parsed.success) return { ok: false, reason: `Snapshot inválido: ${issues(parsed.error)}` };

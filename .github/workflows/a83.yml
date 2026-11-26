@@ -109,3 +109,9 @@ jobs:
       - name: I-2 · ida y vuelta cliente y base
         if: ${{ !cancelled() && steps.pg.outcome == 'success' && steps.deps.outcome == 'success' }}
         run: bash scripts/diseno/i2/probar-i2.sh
+
+      - name: Snapshot v3 · guardado sin migración nueva (A-88)
+        if: ${{ !cancelled() && steps.pg.outcome == 'success' && steps.deps.outcome == 'success' }}
+        run: |
+          MIGRACIONES=staging bash scripts/diseno/v3/ensayar-v3.sh
+          MIGRACIONES=todas bash scripts/diseno/v3/ensayar-v3.sh

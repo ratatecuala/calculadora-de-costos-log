@@ -106,12 +106,22 @@ export const ZERO_DEFAULT_COSTS = ['helpers', 'loadMinutes'] as const;
 type ZeroDefaultCost = (typeof ZERO_DEFAULT_COSTS)[number];
 type CostEdits = Omit<Partial<TripParams>, ZeroDefaultCost> & Partial<Record<ZeroDefaultCost, number | null>>;
 
+/** Parámetros económicos del viaje, en orden estable (para la procedencia del snapshot v3, A-88). */
+export const PARAM_KEYS = Object.keys(EMPTY_PARAMS) as Array<keyof TripParams>;
+/** Origen de un cambio de parámetros. `ejemplo` = «Cargar ejemplo ficticio» (dato simulado, A-88). */
+export type ParamOrigin = 'usuario' | 'ejemplo';
+
 export interface SessionState {
   inputs: AddressInputs;
   habitual: RouteState;
   comparison: RouteState;
   params: TripParams;
   declaredZeros: ZeroDefaultCost[];
+  /**
+   * A-88: parámetros cuyo valor vigente viene de «Cargar ejemplo ficticio» y no se editó después. Se
+   * guardan como `simulado` en la procedencia del snapshot v3. No cambian ningún cálculo.
+   */
+  exampleParams: Array<keyof TripParams>;
   tollsComparison: number | null;
   /** Margen adicional como fracción (0,15 = 15 %). */
   margin: number;
@@ -152,6 +162,8 @@ export interface DraftData {
   inputs: AddressInputs;
   params: TripParams;
   declaredZeros?: ZeroDefaultCost[];
+  /** A-88: ver `SessionState.exampleParams`. Un borrador anterior no lo trae: se recupera sin marcas. */
+  exampleParams?: Array<keyof TripParams>;
   margin: number;
   surcharges: number;
   vehicle: AppliedVehicle | null;
@@ -209,6 +221,7 @@ export function initialState(): SessionState {
     comparison: emptyRoute(),
     params: { ...EMPTY_PARAMS },
     declaredZeros: [],
+    exampleParams: [],
     tollsComparison: null,
     margin: 0.15,
     surcharges: 0,
@@ -412,6 +425,7 @@ export class QuoteSession {
     this.set({
       vehicle: applied,
       params: { ...this.state.params, kmPerL: applied.kmPerL, wearPerKm: applied.wearPerKm },
+      exampleParams: this.exampleWithout(VEHICLE_FIELDS),
       textIssues: this.textIssuesWithout(['params.kmPerL', 'params.wearPerKm']),
     });
   }
@@ -429,8 +443,14 @@ export class QuoteSession {
     if (!v) return;
     this.set({
       params: { ...this.state.params, kmPerL: v.kmPerL, wearPerKm: v.wearPerKm },
+      exampleParams: this.exampleWithout(VEHICLE_FIELDS),
       textIssues: this.textIssuesWithout(['params.kmPerL', 'params.wearPerKm']),
     });
+  }
+
+  /** Marcas de ejemplo sin los campos indicados (A-88). */
+  private exampleWithout(keys: readonly (keyof TripParams)[]): Array<keyof TripParams> {
+    return this.state.exampleParams.filter((k) => !keys.includes(k));
   }
 
   /** Inventario del borrador. No cambia el costo ni la huella del precio (D-I1). */
@@ -449,6 +469,7 @@ export class QuoteSession {
       inputs: s.inputs,
       params: s.params,
       declaredZeros: s.declaredZeros,
+      exampleParams: s.exampleParams,
       margin: s.margin,
       surcharges: s.surcharges,
       vehicle: s.vehicle,
@@ -519,6 +540,7 @@ export class QuoteSession {
       params: { ...d.params },
       // Los borradores antiguos no distinguían el cero declarado del inicial. Ante la duda, protegerlo.
       declaredZeros: ZERO_DEFAULT_COSTS.filter((key) => d.params[key] === 0 && (d.declaredZeros?.includes(key) ?? true)),
+      exampleParams: PARAM_KEYS.filter((k) => d.exampleParams?.includes(k) ?? false),
       margin: d.margin,
       surcharges: d.surcharges,
       vehicle: d.vehicle ? { ...d.vehicle } : null,
@@ -596,14 +618,18 @@ export class QuoteSession {
    * campos conservan su error. Un texto inválido nunca pasa por estos métodos (NumberField no llama a
    * onChange con él), así que no se pierde nada escrito.
    */
-  setParams(partial: CostEdits): void {
+  setParams(partial: CostEdits, origin: ParamOrigin = 'usuario'): void {
     const { helpers = this.state.params.helpers, loadMinutes = this.state.params.loadMinutes } = partial;
     const declaredZeros = ZERO_DEFAULT_COSTS.filter((key) =>
       key in partial ? partial[key] === 0 : this.state.declaredZeros.includes(key),
     );
+    // A-88: el ejemplo marca sus campos como simulados; cualquier otra edición de un campo quita su marca.
+    const touched = PARAM_KEYS.filter((k) => k in partial);
+    const kept = this.exampleWithout(touched);
     this.set({
       params: { ...this.state.params, ...partial, helpers: helpers ?? 0, loadMinutes: loadMinutes ?? 0 },
       declaredZeros,
+      exampleParams: origin === 'ejemplo' ? PARAM_KEYS.filter((k) => kept.includes(k) || touched.includes(k)) : kept,
       textIssues: this.textIssuesWithout(Object.keys(partial).map((k) => `params.${k}`)),
     });
   }

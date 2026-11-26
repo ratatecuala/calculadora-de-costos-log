@@ -24,6 +24,15 @@ export function snapshotVersionFor(cargoFlag: boolean, kind: QuoteRepository['ki
   return kind === 'local' || cargaNube ? 2 : 1;
 }
 
+/**
+ * Versión del snapshot que se EMITE (A-88). `snapshotVersionFor` decide si va el detalle de carga:
+ * con detalle, v2 sin cambios (I-1/I-2); sin detalle, v3, que agrega parámetros y procedencia.
+ * La v1 ya no se emite, pero se sigue leyendo tal cual.
+ */
+export function snapshotParaEmitir(version: SnapshotVersion): 2 | 3 {
+  return version === 2 ? 2 : 3;
+}
+
 export async function saveQuote(
   repository: QuoteRepository,
   build: (number: number, version: SnapshotVersion) => JobRecord | null,
