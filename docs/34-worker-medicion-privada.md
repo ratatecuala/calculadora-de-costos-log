@@ -36,7 +36,8 @@ Un Worker de Cloudflare **nuevo y separado** que sirve solo el build de la herra
 
 - `tests/medicion-worker.test.ts`: 7/7 (401 en siete rutas y POST, credenciales incorrectas o mal formadas, falla cerrado, tipos de contenido, 404 y 405 autenticados, cabeceras, redirección HTTPS).
 - `wrangler dev` local con el build real y `probar-acceso.mjs`: **15/15**. Sin credenciales, `/`, `/index.html`, `/sw.js`, los dos assets y una ruta inexistente → 401; POST y contraseña incorrecta → 401. Con credenciales en Chromium (Pixel 7): la app carga, el service worker toma el control, IndexedDB conserva un registro y la app vuelve a abrir sin conexión. 0 peticiones a otros orígenes.
-- **No ejecutado:** despliegue real, plan de la cuenta, teléfono físico.
+- Sobre el HEAD integrado (contrato de Codex y cierre de A-91, `ea767b1` + este Worker): regresión `npm test` **941/941**; el **e2e completo de la herramienta a través del Worker local con contraseña** (`MEDICION_AUTH`, Pixel 7 y PC): **82 comprobaciones, 0 fallas**, incluidos sin conexión, exportación, importación con la CLI de Codex y respaldo todo o nada.
+- **No ejecutado:** despliegue real, plan de la cuenta, teléfono físico. Las pruebas unitarias del Worker corren en la CI de #57 con `npm test`; la comprobación con `wrangler dev` todavía no está en esa CI (pedido para Codex, dueño del workflow).
 
 ## 5. Procedimiento de despliegue (para la sesión que tenga el token)
 
