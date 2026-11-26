@@ -24,3 +24,6 @@ test-results/
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Worker privado de medición (artefacto)
+build-medicion/
