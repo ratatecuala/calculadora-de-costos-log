@@ -1,5 +1,7 @@
 # Calculadora y cotizador de fletes — nombre pendiente
 
+> **A-89 — dirección aprobada, no implementada:** modalidad simplificada (predeterminada, costo operativo del viaje) y detallada (opcional, costo económico integral), ambas con el mismo motor, cotizaciones e historial. [Registro](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7182307655).
+
 > **Continuidad 26-11-2026:** [primera ronda consolidada](docs/27-consolidacion-fase-0.md): Deep Research #20, A-87 de Claude y PR #55 de Codex. Objetivo económico 10 %; método y muestra pendientes. No integrar #55 hasta corregir hallazgos y verificar regresión.
 
 > **Nombre comercial:** PENDIENTE DE DECISIÓN (#13). El nombre técnico del repositorio no es la marca.

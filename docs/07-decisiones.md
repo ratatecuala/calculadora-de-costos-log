@@ -1,5 +1,7 @@
 # 07 · Registro de decisiones — estado actualizado
 
+> **A-89 (26-11-2026):** [aprobación de modalidades simplificada y detallada](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7182307655). Decisión de producto, no autorización de implementación. A-88 ya está registrada en [#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7182067903) para el trabajo vigente de Claude.
+
 > **Registro 26-11-2026:** [directrices del propietario y primera consolidación](27-consolidacion-fase-0.md) ([#43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7181997317)): objetivo de error económico máximo 10 %, competitividad sin alterar costos, automatización de captura y validación del Chery antes de solicitar piloto experimental. Umbrales operativos, muestras, nuevas funciones y cambios de alcance quedan por aprobar. No modifica A-84/A-85 ni autoriza programación.
 
 **Criterio:** lo aprobado por el propietario se distingue de alternativas propuestas. Este archivo se está actualizando en el **PR #34**, todavía sin fusionar. **Última sincronización: 22-11-2026**, con A-69 (D-I8 parcial: [22 §15](22-diseno-integracion-cotizador.md)) y A-70 (P2 de D-I8 corregido, [22 §16](22-diseno-integracion-cotizador.md); rediseño del contador en #52, [23](23-revision-52-insert-directo.md)) y la [auditoría final de I-1 + I-1b](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743). Las secciones antiguas conservan su texto original; cuando su estado cambió, se indica con una nota de estado actual. Nombre comercial **PENDIENTE**; no reutilizar el nombre anterior como marca.
@@ -542,3 +544,14 @@ Registrada literalmente en [#43](https://github.com/ratatecuala/calculadora-de-c
 | A-87 | Revisión técnica y documental de siete componentes económicos (combustible #20, TAG #21, C-1, C-2, rendimiento declarado y calibrado, desgaste y gastos fijos, procedencia de los datos), de los pasos pendientes de staging (docs/25) y de la coordinación con Codex. Entrega: matriz, orden recomendado, bloqueos y tareas posibles mientras llegan los informes de Deep Research | Solo documentación pertinente, README y comentarios en los issues existentes. **Prohibido:** investigación externa independiente, inventar datos o coeficientes, código funcional, fórmulas, migraciones, flags, APIs, servicios, despliegues, merge y repetir auditorías resueltas |
 
 Resultado: [26 · Preparación técnica de la fase 0](26-preparacion-fase-0.md) (**PROPUESTO**). También se corrigieron los pasos 1.1 y 1.2 de [25](25-lista-staging-52.md), que no mencionaban las migraciones de I-2 y de precio entero ni el workflow de CI.
+
+## A-89 · Modalidades simplificada y detallada (26-11-2026)
+
+**APROBADA como dirección de producto y documentación**. [Autorización del propietario](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7182307655).
+
+| Modalidad | Alcance |
+|---|---|
+| Simplificada (predeterminada) | Transportista independiente; combustible, peajes/TAG, recorrido y tiempo, desgaste con evidencia, carga/descarga, ayudantes y otros costos del servicio cuando corresponda; remuneración/ganancia editable. No exige SOAP, permiso, seguro ni gastos anuales. Mostrar exclusiones y faltantes. |
+| Detallada (opcional) | Independientes y negocios/empresas; lo anterior más gastos fijos, mantención, depreciación y costos personalizados por km/horas productivas, sin duplicar partidas. |
+
+Un motor, cotización e historial en ambas; conservar datos compartidos al cambiar de modalidad. Diferenciar desembolsos, remuneración objetivo, excedente operativo y utilidad económica integral. Gratuidad durante validación; no autoriza monetización. Objetivo 10 % por alcance comparable de cada modalidad; metodología, muestras y umbrales específicos pendientes en #12. No exigir llenados completos en uso normal. No autoriza fórmulas, código, migraciones, flags, APIs, gastos, despliegues o merge. Revisar entregables actuales antes de asignar implementación. A-88 se conserva según su autorización registrada en #43.

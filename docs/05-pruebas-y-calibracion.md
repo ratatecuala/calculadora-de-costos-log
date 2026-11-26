@@ -1,5 +1,7 @@
 # 05 · Pruebas, calibración y validación del lanzamiento gratuito
 
+> **A-89:** validar el objetivo económico del 10 % por separado para las modalidades simplificada y detallada, comparando costos del mismo alcance; no aprobar precisión con partidas relevantes faltantes. Recargas parciales son hábitos válidos: no inferir litros consumidos sin inventario inicial/final suficiente. Intervalos lleno a lleno son metodología controlada, no requisito de uso cotidiano. KPI y muestra aún pendientes en #12. [Decisión](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7182307655).
+
 > **Actualización 26-11-2026 (#12):** objetivo del propietario: error económico máximo del 10 %. Protocolo y muestras aún propuestos; no hay calibración demostrada. Instrumento 0B en PR #55 borrador con correcciones y regresión pendientes. Ver [27 §1 y §4](27-consolidacion-fase-0.md).
 
 **Estado vigente (22-11-2026, con D-I8 parcial, A-70, A-71, A-73 y la migración local de #52, A-74):** `npm test` **636/636** y casos dorados **64/64**; detalle por archivo en «Pruebas del cotizador ampliado» y cifras vigentes al final. Las metas numéricas de validación real se aprobarán en #12; **no** se han hecho viajes de validación con transportistas.
