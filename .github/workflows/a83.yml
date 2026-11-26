@@ -1,0 +1,117 @@
+name: A-83 · Precio entero e I-2
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize]
+    paths:
+      - '.github/workflows/a83.yml'
+      - 'src/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'supabase/**'
+      - 'data/**'
+      - 'datos/**'
+      - 'public/**'
+      - 'package*.json'
+      - '.npmrc'
+      - 'tsconfig*.json'
+      - 'vite.config.*'
+      - 'index.html'
+      - 'wrangler.jsonc'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a83-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validar:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: prueba-local-efimera
+        ports:
+          - '127.0.0.1:55433:5432'
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '55433'
+      PGUSER: postgres
+      PGPASSWORD: prueba-local-efimera
+
+    steps:
+      - name: Obtener el commit del PR
+        id: codigo
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      - name: Instalar dependencias
+        id: deps
+        run: npm ci
+
+      - name: Comprobar PostgreSQL local 17
+        id: pg
+        if: ${{ !cancelled() && steps.codigo.outcome == 'success' }}
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'select version()'
+          test "$(psql -XAt -v ON_ERROR_STOP=1 -d postgres -c "select current_setting('server_version_num')::int / 10000")" = 17
+
+      - name: Pruebas unitarias
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: npm test
+
+      - name: Compilación
+        id: compilar
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        run: npm run build
+
+      - name: Cotización manual · teléfono y escritorio
+        if: ${{ !cancelled() && steps.compilar.outcome == 'success' }}
+        run: |
+          npm install --prefix "$RUNNER_TEMP/qa-navegador" --no-audit --no-fund --ignore-scripts playwright@1.56.1
+          "$RUNNER_TEMP/qa-navegador/node_modules/.bin/playwright" install chromium --only-shell
+          ./node_modules/.bin/vite preview --host 127.0.0.1 --port 5191 --strictPort > "$RUNNER_TEMP/vite-preview.log" 2>&1 &
+          servidor=$!
+          trap 'kill "$servidor" 2>/dev/null || true' EXIT
+          curl --fail --silent --show-error --retry 12 --retry-connrefused --retry-delay 1 http://127.0.0.1:5191/ -o /dev/null
+          if ! command -v pdftotext >/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends poppler-utils
+          fi
+          VERIFICAR_PDF=1 NODE_PATH="$RUNNER_TEMP/qa-navegador/node_modules" node scripts/e2e-flujo-completo.mjs http://127.0.0.1:5191
+
+      - name: Precio entero · ensayo original y ocho mutaciones
+        if: ${{ !cancelled() && steps.pg.outcome == 'success' }}
+        run: python3 -u scripts/diseno/precio-entero/probar-mutaciones.py
+
+      - name: I-2 · ensayo SQL
+        if: ${{ !cancelled() && steps.pg.outcome == 'success' }}
+        run: bash scripts/diseno/i2/ensayar-i2.sh
+
+      - name: I-2 · ida y vuelta cliente y base
+        if: ${{ !cancelled() && steps.pg.outcome == 'success' && steps.deps.outcome == 'success' }}
+        run: bash scripts/diseno/i2/probar-i2.sh
+
+      - name: Snapshot v3 · guardado sin migración nueva (A-88)
+        if: ${{ !cancelled() && steps.pg.outcome == 'success' && steps.deps.outcome == 'success' }}
+        run: |
+          MIGRACIONES=staging bash scripts/diseno/v3/ensayar-v3.sh
+          MIGRACIONES=todas bash scripts/diseno/v3/ensayar-v3.sh

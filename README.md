@@ -1,6 +1,12 @@
 # Calculadora y cotizador de fletes — nombre pendiente
 
-> **Versión de portada.** El desarrollo vive en la rama `claude/determined-volta-q9xvli` ([PR #34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34)); los enlaces apuntan a esa rama hasta que el propietario autorice integrarla a `main`.
+> **Tercera ronda (26-11-2026):** [consolidación y auditoría GPT](docs/33-tercera-ronda-fase-0.md). #55/#56 CI verificadas; #57 integración y acceso privado pendientes; #12 objetivos iniciales aprobados con calendario flexible. No autoriza despliegue.
+
+> **Segunda ronda (26-11-2026):** [consolidación y revisión GPT](docs/30-segunda-ronda-fase-0.md). A-88 v3 en rama, CI verde verificada; #55/#56 requieren correcciones y pruebas; TAG #21 investigado sin integración. D-1–D-7 y siguiente implementación pendientes de autorización.
+
+> **A-89 — dirección aprobada, no implementada:** modalidad simplificada (predeterminada, costo operativo del viaje) y detallada (opcional, costo económico integral), ambas con el mismo motor, cotizaciones e historial. [Registro](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7182307655).
+
+> **Continuidad 26-11-2026 (A-88):** snapshot v3 con procedencia de cada dato económico, implementado en la rama y ensayado en local sin migración ([28](docs/28-snapshot-v3-procedencia.md)); diseño de la herramienta de medición en el teléfono, PROPUESTO ([29](docs/29-herramienta-medicion.md)). Antes: [primera ronda consolidada](docs/27-consolidacion-fase-0.md): Deep Research #20, A-87 de Claude y PR #55 de Codex. Objetivo económico 10 %; método y muestra pendientes. No integrar #55 hasta corregir hallazgos y verificar regresión.
 
 > **Nombre comercial:** PENDIENTE DE DECISIÓN (#13). El nombre técnico del repositorio no es la marca.
 
@@ -12,30 +18,41 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 
 ## Estado para retomar en otro chat
 
-**Actualizado: 18-11-2026.** Esta sección es el punto de continuidad: un chat o colaborador nuevo debe poder seguir desde aquí sin memorias privadas.
+- **Pruebas de campo.** [Registro privado de circulación y cinco escenarios ficticios de flete](docs/05-pruebas-y-calibracion.md#primera-prueba-de-campo). Reproducibles con el motor del cotizador desde el notebook.
+
+- **Catálogo C-1.** [Seguimiento de las versiones y sus límites de uso](datos/catalogo-c1/notas.md#seguimiento-de-versiones-desde-el-notebook).
+
+- **Cotización manual (PR #34).** El ingreso de km y minutos es la acción principal. El ejemplo pide confirmación si sustituye costos. El precio final se escribe en pesos o se copia con «Usar precio sugerido» cuando el cálculo está completo. La CI prueba el flujo hasta PDF y WhatsApp en teléfono emulado y escritorio con datos ficticios.
+
+**Actualizado: 26-11-2026 (hora de Chile).** Esta sección es el punto de continuidad: un chat o colaborador nuevo debe poder seguir desde aquí sin memorias privadas.
 
 | Dato | Valor |
 |---|---|
 | Rama de desarrollo | `claude/determined-volta-q9xvli` |
 | PR de trabajo | [#34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34): **abierto, sin merge**. Ahí están el código, las auditorías de ChatGPT y las decisiones escritas del propietario |
 | Punto de partida | **Siempre la punta (último commit) de la rama de desarrollo**, en su [historial](https://github.com/ratatecuala/calculadora-de-costos-log/commits/claude/determined-volta-q9xvli) |
-| Rama de trabajo de la sesión del 18-11 | `claude/nice-brown-hxu4m5`, adelantada a la rama de desarrollo por *fast-forward* al cerrar la sesión |
-| Último cambio de código | 18-11-2026: A-50 (validación de entradas del motor y rótulo del margen, **sin cambiar fórmulas**: casos dorados 64/64), A-51 («Precio total» y leyenda), aviso de texto inválido en los campos y correcciones de experiencia de usuario (docs/14). Staging redesplegado con esa versión |
-| Auditorías de ChatGPT | 7 rondas sobre el flujo general, más una revisión focalizada de A-47: **aceptada técnicamente para staging, sin hallazgos P0/P1**. ChatGPT revisa **por inspección**; no ejecuta las pruebas |
+| Rama de trabajo de las sesiones del 18 al 21-11 | `claude/nice-brown-hxu4m5`, adelantada a la rama de desarrollo por *fast-forward* tras cada entrega (nunca *force-push*) |
+| Último avance | **A-91 (26-11-2026), cuarta ronda de la fase 0.** Herramienta de medición integrada con el contrato único de Codex en [PR #57](https://github.com/ratatecuala/calculadora-de-costos-log/pull/57) (borrador): modalidades simplificada y detallada, uso personal sin datos contables, base neta o con IVA, calibración separada de validación, litros asignados rotulados como estimados y objetivos exploratorios de #12. CI independiente de Codex en verde. **Worker privado `medicion-privada` desplegado** en el plan gratuito del propietario, con contraseña en todos los recursos y probado de punta a punta (acceso, sin conexión, exportación e importación); dirección fuera del repositorio (docs/34 en la rama de #57). **Fecha comercial** en la fecha civil de America/Santiago, sin tocar históricos ni cálculos ([28](docs/28-snapshot-v3-procedencia.md)). Dirección de A-89 **aprobada**; los cambios comerciales de fórmula siguen bloqueados hasta revisar los casos dorados de Codex ([32 §16](docs/32-diseno-modalidades-a89.md)). D-A4 sigue bloqueado. Antes: **A-90 (26-11-2026), tercera ronda de la fase 0.** Herramienta privada de medición implementada en la rama aislada `claude/medicion-telefono` ([PR #57](https://github.com/ratatecuala/calculadora-de-costos-log/pull/57), borrador). Tiene la flag apagada, guarda los datos solo en el teléfono y **no está desplegada**: el acceso desde el teléfono espera autorización. Diseño de las modalidades A-89, **PROPUESTO** ([32](docs/32-diseno-modalidades-a89.md)). **Frente C:** correcciones del snapshot v3 tras la revisión de GPT. El origen de cada dato se registra al ingresarlo, con su fecha local. El tamaño en UTF-8 forma parte del contrato (probado con caracteres de 2, 3 y 4 bytes). La regla A-38 también se valida al leer y al copiar ([28](docs/28-snapshot-v3-procedencia.md)). Antes: **A-88 (26-11-2026): snapshot v3 y diseño de la herramienta de medición.** Con las flags apagadas, cada cotización nueva se guarda como **v3**: los parámetros económicos usados, cada uno con su unidad, clase (medido, comprobado, declarado, estimado, simulado o faltante), fuente, fecha, vigencia y versión. v1 y v2 intactas; nada se recalcula; nada interno llega al cliente. **Sin migración:** comprobado en PostgreSQL local con las migraciones reales (v3 máxima: 11606 de 16384 bytes) ([28](docs/28-snapshot-v3-procedencia.md)). Diseño de la herramienta privada de medición, **PROPUESTO**, sin implementar ([29](docs/29-herramienta-medicion.md)). Antes: **A-87, preparación técnica de la fase 0, solo documentación.** Matriz de los siete componentes económicos, arquitectura propuesta de procedencia y snapshot v3, pasos de staging para el propietario y reparto con Codex en [26](docs/26-preparacion-fase-0.md) (**PROPUESTO**). Se corrigieron los pasos 1.1 y 1.2 de [25](docs/25-lista-staging-52.md). Antes: A-83 P1/P2 y las dos mejoras de usabilidad, con CI final aprobada ([resultado](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-7146430428)) |
+| Hito anterior de la app (A-75) | 22-11-2026: **A-75**, **cerrada técnicamente** (Frente A, corrige el P1 de A-73: un reemplazo de valor quita el error de texto de ese campo; [24 §8](docs/24-robustez-numerica.md)); commit «fix(#53): A-75» en el [historial](https://github.com/ratatecuala/calculadora-de-costos-log/commits/claude/determined-volta-q9xvli). Antes, `ed30534` (A-73) y `2dd580e`/`33ee8ba` (migración local de #52, aprobada técnicamente: A-76) |
+| Hito anterior del recorrido manual (A-69) | 21-11-2026: **D-I8 parcial (A-69)**: al recuperar el borrador vuelven los km y minutos escritos **a mano**, con el aviso «Recorrido recuperado: revisa los kilómetros y minutos»; cambiar las direcciones los invalida; nunca vuelve el precio ni se guardan datos del proveedor ([22 §15](docs/22-diseno-integracion-cotizador.md)). Misma flag **apagada**. Antes, 20-11-2026: **integración I-1 + I-1b** (A-68): inventario y recursos en «Cotizar» solo sin cuenta, snapshot v2 en el navegador, copia mixta a la cuenta y recuperación del borrador, detrás de la flag `VITE_FF_INTEGRACION_CARGA` **apagada**; el costo no cambia y staging no se redesplegó. **Cerrada técnicamente** por la [auditoría final](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743) (0 P0 · 0 P1). Antes, 18-11-2026: A-50 (validación de entradas del motor y rótulo del margen, **sin cambiar fórmulas**: casos dorados 64/64), A-51 («Precio total» y leyenda), aviso de texto inválido en los campos y correcciones de experiencia de usuario (docs/14). Staging redesplegado con esa versión |
+| Auditorías de ChatGPT | **Flujo general:** 7 rondas y una revisión focalizada de A-47, aceptado técnicamente para staging, sin P0/P1. **Cotizador ampliado:** diseño #45 (auditoría y reauditoría), fase 0 (auditoría y cierre), fase 1 (auditoría y cierre), diseño de integración y tres rondas de I-1 + I-1b; la [final](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743), sobre `2f8e112`, dio **0 P0 · 0 P1 · 1 P2 de producto (D-I8)**. **D-I8 parcial:** [auditada](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7071423796) (0 P0 · 0 P1 · 1 P2); P2 corregido (A-70) y nueva auditoría solicitada. **#52:** [revisión](https://github.com/ratatecuala/calculadora-de-costos-log/issues/52#issuecomment-7071428749) con un riesgo nuevo de desbordamiento del contador, rediseñado en docs/23. ChatGPT revisa **por inspección**; no ejecuta las pruebas |
 | `main` | Solo publica este README de continuidad. **El código y los documentos técnicos siguen en la rama del PR #34, que no está integrado.** Toda fusión requiere aprobación del propietario |
 | Conflicto con `main` | **Resuelto en la rama**: se integró `main` conservando el README de desarrollo (`main` solo tenía el README de portada) |
-| Siguiente acción | Tus pasos: ejecutar el encargo de Deep Research sobre IVA (docs/18), crear el cliente OAuth de Google en modo *Testing* (docs/17 §7) y hacer el primer respaldo real (docs/17 §5). Luego Claude contrasta el informe de IVA y verifica Google OAuth |
+| Estrategia (A-85) | **Hipótesis por validar:** herramienta de **control económico** para transportistas («¿Estás ganando dinero o solo cubriendo gastos?»). El cotizador surge de conocer los costos. Sin prometer ganancias ni exactitud sin evidencia. Seguimiento visual en un tablero privado de Trello; GitHub es la fuente de verdad |
+| Organización del equipo (A-86) | **Deep Research**: investigación externa de fondo. **GPT**: estrategia, encargos, KPIs, evaluación, auditoría y coordinación. **Claude Code**: arquitectura, integración y documentación. **Codex**: ingeniería, instrumentos, pruebas y CI. **Propietario**: aprobaciones. Reglas obligatorias en [AGENTS.md §3](AGENTS.md#3-responsabilidades-y-sistema-de-trabajo) y [A-86](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7181563285). No duplicar investigaciones ni ampliar autorizaciones. |
+| Siguiente acción | **Fase 0 en cuatro bloques** (A-84 y A-85, [08](docs/08-hoja-de-ruta.md#fases-y-puertas-de-aprobación-a-84-revisada-por-a-85)):<br>• **0A:** snapshot v3 hecho en la rama ([28](docs/28-snapshot-v3-procedencia.md)); pendientes D-A1 y D-A2 y llevarlo a staging cuando autorices A-59;<br>• **0B:** decisiones D-1 a D-7 de la herramienta de medición ([29 §11](docs/29-herramienta-medicion.md#11-decisiones-pendientes-del-propietario-y-bloqueos)), mediciones reales con el Chery, aprobar los criterios de [#12](https://github.com/ratatecuala/calculadora-de-costos-log/issues/12) e instrumento 0B de Codex ([26 §2.5](docs/26-preparacion-fase-0.md#25-rendimiento-declarado-y-calibrado-12));<br>• **0C:** *benchmark* de precios y entrevistas de posicionamiento;<br>• **0D:** tus pasos de staging, en orden, en [26 §4.2](docs/26-preparacion-fase-0.md#42-tus-pasos-en-orden), y aviso de privacidad.<br>Ninguna fase se desbloquea sola; los presupuestos y plazos son DATO FALTANTE |
 
-**Cómo retomar:** leer este README → [AGENTS.md](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/AGENTS.md) (reglas y autorizaciones) → [07 · Decisiones](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/07-decisiones.md) → [13 · Staging](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/13-staging.md) → los últimos comentarios del PR #34.
+**Cómo retomar:** leer este README → [AGENTS.md](AGENTS.md) (reglas y autorizaciones) → [07 · Decisiones](docs/07-decisiones.md) → [13 · Staging](docs/13-staging.md) → los últimos comentarios del PR #34.
 
 ## Estado real
 
 | Área | Estado |
 |---|---|
 | Calculadora y cotizador (motor de costos, precio, PDF, WhatsApp) | **Funciona** (local y staging) |
-| Experiencia en teléfono y en PC/notebook (A-49) | **Paridad verificada en local** del 320 al 1440 px (10 problemas corregidos, [14](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/14-qa-ux.md)) y **en staging redesplegado** el 18-11: PC 1440/1366 y teléfono Pixel 7/iPhone 13, **59/59** sin cuenta |
-| Validación independiente del motor (#24) | **Casos dorados 64/64** por recálculo independiente; sin errores de fórmula. Los 4 hallazgos de entradas y textos (C-1 a C-4) **corregidos** con tu aprobación (A-50), sin cambiar fórmulas ([15](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/15-validacion-motor.md)) |
-| IVA en la cotización (#16) | La cotización muestra **«Precio total»** y la leyenda **«Esta cotización no es factura ni boleta.»** (A-51). Las reglas por tipo de transportista y de cliente (opción B) siguen **sin implementar**, a la espera de validación tributaria ([16](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/16-iva-cotizaciones.md)) |
+| Experiencia en teléfono y en PC/notebook (A-49) | **Paridad verificada en local** del 320 al 1440 px (10 problemas corregidos, [14](docs/14-qa-ux.md)) y **en staging redesplegado** el 18-11: PC 1440/1366 y teléfono Pixel 7/iPhone 13, **59/59** sin cuenta |
+| Validación independiente del motor (#24) | **Casos dorados 64/64** por recálculo independiente; sin errores de fórmula. Los 4 hallazgos de entradas y textos (C-1 a C-4) **corregidos** con tu aprobación (A-50), sin cambiar fórmulas ([15](docs/15-validacion-motor.md)) |
+| Cotizador ampliado: inventario, recursos, catálogo de vehículos, costo según carga, IVA en dos opciones y rutas reales | **Planificación aprobada** (A-55 a A-60). **Diseño #45 versión 3 aprobado** (D-4 = b y T-1 a T-6: A-61, A-62). **Fase 0 cerrada** (A-63). **Fase 1 cerrada** (A-66). **Integración I-1 + I-1b implementada y cerrada técnicamente** (A-67, A-68; 0 P0 · 0 P1, [22 §14](docs/22-diseno-integracion-cotizador.md)): en «Cotizar» solo sin cuenta, snapshot v2 en el navegador, copia mixta a la cuenta y borrador recuperable, detrás de la flag **apagada**. **D-I8 parcial implementada** (A-69, [22 §15](docs/22-diseno-integracion-cotizador.md)): el borrador recupera el recorrido manual; auditada, con el P2 de validación corregido (A-70, [22 §16](docs/22-diseno-integracion-cotizador.md)) (no visible para nadie); el costo no cambia. D-I8 **pendiente de tu decisión**. Encender la flag, I-2 (requiere #52, M3 y M4), I-3, migraciones, despliegue y cambios de costo **no autorizados** |
+| IVA en la cotización (#16) | La cotización muestra **«Precio total»** y la leyenda **«Esta cotización no es factura ni boleta.»** (A-51). Las reglas por tipo de transportista y de cliente (opción B) siguen **sin implementar**, a la espera de validación tributaria ([16](docs/16-iva-cotizaciones.md)) |
 | Distancias y tiempos de ruta | **Simulados**. La app lo indica en cada resultado. Google Routes **no está conectado** |
 | Uso sin cuenta (historial en el navegador) | **Funciona**, con aviso de que no hay respaldo en la nube |
 | Cuentas, vehículos y cotizaciones en la nube (Supabase) | **Funciona en staging** con usuarios de prueba (correo y contraseña, solo staging) |
@@ -43,7 +60,7 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
 | Enlace público de la cotización (sin costos internos, revocable) | **Funciona en staging** |
 | Numeración de cotizaciones única por cuenta (A-47) | **Funciona en staging**: la asigna la base de forma atómica |
 | Contador de consultas e interruptor de emergencia (Cloudflare) | **Funciona en staging** |
-| Respaldo y restauración de Supabase | **Script cifrado y ensayado en local** (restauración idéntica). El primer respaldo real lo hace el propietario: requiere la contraseña de la base ([17](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/17-supabase-seguridad-respaldo.md)) |
+| Respaldo y restauración de Supabase | **Script cifrado y ensayado en local** (restauración idéntica). El primer respaldo real lo hace el propietario: requiere la contraseña de la base ([17](docs/17-supabase-seguridad-respaldo.md)) |
 | Producción pública, facturación, planes de pago | **No existen ni están autorizados** |
 
 **Staging:** privado (usuario y contraseña), en los planes **gratuitos** de Cloudflare Workers y Supabase. Su URL y los identificadores de las cuentas **no se publican** en este repositorio.
@@ -56,16 +73,18 @@ Herramienta web **gratuita** para **transportistas independientes y fletes livia
   - Auth y Postgres con **RLS por dueño** en todas las tablas.
   - `jobs` guarda los costos internos; `client_quotes` guarda **solo** lo que ve el cliente.
   - Los enlaces públicos usan tokens de 256 bits, de los que se guarda solo el hash.
-  - Las migraciones están en [`supabase/migrations/`](https://github.com/ratatecuala/calculadora-de-costos-log/tree/claude/determined-volta-q9xvli/supabase/migrations/).
+  - Las migraciones están en [`supabase/migrations/`](supabase/migrations/).
 - **Google Routes Essentials:** proveedor elegido. Está **desconectado** hasta que el propietario lo autorice. La política de cupo es: objetivo de 7.000 consultas al mes, corte en 8.000, y 3 comparaciones al día y 10 al mes por usuario.
 
-Detalle: [02 · Arquitectura](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/02-arquitectura.md) y [13 · Staging](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/13-staging.md).
+Detalle: [02 · Arquitectura](docs/02-arquitectura.md) y [13 · Staging](docs/13-staging.md).
 
 ## Pruebas
 
 | Prueba | Resultado | Quién la ejecutó |
 |---|---|---|
-| `npm test` (sin red) | **249/249** (18-11-2026). Sin `it.fails` activos: los defectos C-1 a C-4 se corrigieron con tu aprobación (A-50) | Claude (ejecutadas) |
+| `npm test` (sin red) | **732/732** (26-11, tras A-91 Frente C), `tsc` y `build` sin errores | Claude (ejecutadas) |
+| Snapshot v3 (A-88): `tests/snapshot-v3.test.ts`, ensayo PostgreSQL local con las migraciones reales (`scripts/diseno/v3/ensayar-v3.sh`, modos `staging` y `todas`) y mutaciones | **25/25** tras la revisión de GPT (origen registrado al ingresar el dato, fecha local, tope UTF-8 con caracteres de 3 y 4 bytes, A-38 al leer y copiar); ensayo todo OK (6 casos del cliente real, `internal` idéntico, textos de 3 y 4 bytes sin pérdida, v3 de 3 bytes sobre el tope rechazada por el cliente, nada interno en `client_quotes`, control negativo de 16 KB); **6/6 + 6/6** mutaciones detectadas. Navegador: flujo completo **154/154**, integración **278/278** y **24/24** sin flag, precio entero **44/44**. No probado contra staging ([28 §7](docs/28-snapshot-v3-procedencia.md#7-pruebas)) | Claude (ejecutadas) |
+| A-83 P1/P2 | **2/2 pruebas locales con Node** del flujo de copia con transporte simulado: cotizaciones mixtas, aviso, conservación y reintento con ambas configuraciones de carga. Dos mutaciones del filtro del cliente detectadas. PostgreSQL, las ocho mutaciones y la regresión completa siguen pendientes. | Codex |
 | Recálculo independiente de los casos dorados (`scripts/verificar-casos-dorados.mjs`) | **64/64** | Claude (ejecutadas) |
 | Teléfono y PC en navegador local (10 tamaños de pantalla) | 10 hallazgos, 10 corregidos; montos idénticos antes y después (también tras A-50); cotización con «Precio total» y leyenda | Claude (ejecutadas) |
 | Ensayo local de respaldo y restauración (datos ficticios) | **Idéntica** (`diff` = 0). **No** equivale a un respaldo real ni a restaurar staging | Claude (ejecutadas) |
@@ -74,13 +93,21 @@ Detalle: [02 · Arquitectura](https://github.com/ratatecuala/calculadora-de-cost
 | Cloudflare real: reserva, concurrencia estricta, apagado, reintentos, contador caído (`scripts/verificar-cloudflare.mjs`) | **8/8 y 2/2** | Claude (ejecutadas) |
 | Navegador real contra staging **sin cuenta**, PC y teléfono (`scripts/e2e-staging-anonimo.mjs`, versión del 18-11) | **59/59**: acceso privado, flujo completo, aviso de texto inválido, margen, «Precio total» y leyenda, PDF, controles ≥ 44 px, 0 errores, 0 dominios externos | Claude (ejecutadas) |
 | Navegador real contra staging **con cuentas A y B**, PC y teléfono (`scripts/e2e-staging.mjs`, versión del 18-11) | **41/41**: inicio y cierre de sesión, cambio de cuenta, vehículos, cotizaciones, importación del historial local, otro dispositivo, enlaces públicos | Claude (ejecutadas) |
-| Revisión independiente del código | 7 auditorías, más la [revisión de los cinco frentes del 18-11](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6970465877) (sin bloqueos nuevos; PR #41 apto para tu decisión) | ChatGPT, **por inspección**: no reproduce las ejecuciones |
+| Borradores M3 y M4 del diseño #45 en PostgreSQL **local desechable** (`scripts/diseno/probar-borradores.sh`), **sin tocar Supabase** | **18/18** y 3 controles negativos que fallan como corresponde (20-11). **C3** (fixtures compartidas con Zod): **27/27**, tras corregir en M3 un `CHECK` que dejaba pasar líneas con dos medidas. Medición de 16 KB con aserciones: **10/10** (`scripts/diseno/medir-16kb.sh`) | Claude (ejecutadas) |
+| Integración I-1 + I-1b en navegador local (`scripts/e2e-integracion.mjs`): Pixel 7, iPhone 13 emulado, 1366 y 1440 | **278/278** con la flag (22-11, tres corridas; incluye emitir < 1 s después del último cambio y recargar, 104 verificaciones de D-I8 —recorridos manuales de 1 y 3 tramos, invalidación al cambiar direcciones, precio no recuperado y ruta del proveedor no guardada— y 40 de A-70: borrador manipulado sin errores de página) y **24/24** sin ella; además `e2e-staging-anonimo.mjs` en local 54/59 (5 fallas propias de staging: 401 y `localhost` como dominio externo). Sin cuentas reales ni Safari real | Claude (ejecutadas) |
+| Robustez ante números extremos (A-71) en navegador local, **con y sin flag** (`scripts/e2e-numeros.mjs`): Pixel 7, iPhone 13 emulado, 1366 y 1440 | **900/900** (22-11; 540 de A-71 + 304 de A-73 + 56 de A-75, sobre los reemplazos de valor (ejemplo, vehículo y margen 15 %); A-73 cubre texto no numérico en cada campo, comparación opcional que no bloquea, borrador con texto inválido y mínimo de «Mi vehículo»): 1e308 en cada campo, topes exactos, negativos, decimales en ayudantes, margen 90 %, precio sobre el tope y combinaciones que desbordarían el motor. El campo se marca, el cálculo queda en pausa, no se reemplaza nada y no hay errores de página. 15 + 16 + 9 defectos reintroducidos, todos detectados ([24](docs/24-robustez-numerica.md)) | Claude (ejecutadas) |
+| Migración de #52 (A-74) en PostgreSQL **local desechable** (`scripts/diseno/ensayo-52/ensayar.sh` y `probar-borradores.sh`), **sin tocar Supabase** | **65 OK** y **24/24** (22-11). Cubre:<br>• huecos H1–H4 sobre las migraciones anteriores;<br>• la migración real: privilegios (también `anon`, `service_role` y `PUBLIC`), aislamiento, concurrencia, idempotencia (aplicada dos veces), límites de `INTEGER` y reintentos;<br>• X1–X8;<br>• verificaciones de solo lectura en sus dos versiones, con paridad;<br>• M3/M4 con T6c y T6d;<br>• reversión ensayada sin pérdida de datos;<br>• `verificar-restauracion.sql` antes y después, con datos reales.<br>Controles C1–C5 y «contador actual», más 5 mutaciones: todos detectados ([23 §11](docs/23-revision-52-insert-directo.md)) | Claude (ejecutadas) |
+| Respaldo, conexión segura (con TLS verificado) y simulacro de restauración (A-77 a A-79; `scripts/simulacro/probar-simulacro.sh`). Servidor PostgreSQL temporal propio, con TLS de una CA de prueba, contraseña `scram-sha-256` y zona horaria `America/Santiago`, Auth representativo y **credenciales ficticias** | **98/98** (24-11). Cubre:<br>• **T** (A-79), TLS: `verify-full` con la CA correcta conecta y respalda; se rechazan otra CA (la contraseña no llega al servidor), un nombre de servidor distinto, un certificado faltante, inválido o que no es CA, los modos `disable`/`allow`/`prefer`/`require`/`verify-ca` editados a mano, las claves repetidas, `PGSSL*` y la excepción de prueba fuera de loopback; 8 mutaciones TLS detectadas;<br>• **A**, credenciales: la contraseña nunca aparece en argumentos, entorno, `/proc`, salida, respaldo, resultado de solo lectura ni repositorio; rechazos explícitos y errores saneados;<br>• **E**, simulacro antes y después de #52 y con volcado completo: «DATOS VERIFICADOS», contenido de 8 tablas;<br>• **B**, alterar cliente, precio, JSON interno, vehículo, correo o hash de contraseña → `HAY DIFERENCIAS`; 11 formatos no reconocidos → error explícito;<br>• **C**, un enlace vencido entre el respaldo y el simulacro no da una diferencia falsa;<br>• controles de A-77 y limpieza.<br>9 mutaciones de A-78 detectadas. **No probado:** Windows/WSL, PostgreSQL 17 (el contenedor tiene 16), un respaldo real de Supabase y que Supabase Auth funcione tras restaurar ([25 §7](docs/25-lista-staging-52.md)) | Claude (ejecutadas) |
+| Flujo completo en navegador local (A-80, `scripts/e2e-flujo-completo.mjs`, sin flags): Pixel 7 y PC 1366. Cubre vehículo → recorrido manual de 3 tramos sin red → costos → precio → cotización guardada → PDF (modo impresión) → enlace de WhatsApp | **84/84** (24-11; dos corridas del agente y una de Claude). El texto de WhatsApp coincide con el documento, sin datos internos. **H1:** con un precio con decimales, el PDF y WhatsApp difieren | Claude (ejecutadas) |
+| Integración de I-2 cliente↔servidor en PostgreSQL local (A-80, `scripts/diseno/i2/probar-i2.sh`) | **49/49**: 7 cotizaciones del cliente real guardadas con los borradores M3/M4 sobre las 4 migraciones y leídas de vuelta campo por campo. **Control:** M4 sin ajustar a #52 falla (`permission denied for schema private`) | Claude (ejecutadas) |
+| Editores de inventario y recursos (fase 1, interfaz plegable) en navegador local, con y sin flag (`scripts/e2e-modulos.mjs`): Pixel 7, iPhone 13 emulado, 1366 y 1440 | **210/210** (20-11), con capturas; incluye foco al cerrar, cambio de modo y totales con datos inválidos. No probado en Safari real ni con lector de pantalla | Claude (ejecutadas) |
+| Revisión independiente del código | Flujo general: 7 auditorías y la [revisión de los cinco frentes del 18-11](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6970465877). Cotizador ampliado: auditorías del diseño, de las fases 0 y 1 y de la integración; [final de I-1 + I-1b](https://github.com/ratatecuala/calculadora-de-costos-log/issues/53#issuecomment-7052650743): **0 P0 · 0 P1** | ChatGPT, **por inspección**: no reproduce las ejecuciones |
 
 Las credenciales de los scripts se leen siempre de archivos **fuera** del repositorio.
 
 ## Decisiones
 
-Fuente: [07 · Decisiones](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/07-decisiones.md). Una decisión está **APROBADA** cuando el propietario la deja por escrito en GitHub.
+Fuente: [07 · Decisiones](docs/07-decisiones.md). Una decisión está **APROBADA** cuando el propietario la deja por escrito en GitHub.
 
 - **APROBADAS por escrito (PR #34):**
   - **A-47:** numeración de cotizaciones única, correlativa y atómica por cuenta, que conserva el número emitido.
@@ -88,10 +115,51 @@ Fuente: [07 · Decisiones](https://github.com/ratatecuala/calculadora-de-costos-
 - **APROBADAS por escrito el 18-11 ([registro de ratificación en el PR #34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6971449761)), implementadas:**
   - **A-50:** margen sobre el precio de venta con rótulo corregido; validación de entradas, con aviso en el campo si se escribe algo que no es número; sin «$-0»; margen con decimales visible. No incluye recargos ni precio negativos (NE-1 y NE-10, sin decidir).
   - **A-51:** «Precio total» y leyenda «Esta cotización no es factura ni boleta.» **Transitorio:** no habilita cotizaciones comerciales reales hasta validar la política tributaria.
+- **APROBADAS el 20-11** ([ratificación en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7041864905)): **A-55 a A-60**, que aprueban la planificación del cotizador ampliado (no su desarrollo), el alcance inicial de vehículos, las investigaciones C-1 y C-2, los ayudantes por hora o por servicio, solo el diseño de migraciones y el catálogo piloto de hasta 15 versiones.
+- **APROBADAS el 20-11** (comunicadas por chat y registradas literalmente en #43 por la misma cuenta, AGENTS.md §6.7):
+  - **A-61 y A-62:** diseño #45 versión 3, con D-4 = (b) y T-1 a T-6 ([registro](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7044997471)).
+  - **A-63:** fase 0 (contratos y pruebas). **Cerrada.**
+  - **A-64 y A-65:** T-7 (límites provisionales de recursos) y T-8 (`fragile` y `handling` no sirven para costos ni seguridad) ([registro](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7045847482)).
+  - **A-66:** fase 1, editores de inventario y recursos detrás de una flag apagada. **Cerrada técnicamente.**
+  - **A-67 y A-68:** D-I1 a D-I7 e implementación de I-1 + I-1b con C1 y C2 ([registro](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7050929523)). **Cerrada técnicamente** (0 P0 · 0 P1).
+- **APROBADA el 21-11** ([registro en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7071050495)):
+  - **A-69:** D-I8 **parcial**, solo el recorrido manual (no las correcciones sobre rutas automáticas). **Implementada y auditada** (0 P0 · 0 P1 · 1 P2). Incluye la revisión **documental** de #52, sin implementarla.
+- **APROBADA el 22-11** ([registro en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7071441529)):
+  - **A-70:** corregir el P2 de D-I8 (**hecho**, [22 §16](docs/22-diseno-integracion-cotizador.md)) y rediseñar solo en documento el contador de #52. D-52-1 y D-52-2 aceptadas como orientación técnica; D-52-3, criterio futuro; D-52-4 requiere rediseño; D-52-5, provisional.
+- **APROBADAS el 22-11** ([registro en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7071778285)):
+  - **A-71:** robustez ante números extremos (Frente A). **Implementada y auditada** (0 P0 · 0 P1 · 2 P2, corregidos por A-73).
+  - **A-72:** diseño de #52 aprobado. **D-52-4 v2 / N1**, incluido el cambio de numeración, más **D-52-1** y **D-52-2** como criterios de diseño. D-52-3, reservado para M4; D-52-5, provisional; D-52-4b, solo si aparecen contadores inflados. **Implementar #52 sigue sin autorizar.**
+- **APROBADAS el 22-11** ([registro en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7072135863)):
+  - **A-73:** texto no numérico que bloquea la emisión, comparación opcional que no bloquea y mínimo de rendimiento en «Mi vehículo». **Implementadas y auditadas** (0 P0 · 1 P1, corregido por A-75).
+  - **A-74:** migración de #52 **solo en el repositorio y en PostgreSQL local** ([23](docs/23-revision-52-insert-directo.md)); auditoría solicitada. **No** autoriza ejecutarla en Supabase.
+- **APROBADAS el 22-11** ([registro en #43](https://github.com/ratatecuala/calculadora-de-costos-log/issues/43#issuecomment-7077903187)):
+  - **A-75:** al reemplazar un valor (ejemplo, vehículo o margen predefinido) se quita el error de texto de ese campo y de ninguno más. **Implementada y cerrada técnicamente** ([24 §8](docs/24-robustez-numerica.md)).
+  - **A-76:** migración local de #52 **aprobada técnicamente**, sin modificarla. Se preparó **solo** la [lista de comprobación para staging](docs/25-lista-staging-52.md). **Ninguna operación remota.**
+  - **A-77:** procedimiento de respaldo y restauración reproducible, **solo documentación y herramientas locales**. Incluye:
+    - el nombre de migración corregido;
+    - un simulacro que crea Auth con las columnas del propio respaldo y elige las migraciones según el estado de #52;
+    - psql como única verificación formal de solo lectura;
+    - instrucciones para Windows 11 que protegen los archivos descifrados.
+
+    **Implementada y probada con datos ficticios.** Su reauditoría dio 0 P0 · 2 P1 · 1 P2, corregidos por A-78.
+  - **A-78:** se corrigen esos hallazgos, **solo en herramientas locales y documentación**:
+    - conexión segura con `pg_service.conf` y `pgpass` (`600`), sin contraseña en argumentos ni en registros;
+    - huellas del contenido completo, con Auth reconstruido con sus tipos y el mensaje «DATOS VERIFICADOS», que aclara que no prueba Supabase Auth;
+    - errores explícitos ante formatos no reconocidos;
+    - instante de referencia para los enlaces que vencen.
+
+    **Implementada y probada con credenciales ficticias (60/60).** Su reauditoría dio 0 P0 · 1 P1 (TLS sin verificación del servidor), corregido por A-79.
+  - **A-79:** TLS con identidad verificada:
+    - `sslmode=verify-full` y `sslrootcert` con el certificado raíz del panel de Supabase;
+    - se rechazan los modos inseguros (también editados a mano), las claves repetidas, los parámetros extra y las variables `PGSSL*`;
+    - las pruebas locales sin TLS van solo con una excepción explícita de loopback.
+
+    **Implementada y probada (98/98)**; nueva auditoría solicitada. **POR CONFIRMAR** el menú del panel y que el certificado oficial valide el Session pooler.
+- **PENDIENTES de tu decisión:** tras la auditoría de A-74, autorizar la ejecución de #52 en staging (requiere el primer respaldo real y A-59, [23](docs/23-revision-52-insert-directo.md)); D-52-4b, solo si aparecen contadores inflados; la política de D-52-5 antes de un lanzamiento público; D-2b, D-5, D-7, D-10 y el punto 2 de D-I8 (correcciones sobre rutas automáticas, para cuando haya rutas reales).
 - **APROBADAS el 18-11 ([registro de decisiones en el PR #34](https://github.com/ratatecuala/calculadora-de-costos-log/pull/34#issuecomment-6972739332)):**
   - **A-52:** Supabase en plan gratuito con respaldo propio. El primer respaldo real lo ejecutas tú.
   - **A-53:** Google OAuth en modo *Testing*. Tú creas el cliente OAuth.
-  - **A-54:** validación del IVA con GPT Deep Research ([encargo](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/18-encargo-deep-research-iva.md)).
+  - **A-54:** validación del IVA con GPT Deep Research ([encargo](docs/18-encargo-deep-research-iva.md)).
 - **APROBADA por escrito (PR #40 y PR #34):**
   - **A-49:** paridad teléfono y computador: mismas funciones, interfaz adaptable a cada pantalla.
 - **Comunicadas por el propietario, pendientes de ratificación escrita en el PR #34:**
@@ -103,9 +171,14 @@ Fuente: [07 · Decisiones](https://github.com/ratatecuala/calculadora-de-costos-
 
 - **Pendientes (detalle en cada documento):**
   - **Motor (15):** C-1 a C-4 **resueltos** (A-50). Siguen pendientes las correcciones Doc-1 a Doc-6 de docs/03 y los puntos «no especificado» (descuentos, empates, topes, etc.).
-  - **IVA (16, A-54):** «Precio total» y leyenda implementados (A-51). La opción B espera el informe de **GPT Deep Research** ([encargo](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/18-encargo-deep-research-iva.md)), que ejecutas tú.
-  - **Supabase (17, A-52):** se queda en el plan gratuito con respaldo propio. Pendiente el **primer respaldo real**, que haces tú porque requiere la contraseña de la base, y elegir el segundo lugar donde guardar los respaldos.
+  - **IVA (16, A-54):** «Precio total» y leyenda implementados (A-51). La opción B espera el informe de **GPT Deep Research** ([encargo](docs/18-encargo-deep-research-iva.md)), que ejecutas tú.
+  - **Supabase (17, A-52):** se queda en el plan gratuito con respaldo propio. Pendientes:
+    - el **primer respaldo real** y su simulacro, que haces tú porque requieren la contraseña de la base; los pasos para Windows 11 están en [25](docs/25-lista-staging-52.md);
+    - elegir el segundo lugar donde guardar los respaldos.
+
+    El ensayo del 18-11 usó un *stub* de Auth que **no** puede cargar un respaldo real (A-77); lo reemplaza `scripts/simulacro/`. La conexión se configura con `scripts/conexion/configurar-conexion.py`, que nunca pone la contraseña en la línea de comandos (A-78).
   - **Google OAuth (A-53):** pendiente que **crees el cliente** en modo *Testing*. El registro por correo queda abierto mientras Google esté en *Testing*; antes de abrir al público se cerrará con un *hook*. La protección de contraseñas filtradas **requiere el plan Pro**.
+  - **Cotizador ampliado (22 §14):** antes de encender la flag para transportistas faltan e2e con cuentas reales y la suite 59/59 en un staging autorizado, Safari en un iPhone real y un lector de pantalla real (D-I8 ya está decidida, implementada y auditada; su P2 se corrigió con A-70). #52 debe resolverse antes de M3/M4: la revisión ([23](docs/23-revision-52-insert-directo.md)) encontró además que un documento emitido se puede reemplazar borrándolo e insertándolo de nuevo (H3); la propuesta lo cierra.
   - **Experiencia de usuario (14):** filtro del historial, precio fijo en el teléfono y propuestas menores.
   - **Antes de lanzar:** dominio, nombre comercial y aviso de privacidad (#17).
 - **Antes de usar Google Routes real:**
@@ -124,28 +197,48 @@ Fuente: [07 · Decisiones](https://github.com/ratatecuala/calculadora-de-costos-
 - crear cuentas o servicios nuevos;
 - publicar secretos;
 - cambiar las fórmulas del motor.
+- encender `VITE_FF_CARGA_RECURSOS` o `VITE_FF_INTEGRACION_CARGA` fuera de pruebas locales;
+- implementar #52, I-2 o I-3, o el punto 2 de D-I8 (correcciones sobre rutas automáticas);
+- ejecutar migraciones o redesplegar staging;
+- cambiar el IVA o activar reglas tributarias.
 
-Reglas completas en [AGENTS.md](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/AGENTS.md).
+Reglas completas en [AGENTS.md](AGENTS.md).
 
 ## Documentación
 
 | Archivo | Contenido |
 |---|---|
-| [AGENTS.md](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/AGENTS.md) | Reglas de trabajo y autorización para todos los agentes |
-| [01 · Alcance](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/01-alcance.md) | Funciones gratuitas, flujo y exclusiones |
-| [02 · Arquitectura](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/02-arquitectura.md) | Arquitectura, política de consultas e implementación |
-| [03 · Motor de costos](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/03-motor-de-costos.md) | Fórmulas, cotas y casos dorados |
-| [05 · Pruebas](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/05-pruebas-y-calibracion.md) | Pruebas automáticas y reales |
-| [06 · Seguridad y privacidad](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/06-seguridad-y-privacidad.md) | Datos, cotizaciones compartidas y control de cargos |
-| [07 · Decisiones](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/07-decisiones.md) | Registro de decisiones y su estado |
-| [10 · Diseño UX/UI v4](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/10-diseno-ux.md) | Diseño aprobado |
-| [11 · Auditoría Google Maps](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/11-auditoria-google-maps.md) | Costos y condiciones de Google |
-| [13 · Staging](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/13-staging.md) | Recursos, RLS, pruebas reales, interruptores, respaldo y pasos manuales |
-| [14 · QA de experiencia de usuario](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/14-qa-ux.md) | Teléfono y PC/notebook: hallazgos, correcciones y paridad por flujo |
-| [15 · Validación del motor](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/15-validacion-motor.md) | Recálculo independiente, hallazgos y decisiones (#24) |
-| [16 · IVA en las cotizaciones](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/16-iva-cotizaciones.md) | Normativa chilena, documento tributario vs cotización y propuesta (#16) |
-| [17 · Supabase: seguridad y respaldo](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/17-supabase-seguridad-respaldo.md) | Auditoría, ajustes de Auth, respaldo y restauración, Google OAuth (#35) |
-| [18 · Encargo de Deep Research sobre IVA](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/docs/18-encargo-deep-research-iva.md) | Preguntas para validar la tributación antes de la opción B (#16, A-54) |
+| [AGENTS.md](AGENTS.md) | Reglas de trabajo y autorización para todos los agentes |
+| [01 · Alcance](docs/01-alcance.md) | Funciones gratuitas, flujo y exclusiones |
+| [02 · Arquitectura](docs/02-arquitectura.md) | Arquitectura, política de consultas e implementación |
+| [03 · Motor de costos](docs/03-motor-de-costos.md) | Fórmulas, cotas y casos dorados |
+| [04 · Fuentes de datos](docs/04-fuentes-de-datos.md) | Fuentes de datos y restricciones de uso |
+| [05 · Pruebas](docs/05-pruebas-y-calibracion.md) | Pruebas automáticas y reales; inventario por archivo y cifras vigentes |
+| [06 · Seguridad y privacidad](docs/06-seguridad-y-privacidad.md) | Datos, cotizaciones compartidas y control de cargos |
+| [07 · Decisiones](docs/07-decisiones.md) | Registro de decisiones y su estado |
+| [08 · Hoja de ruta](docs/08-hoja-de-ruta.md) | Estado vigente por frente y hoja de ruta histórica del 16-11 |
+| [09 · Revisión y aprobación](docs/09-revision-y-aprobacion.md) | Protocolo de revisión y aprobación |
+| [10 · Diseño UX/UI v4](docs/10-diseno-ux.md) | Diseño aprobado |
+| [11 · Auditoría Google Maps](docs/11-auditoria-google-maps.md) | Costos y condiciones de Google |
+| [12 · Alternativas de mapas](docs/12-alternativas-mapas.md) | Comparación preliminar de proveedores (no aprobada) |
+| [13 · Staging](docs/13-staging.md) | Recursos, RLS, pruebas reales, interruptores, respaldo y pasos manuales |
+| [14 · QA de experiencia de usuario](docs/14-qa-ux.md) | Teléfono y PC/notebook: hallazgos, correcciones y paridad por flujo |
+| [15 · Validación del motor](docs/15-validacion-motor.md) | Recálculo independiente, hallazgos y decisiones (#24) |
+| [16 · IVA en las cotizaciones](docs/16-iva-cotizaciones.md) | Normativa chilena, documento tributario vs cotización y propuesta (#16) |
+| [17 · Supabase: seguridad y respaldo](docs/17-supabase-seguridad-respaldo.md) | Auditoría, ajustes de Auth, respaldo y restauración (§5.2–§5.3: conexión segura, A-78; §5.6: simulacro automático, A-77 y A-78), Google OAuth (#35) |
+| [18 · Encargo de Deep Research sobre IVA](docs/18-encargo-deep-research-iva.md) | Preguntas para validar la tributación antes de la opción B (#16, A-54) |
+| [19 · Plan del cotizador ampliado](docs/19-plan-cotizador-ampliado.md) | Catálogo de vehículos, inventario de carga, costo según carga, IVA en dos opciones y rutas reales: etapas, datos y decisiones (épica #42; planificación **aprobada**, A-55 a A-60) |
+| [20 · Encargos de Deep Research del cotizador](docs/20-encargos-deep-research-cotizador.md) | C-1 catálogo y mercado, C-2 costo según carga y recursos; listos para ejecutar (el IVA no se duplica) |
+| [21 · Diseño de datos del cotizador ampliado](docs/21-diseno-datos-cotizador.md) | Diseño técnico de #45, **versión 3, aprobado** (A-61 a A-63; fase 0 cerrada en §16, fase 1 cerrada en §17; corrige la auditoría y los 5 P2 de la reauditoría): módulos, contratos, inmutabilidad con 4 capas, persistencia local, medición de 16 KB con aserciones, borradores M3 y M4 ensayados en local (18/18 y 3 controles negativos), carriles paralelos y **plan de implementación por puertas** (§15) |
+| [22 · Diseño de integración con el cotizador](docs/22-diseno-integracion-cotizador.md) | **Versión 2**, D-I1 a D-I7 aprobadas e **I-1 + I-1b implementadas** (§10) y **cerradas técnicamente** (§14, 0 P0 · 0 P1); **D-I8 parcial implementada** (§15, A-69, en auditoría). Puerta P2: v2 solo en el navegador; copia mixta v1/v2 con diferidas; recuperación del borrador (I-1b) antes de habilitar a usuarios; «Incluye» con casilla explícita; I-1 en el navegador sin migraciones, I-2 en la cuenta tras #52 y M3/M4, I-3 recursos en el costo con aprobación de fórmulas; fuente única de cada costo, conservación de datos, protección de históricos y decisiones D-I1 a D-I7 |
+| [23 · #52: escritura directa, documentos emitidos y contador](docs/23-revision-52-insert-directo.md) | **Versión 4:** diseño aprobado (A-72) y **migración implementada en el repositorio y ensayada solo en local** (A-74, §11), **no aplicada en Supabase**. La migración incluye D-52-1 (DEFINER y escritura directa revocada), D-52-2 (sin acceso a `private`) y N1, y se puede aplicar dos veces sin cambiar nada. Tiene reversión ensayada, verificaciones de solo lectura en dos versiones (psql y editor SQL de Supabase) y adapta `verificar-rls.mjs` y `verificar-numeracion.mjs` (sin ejecutar). Ensayo local: **65 OK** |
+| [24 · Robustez ante números extremos](docs/24-robustez-numerica.md) | **Implementada** (A-71, 22-11): auditoría de todas las entradas numéricas, límites técnicos por campo, inválido ≠ faltante ≠ cero, pausa del cálculo con error en el campo, barrera ante fallos del motor y compatibilidad; sin cambiar fórmulas |
+| [25 · Lista de comprobación para staging de #52](docs/25-lista-staging-52.md) | **Versión 4 (A-79, 24-11): preparada; nada ejecutado contra Supabase.** Pasos para el propietario con Windows 11:<br>• preparar el equipo (WSL, PostgreSQL 17, age y clave);<br>• descargar el **certificado raíz** de Supabase y copiarlo a Ubuntu, para una conexión con TLS verificado (`verify-full`);<br>• confirmar que nada aplica migraciones solo;<br>• configurar la **conexión segura** con un asistente que no muestra la contraseña;<br>• el respaldo real cifrado;<br>• el **simulacro automático** de restauración (`scripts/simulacro/`), que borra los archivos descifrados;<br>• las verificaciones de solo lectura **con psql** (`scripts/verificar-solo-lectura.sh`; el editor solo es informativo) y cómo leer V1–V17;<br>• la revisión antes de pedir A-59.<br>También las pruebas con datos y credenciales ficticios (98/98) y sus limitaciones |
+| [32 · Diseño de las modalidades A-89](docs/32-diseno-modalidades-a89.md) | **PROPUESTO (A-90 Frente B, 26-11), sin implementar.** Simplificada y detallada con el mismo motor: matriz de partidas, estados (incluido, excluido, desconocido, cero), excedente operativo frente a utilidad integral, procedencia visible (D-A2), contratos, maqueta para teléfono y escritorio ([maqueta](docs/diseno/a89-maqueta.html)), pruebas y decisiones D-M1 a D-M10 |
+| [28 · Procedencia y snapshot v3](docs/28-snapshot-v3-procedencia.md) | **Implementado en la rama (A-88, 26-11).** Contrato de procedencia, snapshot v3, caminos verificados, ensayo sin migración, tamaños, pruebas y decisiones D-A1/D-A2 |
+| [29 · Herramienta privada de medición](docs/29-herramienta-medicion.md) | **PROPUESTO (A-88, 26-11), sin implementar.** Módulo privado en la app, datos solo en el teléfono con exportación CSV y paquete para la CLI de #55, flujo de 9 pasos, comparación por partida, almacenamiento y decisiones D-1 a D-7 |
+| [27 · Consolidación de la fase 0](docs/27-consolidacion-fase-0.md) | Primera ronda: Deep Research #20, A-87 y revisión del PR #55; objetivo económico 10 % y protocolo propuesto |
+| [26 · Preparación técnica de la fase 0](docs/26-preparacion-fase-0.md) | **PROPUESTO (A-87, 26-11).** Matriz de combustible, TAG, C-1, C-2, rendimiento, desgaste y procedencia; snapshot v3 sin migración; pasos de staging para el propietario; reparto con Codex; orden y bloqueos. Sin cambios de código |
 
 ## Probar localmente (sin cuentas ni servicios externos)
 
@@ -167,7 +260,7 @@ La app abre en `http://localhost:5173`, con rutas **simuladas** y el historial g
 
 ## Cómo se mantiene este README
 
-Es una **regla permanente** (A-48, ver [AGENTS.md](https://github.com/ratatecuala/calculadora-de-costos-log/blob/claude/determined-volta-q9xvli/AGENTS.md) §10):
+Es una **regla permanente** (A-48, ver [AGENTS.md](AGENTS.md) §10):
 - Cada avance material (función, decisión, arquitectura, despliegue, prueba, bloqueo o hito) actualiza este README en el mismo PR o commit.
 - La versión de la portada de GitHub (`main`) se sincroniza con un **PR exclusivamente documental**, que fusiona solo el propietario.
 - No hay monitorización automática: lo actualiza el agente cada vez que trabaja en el repositorio.

@@ -1,0 +1,43 @@
+name: Investigación
+description: Pregunta técnica que debe responderse con fuentes antes de decidir o implementar.
+title: "[Investigación] "
+labels: ["investigación"]
+body:
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Objetivo
+      description: Qué decisión o implementación depende de esta investigación.
+    validations:
+      required: true
+  - type: dropdown
+    id: gasto
+    attributes:
+      label: ¿Genera gasto?
+      options:
+        - "No (solo lectura)"
+        - "Dentro del tramo gratuito, con cuotas activas"
+        - "Sí (requiere autorización del propietario)"
+    validations:
+      required: true
+  - type: textarea
+    id: preguntas
+    attributes:
+      label: Preguntas a responder
+      value: |
+        1.
+        2.
+    validations:
+      required: true
+  - type: textarea
+    id: fuentes
+    attributes:
+      label: Fuentes a consultar
+      description: Preferir documentación oficial. Citar URL y fecha de lectura.
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Criterios de aceptación
+      value: "Informe con fuentes citadas, revisado por ChatGPT."
+    validations:
+      required: true

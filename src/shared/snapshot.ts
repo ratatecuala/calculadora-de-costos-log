@@ -1,0 +1,380 @@
+/**
+ * Contrato del snapshot interno versionado de una cotización (fase 0, A-63; docs/21 §6).
+ *
+ * - **Versión 1** (actual, sin `schemaVersion`): `JobRecord['internal']`. Se LEE tal como está:
+ *   nunca se recalcula, nunca se reescribe y no se reinterpreta (docs/21 §6.2 y §4.4 punto 6).
+ * - **Versión 2** (`schemaVersion: 2`): agrega vehículo ampliado, inventario y recursos.
+ *   En el navegador lleva la lista completa (`cargo.items`); en la nube, con D-4 = (b) (A-61),
+ *   solo el resumen, y las líneas viajan aparte en `p_cargo_items` (`toCloudPayload`).
+ *
+ * - **Versión 3** (`schemaVersion: 3`, A-88): la de toda cotización nueva SIN detalle de carga (flags de
+ *   carga apagadas). Campos comunes + vehículo ampliado + `economia`: los parámetros económicos
+ *   efectivamente usados, su procedencia (`src/shared/procedencia.ts`), las partidas calculadas y las
+ *   versiones. No lleva inventario ni recursos: con detalle de carga se sigue emitiendo v2 (I-2 sin cambios).
+ *   En la nube viaja por `create_job_with_quote` igual que una v1 (jsonb objeto, ≤ 16 KB): sin migración.
+ *
+ * Ninguna función de este archivo modifica su entrada: devuelven copias. Nada aquí recalcula una
+ * cotización emitida: v1, v2 y v3 se leen tal como se guardaron.
+ */
+import { z } from 'zod';
+import {
+  MAX_SUMMARY_CHARS,
+  capacityEstimateSchema,
+  cargoItemsSchema,
+  cargoTotalsIssue,
+  cargoTotalsSchema,
+  type CargoItem,
+} from './cargo';
+import { datoEconomicoSchema, procedenciaSchema } from './procedencia';
+import { handlingTimeSchema, resourcesSchema } from './resources';
+
+const finite = z.number().finite();
+
+export const MAX_MISSING_ITEMS = 20;
+export const MAX_MISSING_CHARS = 60;
+/**
+ * Tope conservador del `internal` v2 que sube a la nube, en bytes de JSON (UTF-8). La base exige
+ * `pg_column_size(internal) <= 16384` sobre el jsonb sin comprimir, que en la medición de docs/21 §7
+ * ocupó entre 1,28 y 1,44 veces el JSON. 11.000 × 1,44 ≈ 15.840 < 16.384.
+ */
+export const MAX_CLOUD_INTERNAL_JSON_BYTES = 11000;
+
+/** Bytes de un texto en UTF-8 (lo que mide el tope de la nube). */
+export const utf8Bytes = (texto: string): number => new TextEncoder().encode(texto).length;
+
+const routeSource = z.enum(['simulado', 'google', 'declarado', 'mixto']);
+const costType = z.enum(['estimado', 'cotaInferior', 'cotaSuperior']);
+const vehicleType = z.enum(['camioneta', 'furgon', 'camionLiviano']);
+const fuelType = z.enum(['gasolina', 'diesel', 'otro']);
+
+/** Vehículo aplicado, tal como lo guarda la versión 1 (`src/shared/clientQuote.ts`). */
+const vehicleV1Shape = {
+  id: z.string(),
+  name: z.string(),
+  type: vehicleType,
+  fuel: fuelType,
+  kmPerL: finite.nullable(),
+  wearPerKm: finite.nullable(),
+  adjusted: z.array(z.string()),
+};
+
+/** Campos comunes a las versiones 1 y 2 (los de `JobRecord['internal']`). */
+const commonShape = {
+  routeSource,
+  km: finite.nullable(),
+  minutes: finite.nullable(),
+  costEstimate: finite,
+  costType,
+  suggestedPrice: finite,
+  margin: finite,
+  missing: z.array(z.string()),
+  engineVersion: z.string().min(1),
+};
+
+/**
+ * Versión 1, para LEER registros existentes. `passthrough`: un campo extra no impide leer ni se
+ * pierde. `vehicle` es opcional porque los registros anteriores al módulo «Mi vehículo» no lo tienen.
+ */
+export const snapshotV1Schema = z
+  .object({
+    ...commonShape,
+    vehicle: z.object(vehicleV1Shape).passthrough().nullable().optional(),
+  })
+  .passthrough()
+  .refine((s) => !('schemaVersion' in s), 'Un snapshot v1 no tiene schemaVersion');
+
+export type SnapshotV1 = z.output<typeof snapshotV1Schema>;
+
+/** Vehículo de la versión 2: el de la v1 más los datos del catálogo (todos opcionales, null = no se sabe). */
+export const vehicleV2Schema = z
+  .object({
+    ...vehicleV1Shape,
+    catalogId: z.string().nullable().default(null),
+    catalogDataVersion: z.string().nullable().default(null),
+    make: z.string().max(60).nullable().default(null),
+    model: z.string().max(60).nullable().default(null),
+    modelYear: z.number().int().min(1950).max(2100).nullable().default(null),
+    version: z.string().max(80).nullable().default(null),
+    payloadKg: z.number().gt(0).max(50000).nullable().default(null),
+    cargoVolumeM3: z.number().gt(0).max(200).nullable().default(null),
+  })
+  .strict();
+
+export const cargoSnapshotSchema = z
+  .object({
+    mode: z.enum(['rapido', 'detallado']),
+    summary: z.string().max(MAX_SUMMARY_CHARS),
+    totals: cargoTotalsSchema,
+    capacity: capacityEstimateSchema,
+    handling: handlingTimeSchema,
+    /** Solo en el navegador. En la nube (A-61) las líneas están en `job_cargo_items`. */
+    items: cargoItemsSchema.optional(),
+  })
+  .strict();
+
+export const snapshotV2Schema = z
+  .object({
+    schemaVersion: z.literal(2),
+    /** Fórmulas de costo aplicadas (docs/03). Mientras no se aprueben fórmulas nuevas, igual al motor. */
+    formulaVersion: z.string().min(1).max(40),
+    ...commonShape,
+    /** Acotado en v2 (seguimiento P2): partidas faltantes con nombre corto. La v1 se lee sin tope. */
+    missing: z.array(z.string().min(1).max(MAX_MISSING_CHARS)).max(MAX_MISSING_ITEMS),
+    vehicle: vehicleV2Schema.nullable(),
+    /** `null` si la cotización no tiene inventario. */
+    cargo: cargoSnapshotSchema.nullable(),
+    /** `null` si la cotización no declaró recursos. */
+    resources: resourcesSchema.nullable(),
+  })
+  .strict();
+
+export type SnapshotV2 = z.output<typeof snapshotV2Schema>;
+
+/** Parámetros económicos del viaje que guarda la v3, con su unidad (los de `TripParams`). */
+export const UNIDADES_PARAMETRO = {
+  fuelPricePerL: 'CLP/L',
+  kmPerL: 'km/L',
+  wearPerKm: 'CLP/km',
+  fixedPerHour: 'CLP/h',
+  ownerPerHour: 'CLP/h',
+  helpers: 'personas',
+  helperFee: 'CLP',
+  loadMinutes: 'min',
+  tolls: 'CLP',
+  otherCosts: 'CLP',
+} as const;
+export type ParametroEconomico = keyof typeof UNIDADES_PARAMETRO;
+export const PARAMETROS_ECONOMICOS = Object.keys(UNIDADES_PARAMETRO) as ParametroEconomico[];
+
+const conUnidad = (unidad: string) => datoEconomicoSchema.refine((d) => d.unidad === unidad, `La unidad debe ser ${unidad}`);
+const parametrosShape = Object.fromEntries(PARAMETROS_ECONOMICOS.map((k) => [k, conUnidad(UNIDADES_PARAMETRO[k])])) as {
+  [K in ParametroEconomico]: ReturnType<typeof conUnidad>;
+};
+
+const fechaIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha AAAA-MM-DD');
+const version = z.string().min(1).max(40);
+
+/** Partida calculada al emitir (`CostItem` del motor). `monto: null` = faltante, nunca 0. */
+export const partidaSchema = z
+  .object({
+    id: z.string().min(1).max(20),
+    categoria: z.enum(['desembolso', 'desgaste', 'fijo', 'remuneracion']),
+    monto: finite.nullable(),
+  })
+  .strict();
+
+export const economiaSchema = z
+  .object({
+    /** Fecha de emisión de la cotización (la del registro). */
+    registradoEl: fechaIso,
+    parametros: z.object(parametrosShape).strict(),
+    /** Procedencia de los km y minutos (sus valores, si se pueden retener, están en `km` y `minutes`). */
+    recorrido: z.object({ km: procedenciaSchema, minutos: procedenciaSchema }).strict(),
+    margen: conUnidad('fraccion'),
+    recargos: conUnidad('CLP'),
+    /**
+     * Partidas tal como se calcularon al emitir. `null` si los km o minutos no se pueden retener (A-38):
+     * con el precio del combustible y el rendimiento, la partida de combustible revelaría los km.
+     */
+    partidas: z.array(partidaSchema).max(10).nullable(),
+    versiones: z
+      .object({
+        motor: version,
+        formulas: version,
+        /** Versión de cada conjunto de datos de referencia usado. `null` = no se usó ninguno (todo declarado). */
+        datos: z.object({ combustible: version.nullable(), catalogo: version.nullable(), peajes: version.nullable() }).strict(),
+      })
+      .strict(),
+  })
+  .strict();
+
+export type Economia = z.output<typeof economiaSchema>;
+
+export const snapshotV3Schema = z
+  .object({
+    schemaVersion: z.literal(3),
+    formulaVersion: z.string().min(1).max(40),
+    ...commonShape,
+    missing: z.array(z.string().min(1).max(MAX_MISSING_CHARS)).max(MAX_MISSING_ITEMS),
+    vehicle: vehicleV2Schema.nullable(),
+    economia: economiaSchema,
+  })
+  .strict()
+  .refine((s) => s.economia.versiones.motor === s.engineVersion && s.economia.versiones.formulas === s.formulaVersion, 'Las versiones de `economia` no coinciden con las de la cotización')
+  .refine((s) => s.economia.margen.valor === s.margin, 'El margen de `economia` no coincide con el de la cotización')
+  .refine(
+    (s) => s.vehicle === null || (s.vehicle.kmPerL === s.economia.parametros.kmPerL.valor && s.vehicle.wearPerKm === s.economia.parametros.wearPerKm.valor),
+    'Los valores del vehículo no coinciden con los parámetros usados',
+  )
+  // A-38: si los km o los minutos no se retienen, tampoco las partidas que permitirían reconstruirlos.
+  // Se exige al emitir, al leer y al copiar (todos pasan por este esquema).
+  .refine((s) => (s.km !== null && s.minutes !== null) || s.economia.partidas === null, 'Hay partidas guardadas sin km o minutos retenidos (A-38)')
+  // Los topes de texto cuentan caracteres, no bytes: con caracteres de 3 bytes (p. ej., «€») el máximo
+  // teórico supera el tope de la nube. Toda v3 válida debe poder copiarse a la cuenta sin recortes, así
+  // que el tamaño total en UTF-8 es parte del contrato (revisión GPT de afbe740).
+  .refine((s) => utf8Bytes(JSON.stringify(s)) <= MAX_CLOUD_INTERNAL_JSON_BYTES, `El registro interno supera ${MAX_CLOUD_INTERNAL_JSON_BYTES} bytes`);
+
+export type SnapshotV3 = z.output<typeof snapshotV3Schema>;
+export type CargoSnapshot = z.output<typeof cargoSnapshotSchema>;
+
+/**
+ * Vista normalizada para MOSTRAR una cotización de cualquier versión. Una v1 aparece sin
+ * inventario ni recursos (`null`), con su vehículo tal cual y sin `formulaVersion` conocido.
+ */
+export type SnapshotView = Omit<SnapshotV2, 'schemaVersion' | 'formulaVersion'> & {
+  formulaVersion: string | null;
+};
+
+export type ReadSnapshotResult =
+  | { ok: true; sourceVersion: 1 | 2 | 3; view: SnapshotView }
+  | { ok: false; reason: string };
+
+const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+function issues(error: z.ZodError): string {
+  return error.issues.map((i) => `${i.path.join('.') || '(raíz)'}: ${i.message}`).join('; ');
+}
+
+/**
+ * Lee un snapshot v1 o v2 y devuelve una vista normalizada. Nunca lanza y nunca modifica `raw`:
+ * la vista es una copia. Un registro que no se puede leer devuelve `ok: false` con el motivo,
+ * para que la interfaz lo muestre como hoy en vez de inventar datos.
+ */
+export function readSnapshot(raw: unknown): ReadSnapshotResult {
+  if (!isObject(raw)) return { ok: false, reason: 'El snapshot no es un objeto' };
+  if (!('schemaVersion' in raw)) {
+    const parsed = snapshotV1Schema.safeParse(raw);
+    if (!parsed.success) return { ok: false, reason: `Snapshot v1 ilegible: ${issues(parsed.error)}` };
+    const v1 = structuredClone(parsed.data);
+    const vehicle = v1.vehicle
+      ? {
+          id: v1.vehicle.id,
+          name: v1.vehicle.name,
+          type: v1.vehicle.type,
+          fuel: v1.vehicle.fuel,
+          kmPerL: v1.vehicle.kmPerL,
+          wearPerKm: v1.vehicle.wearPerKm,
+          adjusted: [...v1.vehicle.adjusted],
+          catalogId: null,
+          catalogDataVersion: null,
+          make: null,
+          model: null,
+          modelYear: null,
+          version: null,
+          payloadKg: null,
+          cargoVolumeM3: null,
+        }
+      : null;
+    return {
+      ok: true,
+      sourceVersion: 1,
+      view: {
+        formulaVersion: null,
+        routeSource: v1.routeSource,
+        km: v1.km,
+        minutes: v1.minutes,
+        costEstimate: v1.costEstimate,
+        costType: v1.costType,
+        suggestedPrice: v1.suggestedPrice,
+        margin: v1.margin,
+        missing: [...v1.missing],
+        engineVersion: v1.engineVersion,
+        vehicle,
+        // La v1 no tenía inventario ni recursos: no se reinterpreta su carga y descarga (§4.4).
+        cargo: null,
+        resources: null,
+      },
+    };
+  }
+  if (raw.schemaVersion === 2) {
+    const parsed = snapshotV2Schema.safeParse(raw);
+    if (!parsed.success) return { ok: false, reason: `Snapshot v2 inválido: ${issues(parsed.error)}` };
+    const { schemaVersion: _v, ...rest } = structuredClone(parsed.data);
+    return { ok: true, sourceVersion: 2, view: rest };
+  }
+  if (raw.schemaVersion === 3) {
+    const parsed = snapshotV3Schema.safeParse(raw);
+    if (!parsed.success) return { ok: false, reason: `Snapshot v3 inválido: ${issues(parsed.error)}` };
+    const { schemaVersion: _v, economia: _e, ...rest } = structuredClone(parsed.data);
+    // La v3 no tiene inventario ni recursos. La economía se lee aparte (`readEconomia`), solo para el dueño.
+    return { ok: true, sourceVersion: 3, view: { ...rest, cargo: null, resources: null } };
+  }
+  return { ok: false, reason: `Versión de snapshot desconocida: ${String(raw.schemaVersion)}` };
+}
+
+/**
+ * Parámetros, procedencia, partidas y versiones de una cotización v3 (copia). `null` para v1 y v2,
+ * que no los guardaban: nunca se reconstruyen ni se recalculan (A-88). Uso interno del dueño: no
+ * forma parte de `ClientQuote` (PDF, WhatsApp y enlace público).
+ */
+export function readEconomia(raw: unknown): Economia | null {
+  if (!isObject(raw) || raw.schemaVersion !== 3) return null;
+  const parsed = snapshotV3Schema.safeParse(raw);
+  return parsed.success ? structuredClone(parsed.data.economia) : null;
+}
+
+export type CloudPayloadResult =
+  | { ok: true; internal: Record<string, unknown>; cargoItems: CargoItem[] }
+  | { ok: false; reason: string };
+
+/**
+ * Integridad del inventario de un registro LOCAL v2 antes de copiarlo a la nube (P1 de la
+ * auditoría de la fase 0). En el navegador la lista completa SIEMPRE acompaña al resumen
+ * (docs/21 §6.3), así que:
+ * - `items` ausente → la lista se perdió o el registro no es local: no se copia;
+ * - los conteos del resumen deben coincidir con las líneas.
+ * Devuelve el motivo del problema, o `null` si el inventario está íntegro.
+ * Peso, volumen y completitud se validan o reconstruyen con `cargoSummary` en la fase 1.
+ */
+export function localCargoIntegrityIssue(cargo: CargoSnapshot): string | null {
+  if (cargo.items === undefined) {
+    return `El registro local no trae la lista de objetos, pero su resumen indica ${cargo.totals.lines} líneas: no se copia para no perder el inventario`;
+  }
+  // Fase 1: también peso y volumen (seguimiento P2 de la auditoría final de la fase 0).
+  const problema = cargoTotalsIssue(cargo.items, cargo.totals);
+  return problema === null ? null : `${problema}: no se copia`;
+}
+
+/**
+ * Prepara la copia de una cotización LOCAL a la cuenta con D-4 = (b) (A-61, docs/21 §6.3).
+ * - v1: `internal` idéntico al de hoy y sin líneas (L1). No se recalcula ni se valida su carga.
+ * - v2: `internal` con el resumen y SIN `cargo.items`; las líneas van completas en `cargoItems`
+ *   (→ `p_cargo_items` de `create_job_with_quote_v2`). Si el inventario no está íntegro
+ *   (`localCargoIntegrityIssue`), NO se copia: nunca se pierden objetos en silencio.
+ * No modifica `raw`. Un snapshot inválido no se copia (`ok: false`), y lo local queda intacto.
+ */
+export function toCloudPayload(raw: unknown): CloudPayloadResult {
+  if (!isObject(raw)) return { ok: false, reason: 'El snapshot no es un objeto' };
+  if (!('schemaVersion' in raw)) {
+    const parsed = snapshotV1Schema.safeParse(raw);
+    if (!parsed.success) return { ok: false, reason: `Snapshot v1 ilegible: ${issues(parsed.error)}` };
+    return { ok: true, internal: structuredClone(raw), cargoItems: [] };
+  }
+  if (raw.schemaVersion === 3) {
+    // v3 (A-88): sin líneas de carga; va por `create_job_with_quote`. Se valida y se mide como una v2.
+    const p3 = snapshotV3Schema.safeParse(raw);
+    if (!p3.success) return { ok: false, reason: `Snapshot inválido: ${issues(p3.error)}` };
+    const internal3 = structuredClone(p3.data);
+    const bytes3 = new TextEncoder().encode(JSON.stringify(internal3)).length;
+    if (bytes3 > MAX_CLOUD_INTERNAL_JSON_BYTES) {
+      return { ok: false, reason: `El resumen interno ocupa ${bytes3} bytes y supera el tope de ${MAX_CLOUD_INTERNAL_JSON_BYTES}: no se copia` };
+    }
+    return { ok: true, internal: internal3, cargoItems: [] };
+  }
+  const parsed = snapshotV2Schema.safeParse(raw);
+  if (!parsed.success) return { ok: false, reason: `Snapshot inválido: ${issues(parsed.error)}` };
+  const internal = structuredClone(parsed.data);
+  let cargoItems: CargoItem[] = [];
+  if (internal.cargo !== null) {
+    const problema = localCargoIntegrityIssue(internal.cargo);
+    if (problema !== null) return { ok: false, reason: problema };
+    cargoItems = internal.cargo.items ?? [];
+    delete internal.cargo.items;
+  }
+  // C2 (auditoría de docs/22 v2): el tope en bytes UTF-8 se mide en TODO v2, también sin carga.
+  const bytes = new TextEncoder().encode(JSON.stringify(internal)).length;
+  if (bytes > MAX_CLOUD_INTERNAL_JSON_BYTES) {
+    return { ok: false, reason: `El resumen interno ocupa ${bytes} bytes y supera el tope de ${MAX_CLOUD_INTERNAL_JSON_BYTES}: no se copia` };
+  }
+  return { ok: true, internal, cargoItems };
+}

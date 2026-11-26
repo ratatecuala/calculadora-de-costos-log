@@ -1,0 +1,481 @@
+{
+ "_nota": "Fixtures compartidas por tests/contratos.cargo.test.ts (Zod) y scripts/diseno/pruebas-c3.sql (CHECK de M3). Regla C3: si Zod acepta, el servidor acepta; si el servidor rechaza, Zod rechaza. Datos ficticios.",
+ "casos": [
+  {
+   "nombre": "mínima, sin peso ni medidas",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": null,
+    "volumeM3": null,
+    "volumeSource": null,
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "acepta",
+   "servidor": "acepta"
+  },
+  {
+   "nombre": "completa, volumen calculado 50×40×40",
+   "item": {
+    "kind": "cajas",
+    "description": "Caja con loza",
+    "qty": 6,
+    "unitWeightKg": 12,
+    "dimsCm": {
+     "l": 50,
+     "w": 40,
+     "h": 40
+    },
+    "volumeM3": 0.08,
+    "volumeSource": "calculado",
+    "fragile": true,
+    "handling": "normal"
+   },
+   "zod": "acepta",
+   "servidor": "acepta"
+  },
+  {
+   "nombre": "redondeo 33×33×33 = 0,035937 → 0,036",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": {
+     "l": 33,
+     "w": 33,
+     "h": 33
+    },
+    "volumeM3": 0.036,
+    "volumeSource": "calculado",
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "acepta",
+   "servidor": "acepta"
+  },
+  {
+   "nombre": "mitad exacta 5×5×20 = 0,0005 → 0,001",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": {
+     "l": 5,
+     "w": 5,
+     "h": 20
+    },
+    "volumeM3": 0.001,
+    "volumeSource": "calculado",
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "acepta",
+   "servidor": "acepta"
+  },
+  {
+   "nombre": "volumen declarado distinto de las medidas",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": {
+     "l": 50,
+     "w": 40,
+     "h": 40
+    },
+    "volumeM3": 1.0,
+    "volumeSource": "declarado",
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "acepta",
+   "servidor": "acepta"
+  },
+  {
+   "nombre": "volumen declarado sin medidas",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": null,
+    "volumeM3": 2.5,
+    "volumeSource": "declarado",
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "acepta",
+   "servidor": "acepta"
+  },
+  {
+   "nombre": "límites máximos",
+   "item": {
+    "kind": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+    "description": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "qty": 999,
+    "unitWeightKg": 5000,
+    "dimsCm": {
+     "l": 2000,
+     "w": 50,
+     "h": 100
+    },
+    "volumeM3": 10,
+    "volumeSource": "calculado",
+    "fragile": false,
+    "handling": "requiere2"
+   },
+   "zod": "acepta",
+   "servidor": "acepta"
+  },
+  {
+   "nombre": "volumen calculado incoherente (T15)",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": {
+     "l": 50,
+     "w": 40,
+     "h": 40
+    },
+    "volumeM3": 1.0,
+    "volumeSource": "calculado",
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "volumen calculado sin medidas",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": null,
+    "volumeM3": 0.08,
+    "volumeSource": "calculado",
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "volumen sin origen",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": null,
+    "volumeM3": 0.5,
+    "volumeSource": null,
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "origen sin volumen",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": null,
+    "volumeM3": null,
+    "volumeSource": "declarado",
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "medida con decimales",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": {
+     "l": 50.5,
+     "w": 40,
+     "h": 40
+    },
+    "volumeM3": null,
+    "volumeSource": null,
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "solo dos medidas",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": {
+     "l": 50,
+     "w": 40
+    },
+    "volumeM3": null,
+    "volumeSource": null,
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "medida sobre 2000 cm",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": {
+     "l": 2001,
+     "w": 40,
+     "h": 40
+    },
+    "volumeM3": null,
+    "volumeSource": null,
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "medida 0",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": {
+     "l": 0,
+     "w": 40,
+     "h": 40
+    },
+    "volumeM3": null,
+    "volumeSource": null,
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "objeto diminuto calculado: 1×1×1 → 0 m³",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": {
+     "l": 1,
+     "w": 1,
+     "h": 1
+    },
+    "volumeM3": 0,
+    "volumeSource": "calculado",
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "cantidad 0",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 0,
+    "unitWeightKg": null,
+    "dimsCm": null,
+    "volumeM3": null,
+    "volumeSource": null,
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "cantidad 1000",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1000,
+    "unitWeightKg": null,
+    "dimsCm": null,
+    "volumeM3": null,
+    "volumeSource": null,
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "peso 0",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": 0,
+    "dimsCm": null,
+    "volumeM3": null,
+    "volumeSource": null,
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "peso 5001",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": 5001,
+    "dimsCm": null,
+    "volumeM3": null,
+    "volumeSource": null,
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "descripción solo con espacios",
+   "item": {
+    "kind": "otro",
+    "description": "   ",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": null,
+    "volumeM3": null,
+    "volumeSource": null,
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "descripción de 81 caracteres",
+   "item": {
+    "kind": "otro",
+    "description": "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": null,
+    "volumeM3": null,
+    "volumeSource": null,
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "tipo de 31 caracteres",
+   "item": {
+    "kind": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": null,
+    "volumeM3": null,
+    "volumeSource": null,
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "manejo desconocido",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": null,
+    "volumeM3": null,
+    "volumeSource": null,
+    "fragile": false,
+    "handling": "delicado"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "volumen 100,5 m³",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": null,
+    "volumeM3": 100.5,
+    "volumeSource": "declarado",
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "rechaza"
+  },
+  {
+   "nombre": "campo extra id (Zod más estricto: el servidor lo ignora)",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": 1,
+    "unitWeightKg": null,
+    "dimsCm": null,
+    "volumeM3": null,
+    "volumeSource": null,
+    "fragile": false,
+    "handling": "normal",
+    "id": "x1"
+   },
+   "zod": "rechaza",
+   "servidor": "acepta"
+  },
+  {
+   "nombre": "cantidad como texto (Zod más estricto: el servidor la convierte)",
+   "item": {
+    "kind": "otro",
+    "description": "Silla de comedor",
+    "qty": "2",
+    "unitWeightKg": null,
+    "dimsCm": null,
+    "volumeM3": null,
+    "volumeSource": null,
+    "fragile": false,
+    "handling": "normal"
+   },
+   "zod": "rechaza",
+   "servidor": "acepta"
+  }
+ ]
+}

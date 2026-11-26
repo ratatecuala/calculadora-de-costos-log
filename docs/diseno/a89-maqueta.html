@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Modalidades A-89</title>
+<style>
+:root{
+  --bg:#FFFFFF; --surface:#F7F8FA; --card:#FFFFFF; --blue:#33507A; --blue-dark:#253C5E; --blue-soft:#EEF2F8;
+  --text:#1F2933; --text2:#52606D; --border:#E4E7EC; --field:#CBD2D9;
+  --warn-bg:#FBF7EE; --warn:#6B4E16; --err-bg:#FDF0EF; --err:#7A231C; --muted-bg:#F1F3F5; --frame:#D5DAE1;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111418; --surface:#171B21; --card:#1D222A; --blue:#8FB0DB; --blue-dark:#B7CDEB; --blue-soft:#22324A;
+    --text:#E6EAF0; --text2:#A9B4C2; --border:#2C333D; --field:#3A4350;
+    --warn-bg:#2B2416; --warn:#E8CF96; --err-bg:#311A18; --err:#F2B3AC; --muted-bg:#242A33; --frame:#2C333D;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111418; --surface:#171B21; --card:#1D222A; --blue:#8FB0DB; --blue-dark:#B7CDEB; --blue-soft:#22324A;
+  --text:#E6EAF0; --text2:#A9B4C2; --border:#2C333D; --field:#3A4350;
+  --warn-bg:#2B2416; --warn:#E8CF96; --err-bg:#311A18; --err:#F2B3AC; --muted-bg:#242A33; --frame:#2C333D;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--surface);color:var(--text);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow-x:hidden}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.page{max-width:1440px;margin:0 auto;padding:20px 16px 48px}
+.page-h h1{font-size:22px;margin:0 0 4px}
+.page-h p{margin:0 0 4px;color:var(--text2);max-width:880px}
+.badge-prop{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.02em;padding:2px 8px;border-radius:999px;background:var(--warn-bg);color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent)}
+.views{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 20px}
+.views button{min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--field);background:var(--card);color:var(--text);font:inherit;cursor:pointer}
+.views button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:var(--bg)}
+.views button:focus-visible,.seg button:focus-visible,summary:focus-visible,.link:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.gallery{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.shot{display:flex;flex-direction:column;gap:8px;min-width:0}
+.shot-t{font-size:13px;font-weight:600;color:var(--text2)}
+body[data-view="phone-s"] .shot:not(#shot-a),
+body[data-view="phone-d"] .shot:not(#shot-b),
+body[data-view="desk"] .shot:not(#shot-c),
+body[data-view="phone-s"] .legend-wrap,body[data-view="phone-d"] .legend-wrap,body[data-view="desk"] .legend-wrap{display:none}
+.phone{width:390px;max-width:calc(100vw - 32px);background:var(--bg);border:10px solid var(--frame);border-radius:34px;overflow:hidden}
+.desk-scroll{max-width:100%;overflow-x:auto;border-radius:14px}
+.desk{width:1366px;background:var(--surface);border:8px solid var(--frame);border-radius:14px}
+.appbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--card)}
+.brand{font-weight:700;color:var(--blue)}
+.appbar .who{font-size:13px;color:var(--text2)}
+.scr{padding:12px;background:var(--surface);display:flex;flex-direction:column;gap:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+.card h2{font-size:16px;margin:0 0 10px}
+.card h3{font-size:14px;margin:12px 0 6px;color:var(--text2);font-weight:600}
+.rowb{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.route{font-size:13px;color:var(--text2)}
+.route strong{color:var(--text)}
+.seg{display:flex;background:var(--muted-bg);border-radius:10px;padding:3px;gap:3px;margin:0 0 6px}
+.seg button{flex:1;min-height:44px;border:0;border-radius:8px;background:transparent;color:var(--text2);font:inherit;font-weight:600;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--blue);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.seg-help{font-size:12.5px;color:var(--text2);margin:0 0 10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.flabel{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px;font-weight:600;color:var(--text)}
+.input{display:flex;align-items:center;min-height:48px;border:1px solid var(--field);border-radius:10px;padding:0 10px;background:var(--card);gap:6px}
+.input .v{flex:1}
+.input .u{color:var(--text2);font-size:13px}
+.input.empty .v{color:var(--text2);font-style:italic}
+.hint{font-size:12px;color:var(--text2)}
+.full{grid-column:1/-1}
+.link{background:none;border:0;padding:0;color:var(--blue);font:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;min-height:24px}
+/* chips de procedencia */
+details.chip{position:relative;display:inline-block}
+details.chip>summary{white-space:nowrap;list-style:none;cursor:pointer;display:inline-flex;align-items:center;min-height:24px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid transparent;position:relative}
+details.chip>summary::-webkit-details-marker{display:none}
+details.chip>summary::after{content:"";position:absolute;inset:-10px -4px}
+.c-veh>summary{background:var(--blue-soft);color:var(--blue-dark)}
+.c-ej>summary{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 35%,transparent)}
+.c-ini>summary{background:var(--muted-bg);color:var(--text2)}
+.c-sin>summary{background:transparent;color:var(--text2);border:1px dashed var(--field)}
+.c-exc>summary{background:var(--muted-bg);color:var(--text2);text-decoration:line-through;text-decoration-thickness:1px}
+.c-dec>summary{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.c-med>summary{background:var(--blue);color:var(--bg)}
+.pop{position:absolute;z-index:5;top:30px;left:0;width:270px;max-width:78vw;background:var(--card);color:var(--text);border:1px solid var(--field);border-radius:12px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);font-size:12.5px;font-weight:400}
+.pop.r{left:auto;right:0}
+.pop dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:6px 0 8px}
+.pop dt{color:var(--text2)}
+.pop dd{margin:0}
+.pop .acts{display:flex;gap:12px}
+.pop b{font-size:13px}
+/* desglose y resultado */
+.ln{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.ln:last-child{border-bottom:0}
+.ln .sub{color:var(--text2);font-size:12.5px}
+.ln.strong{font-weight:700;font-size:16px}
+.ln.key{font-weight:700}
+.ln.na .num{color:var(--text2);font-weight:400;font-size:13px;white-space:normal;text-align:right}
+.ln .lbl{display:flex;flex-direction:column}
+.ln .formal{font-size:11.5px;color:var(--text2);font-weight:400}
+.note{font-size:12.5px;color:var(--text2);margin:6px 0 0}
+.scope{display:block;font-size:12.5px;background:var(--blue-soft);color:var(--blue-dark);border-radius:8px;padding:6px 10px;margin:4px 0 8px}
+.warn{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:8px 10px;font-size:12.5px;margin:8px 0 0}
+.segs{display:flex;gap:6px;margin:6px 0 10px}
+.segs span{flex:1;text-align:center;min-height:44px;line-height:44px;border:1px solid var(--field);border-radius:10px;font-weight:600;font-size:14px}
+.segs span.on{background:var(--blue);border-color:var(--blue);color:var(--bg)}
+.sugg{display:flex;justify-content:space-between;align-items:center;background:var(--surface);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.sugg .big{font-size:22px;font-weight:700}
+.btn{display:flex;align-items:center;justify-content:center;min-height:50px;border-radius:10px;background:var(--blue);color:var(--bg);font-weight:600;margin-top:10px}
+.cov{margin-top:8px}
+.cov>summary{cursor:pointer;font-size:13px;min-height:44px;display:flex;align-items:center;gap:6px;list-style:none}
+.cov>summary::-webkit-details-marker{display:none}
+.cov>summary::before{content:"▸";color:var(--text2)}
+.cov[open]>summary::before{content:"▾"}
+.bar{display:flex;height:8px;border-radius:999px;overflow:hidden;background:var(--muted-bg);margin:2px 0 8px}
+.bar i{display:block}
+.b-tu{background:var(--blue)} .b-veh{background:color-mix(in srgb,var(--blue) 55%,var(--card))} .b-ej{background:#B98A2E} .b-ini{background:var(--field)}
+.covlist{font-size:12.5px;display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center}
+.covlist .s{color:var(--text2)}
+.chk{display:flex;flex-wrap:wrap;gap:6px}
+.chk span{font-size:12.5px;border:1px solid var(--field);border-radius:999px;padding:4px 10px;min-height:32px;display:inline-flex;align-items:center;gap:5px}
+.chk span.on{background:var(--blue-soft);border-color:transparent;color:var(--blue-dark)}
+.chk span.on::before{content:"✓";font-weight:700}
+.blocked{border:1px dashed var(--field);border-radius:10px;padding:8px 10px;font-size:12.5px;color:var(--text2);margin-top:8px}
+.blocked strong{color:var(--text)}
+.hidden-line{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12.5px;color:var(--text2);background:var(--muted-bg);border-radius:10px;padding:8px 10px;margin-top:10px}
+/* visibilidad por modalidad */
+[data-mod="simplificada"] .only-det{display:none !important}
+[data-mod="detallada"] .only-simp{display:none !important}
+/* escritorio */
+.desk .scr{padding:16px 20px;gap:14px}
+.dgrid{display:grid;grid-template-columns:minmax(0,1fr) 470px;gap:16px;align-items:start}
+.dcol{display:flex;flex-direction:column;gap:14px}
+.sticky{position:sticky;top:12px}
+.desk .grid2{grid-template-columns:repeat(3,1fr)}
+.desk .grid2 .full{grid-column:1/-1}
+.dnav{display:flex;gap:18px;font-size:13.5px;color:var(--text2)}
+.dnav b{color:var(--blue)}
+/* leyenda */
+.legend-wrap{margin-top:28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.legend-wrap .card{background:var(--card)}
+table.st{width:100%;border-collapse:collapse;font-size:13px}
+table.st td{padding:7px 4px;border-bottom:1px solid var(--border);vertical-align:top}
+table.st td:first-child{white-space:nowrap}
+@media (max-width:440px){ .grid2{grid-template-columns:1fr 1fr} .phone{border-width:6px;border-radius:24px} }
+</style>
+</head>
+<body data-view="all">
+<main class="page">
+  <header class="page-h">
+    <h1>Modalidades simplificada y detallada · maqueta</h1>
+    <p><span class="badge-prop">PROPUESTO · no implementado</span> Diseño A-89 (A-90 Frente B). Todos los datos son <strong>ficticios</strong> (ejemplo v4 de docs/10 §7 y G1 de docs/03). Mismo motor en ambas modalidades: solo cambia qué partidas entran y cómo se rotulan. La cotización del cliente no cambia.</p>
+  </header>
+  <div class="views" role="group" aria-label="Vista">
+    <button type="button" data-view="all" aria-pressed="true">Todo</button>
+    <button type="button" data-view="phone-s" aria-pressed="false">(a) Teléfono · Simplificada</button>
+    <button type="button" data-view="phone-d" aria-pressed="false">(b) Teléfono · Detallada</button>
+    <button type="button" data-view="desk" aria-pressed="false">(c) Escritorio 1366</button>
+  </div>
+  <div class="gallery">
+    
+<figure class="shot" id="shot-a">
+  <figcaption class="shot-t">(a) Teléfono 390 px · Simplificada</figcaption>
+  <div class="phone" id="fr-a" data-mod="simplificada">
+    <div class="appbar"><span class="brand">[Marca]</span><span class="who">Calcular</span></div>
+    <div class="scr">
+      <div class="card route"><strong>Tu ruta</strong> · A → B · 57,4 km · 74 min <span class="hint">(manual, ficticia)</span></div>
+      
+<div class="card">
+  <div class="rowb"><h2>Costos del viaje</h2><button type="button" class="link">Cargar ejemplo ficticio</button></div>
+  <div class="seg" role="group" aria-label="Modalidad de cálculo">
+    <button type="button" data-set="simplificada" aria-controls="fr-a">Simplificada</button>
+    <button type="button" data-set="detallada" aria-controls="fr-a">Detallada</button>
+  </div>
+  <p class="seg-help only-simp">Costo operativo del servicio con pocos datos. No pide gastos anuales.</p>
+  <p class="seg-help only-det">Suma tus costos fijos del negocio para el costo económico completo.</p>
+  <div class="grid2">
+    <div class="field full"><div class="flabel">Vehículo</div><div class="input"><span class="v num">Furgón ficticio</span><span class="u">▾</span></div></div>
+    <div class="field "><div class="flabel">Rendimiento <details class="chip c-veh"><summary aria-label="Procedencia: Tu vehículo. Ver detalle">Tu vehículo</summary><div class="pop" role="dialog" aria-label="Procedencia del dato"><b>Copiado de tu vehículo</b><dl><dt>Clase</dt><dd>declarado</dd><dt>Fuente</dt><dd>«Furgón ficticio»</dd><dt>Fecha</dt><dd>12-11-2026 (última edición del perfil)</dd><dt>Precisión</dt><dd>valor único, sin rango ni calibración</dd></dl><div class="acts"><button type="button" class="link">Editar</button></div></div></details></div><div class="input"><span class="v num">12</span><span class="u">km/L</span></div></div>
+    <div class="field "><div class="flabel">Precio del diésel</div><div class="input"><span class="v num">1.050</span><span class="u">$/L</span></div></div>
+    <div class="field "><div class="flabel">Peajes y TAG <details class="chip c-ej"><summary aria-label="Procedencia: Ejemplo. Ver detalle">Ejemplo</summary><div class="pop" role="dialog" aria-label="Procedencia del dato"><b>Valor de ejemplo ficticio</b><dl><dt>Clase</dt><dd>simulado</dd><dt>Fuente</dt><dd>«Cargar ejemplo ficticio»</dd><dt>Fecha</dt><dd>no aplica</dd><dt>Aviso</dt><dd>no es una tarifa real; revísalo</dd></dl><div class="acts"><button type="button" class="link">Editar</button></div></div></details></div><div class="input"><span class="v num">4.200</span><span class="u">$</span></div><span class=hint>Vacío = no lo sé · 0 = no hay</span></div>
+    <div class="field "><div class="flabel">Carga y descarga</div><div class="input"><span class="v num">60</span><span class="u">min</span></div></div>
+    <div class="field "><div class="flabel">Ayudantes</div><div class="input"><span class="v num">1</span><span class="u"></span></div></div>
+    <div class="field "><div class="flabel">Pago por ayudante</div><div class="input"><span class="v num">15.000</span><span class="u">$</span></div></div>
+    <div class="field "><div class="flabel">Desgaste del vehículo <details class="chip c-veh"><summary aria-label="Procedencia: Tu vehículo. Ver detalle">Tu vehículo</summary><div class="pop r" role="dialog" aria-label="Procedencia del dato"><b>Copiado de tu vehículo</b><dl><dt>Clase</dt><dd>declarado</dd><dt>Fuente</dt><dd>«Furgón ficticio»</dd><dt>Fecha</dt><dd>12-11-2026</dd><dt>Precisión</dt><dd>valor único, sin rango ni calibración</dd></dl><div class="acts"><button type="button" class="link">Editar</button><button type="button" class="link">No incluir en esta cotización</button></div></div></details></div><div class="input"><span class="v num">31</span><span class="u">$/km</span></div><span class=hint>Neumáticos, aceite, mantenciones</span></div>
+    <div class="field "><div class="flabel">Otros gastos <details class="chip c-ini"><summary aria-label="Procedencia: Sin cambiar. Ver detalle">Sin cambiar</summary><div class="pop r" role="dialog" aria-label="Procedencia del dato"><b>Valor inicial del formulario</b><dl><dt>Clase</dt><dd>declarado</dd><dt>Fuente</dt><dd>valor inicial aceptado (0)</dd><dt>Fecha</dt><dd>se registra al emitir</dd><dt>Si no lo sabes</dt><dd>este campo no admite «sin dato» (B-5)</dd></dl><div class="acts"><button type="button" class="link">Editar</button></div></div></details></div><div class="input"><span class="v num">0</span><span class="u">$</span></div><span class=hint>Estacionamiento, materiales; no peajes</span></div>
+    <div class="field full"><div class="flabel">Lo que quieres ganar por tu trabajo</div><div class="input"><span class="v num">6.000</span><span class="u">$/h</span></div><span class=hint>Es tu meta, no un gasto</span></div>
+  </div>
+  <div class="hidden-line only-simp"><span>Gastos fijos: no se suman en la simplificada. Se conservan si ya los ingresaste.</span><details class="chip c-exc"><summary aria-label="Procedencia: No se suma. Ver detalle">No se suma</summary><div class="pop r" role="dialog" aria-label="Procedencia del dato"><b>Excluido por la modalidad</b><dl><dt>Estado</dt><dd>excluido por modalidad</dd><dt>Valor</dt><dd>se conserva oculto; no se borra</dd><dt>Para sumarlo</dt><dd>cambia a Detallada</dd></dl><div class="acts"><button type="button" class="link">Cambiar a Detallada</button></div></div></details></div>
+</div>
+<div class="card only-det">
+  <h2>Costos de tu negocio</h2>
+  <div class="grid2">
+    <div class="field full"><div class="flabel">Gastos fijos por hora</div><div class="input"><span class="v num">1.500</span><span class="u">$/h</span></div><span class=hint>Ya repartidos por tus horas con clientes</span></div>
+  </div>
+  <h3>¿Qué incluye ese valor? (no suma nada; evita contar dos veces)</h3>
+  <div class="chk"><span class="on">Seguro</span><span class="on">SOAP</span><span class="on">Permiso de circulación</span><span class="on">Revisión técnica</span><span class="on">Depreciación</span><span>Sueldo fijo de conductor</span><span>Mantenciones</span></div>
+  <h3>El desgaste por km incluye</h3>
+  <div class="chk"><span class="on">Neumáticos</span><span class="on">Aceite</span><span class="on">Mantenciones</span><span>Reparaciones</span></div>
+  <div class="blocked"><strong>Próximamente, requiere autorización (B-1, B-2, B-3):</strong> calcular el valor por hora desde tus gastos del año y tus horas productivas, el desgaste por componente y costos personalizados por km u hora.</div>
+</div>
+      
+<div class="card">
+  <h2>Desglose</h2>
+  <span class="scope only-simp">Costo operativo: no incluye gastos fijos del negocio.</span>
+  <div class="ln"><span>Lo que pagas en el viaje<span class="sub"> · combustible, peajes, ayudante</span></span><span class="num">$24.223</span></div>
+  <div class="ln"><span>Desgaste del vehículo</span><span class="num">$1.779</span></div>
+  <div class="ln only-det"><span>Parte de tus gastos fijos</span><span class="num">$3.350</span></div>
+  <div class="ln na only-simp"><span>Parte de tus gastos fijos</span><span class="num">No se suma en la simplificada</span></div>
+  <div class="ln"><span>Lo que quieres ganar por tu trabajo<span class="sub"> · tu meta</span></span><span class="num">$13.400</span></div>
+  <div class="ln strong only-simp"><span>Costo operativo del viaje</span><span class="num">$39.402</span></div>
+  <div class="ln strong only-det"><span>Costo del viaje</span><span class="num">$42.752</span></div>
+  
+  <details class="cov">
+    <summary><span><strong>Datos:</strong> <span class="only-simp">5 tuyos</span><span class="only-det">6 tuyos</span> · 2 de tu vehículo · 1 ejemplo · 1 sin cambiar<span class="only-simp"> · gastos fijos no se suman</span></span></summary>
+    <div class="bar" aria-hidden="true"><i class="b-tu" style="width:55%"></i><i class="b-veh" style="width:22%"></i><i class="b-ej" style="width:11%"></i><i class="b-ini" style="width:12%"></i></div>
+    <div class="covlist">
+      <span>Combustible</span><span class="s">rendimiento de tu vehículo · precio tuyo</span>
+      <span>Peajes y TAG</span><span class="s">ejemplo ficticio</span>
+      <span>Ayudante</span><span class="s">tuyo</span>
+      <span>Otros gastos</span><span class="s">sin cambiar (0)</span>
+      <span>Desgaste</span><span class="s">de tu vehículo</span>
+      <span>Gastos fijos</span><span class="s"><span class="only-simp">no se suma (simplificada)</span><span class="only-det">tuyo</span></span>
+      <span>Tu remuneración</span><span class="s">tuya</span>
+    </div>
+    <p class="warn">Incluye un valor de ejemplo ficticio (peajes). Revísalo antes de cotizar.</p>
+    <p class="note">Precisión disponible: valores únicos declarados, sin rango ni calibración.</p>
+  </details>
+</div>
+      
+<div class="card">
+  <h2>Tu precio</h2>
+  <span class="hint">Margen objetivo (% del precio de venta)</span>
+  <div class="segs"><span>10 %</span><span class="on">15 %</span><span>20 %</span><span>Otro</span></div>
+  <div class="sugg"><span>Precio sugerido</span><span class="big num only-simp">$47.000</span><span class="big num only-det">$51.000</span></div>
+  <div class="field"><div class="flabel">Precio que vas a cobrar</div><div class="input"><span class="v num">55.000</span><span class="u">$</span></div></div>
+</div>
+      
+<div class="card">
+  <h2>Con tu precio de $55.000</h2>
+  <div class="ln"><span>Te queda después de pagar el viaje</span><span class="num">$30.777</span></div>
+  <div class="ln key"><span class="lbl">Te queda para tu trabajo y tus gastos fijos<span class="formal">Excedente operativo · P − desembolsos − desgaste</span></span><span class="num">$28.998</span></div>
+  <div class="ln only-simp"><span class="lbl">Sobre lo que querías ganar · sin gastos fijos<span class="formal">Alcance operativo</span></span><span class="num">+$15.598</span></div>
+  <div class="ln only-det"><span>Te queda después de todos los costos</span><span class="num">$25.648</span></div>
+  <div class="ln key only-det"><span class="lbl">Resultado después de todos los costos y tu meta<span class="formal">Utilidad económica integral</span></span><span class="num">+$12.248</span></div>
+  <div class="ln na only-simp"><span class="lbl">Resultado después de todos los costos y tu meta<span class="formal">Utilidad económica integral</span></span><span class="num">No calculada: requiere la modalidad detallada</span></div>
+  <p class="note">Montos estimados con tus datos. No es dinero cobrado ni una ganancia asegurada.</p>
+  <div class="btn">Crear cotización</div>
+</div>
+    </div>
+  </div>
+</figure>
+    
+<figure class="shot" id="shot-b">
+  <figcaption class="shot-t">(b) Teléfono 390 px · Detallada</figcaption>
+  <div class="phone" id="fr-b" data-mod="detallada">
+    <div class="appbar"><span class="brand">[Marca]</span><span class="who">Calcular</span></div>
+    <div class="scr">
+      <div class="card route"><strong>Tu ruta</strong> · A → B · 57,4 km · 74 min <span class="hint">(manual, ficticia)</span></div>
+      
+<div class="card">
+  <div class="rowb"><h2>Costos del viaje</h2><button type="button" class="link">Cargar ejemplo ficticio</button></div>
+  <div class="seg" role="group" aria-label="Modalidad de cálculo">
+    <button type="button" data-set="simplificada" aria-controls="fr-b">Simplificada</button>
+    <button type="button" data-set="detallada" aria-controls="fr-b">Detallada</button>
+  </div>
+  <p class="seg-help only-simp">Costo operativo del servicio con pocos datos. No pide gastos anuales.</p>
+  <p class="seg-help only-det">Suma tus costos fijos del negocio para el costo económico completo.</p>
+  <div class="grid2">
+    <div class="field full"><div class="flabel">Vehículo</div><div class="input"><span class="v num">Furgón ficticio</span><span class="u">▾</span></div></div>
+    <div class="field "><div class="flabel">Rendimiento <details class="chip c-veh"><summary aria-label="Procedencia: Tu vehículo. Ver detalle">Tu vehículo</summary><div class="pop" role="dialog" aria-label="Procedencia del dato"><b>Copiado de tu vehículo</b><dl><dt>Clase</dt><dd>declarado</dd><dt>Fuente</dt><dd>«Furgón ficticio»</dd><dt>Fecha</dt><dd>12-11-2026 (última edición del perfil)</dd><dt>Precisión</dt><dd>valor único, sin rango ni calibración</dd></dl><div class="acts"><button type="button" class="link">Editar</button></div></div></details></div><div class="input"><span class="v num">12</span><span class="u">km/L</span></div></div>
+    <div class="field "><div class="flabel">Precio del diésel</div><div class="input"><span class="v num">1.050</span><span class="u">$/L</span></div></div>
+    <div class="field "><div class="flabel">Peajes y TAG <details class="chip c-ej"><summary aria-label="Procedencia: Ejemplo. Ver detalle">Ejemplo</summary><div class="pop" role="dialog" aria-label="Procedencia del dato"><b>Valor de ejemplo ficticio</b><dl><dt>Clase</dt><dd>simulado</dd><dt>Fuente</dt><dd>«Cargar ejemplo ficticio»</dd><dt>Fecha</dt><dd>no aplica</dd><dt>Aviso</dt><dd>no es una tarifa real; revísalo</dd></dl><div class="acts"><button type="button" class="link">Editar</button></div></div></details></div><div class="input"><span class="v num">4.200</span><span class="u">$</span></div><span class=hint>Vacío = no lo sé · 0 = no hay</span></div>
+    <div class="field "><div class="flabel">Carga y descarga</div><div class="input"><span class="v num">60</span><span class="u">min</span></div></div>
+    <div class="field "><div class="flabel">Ayudantes</div><div class="input"><span class="v num">1</span><span class="u"></span></div></div>
+    <div class="field "><div class="flabel">Pago por ayudante</div><div class="input"><span class="v num">15.000</span><span class="u">$</span></div></div>
+    <div class="field "><div class="flabel">Desgaste del vehículo <details class="chip c-veh"><summary aria-label="Procedencia: Tu vehículo. Ver detalle">Tu vehículo</summary><div class="pop r" role="dialog" aria-label="Procedencia del dato"><b>Copiado de tu vehículo</b><dl><dt>Clase</dt><dd>declarado</dd><dt>Fuente</dt><dd>«Furgón ficticio»</dd><dt>Fecha</dt><dd>12-11-2026</dd><dt>Precisión</dt><dd>valor único, sin rango ni calibración</dd></dl><div class="acts"><button type="button" class="link">Editar</button><button type="button" class="link">No incluir en esta cotización</button></div></div></details></div><div class="input"><span class="v num">31</span><span class="u">$/km</span></div><span class=hint>Neumáticos, aceite, mantenciones</span></div>
+    <div class="field "><div class="flabel">Otros gastos <details class="chip c-ini"><summary aria-label="Procedencia: Sin cambiar. Ver detalle">Sin cambiar</summary><div class="pop r" role="dialog" aria-label="Procedencia del dato"><b>Valor inicial del formulario</b><dl><dt>Clase</dt><dd>declarado</dd><dt>Fuente</dt><dd>valor inicial aceptado (0)</dd><dt>Fecha</dt><dd>se registra al emitir</dd><dt>Si no lo sabes</dt><dd>este campo no admite «sin dato» (B-5)</dd></dl><div class="acts"><button type="button" class="link">Editar</button></div></div></details></div><div class="input"><span class="v num">0</span><span class="u">$</span></div><span class=hint>Estacionamiento, materiales; no peajes</span></div>
+    <div class="field full"><div class="flabel">Lo que quieres ganar por tu trabajo</div><div class="input"><span class="v num">6.000</span><span class="u">$/h</span></div><span class=hint>Es tu meta, no un gasto</span></div>
+  </div>
+  <div class="hidden-line only-simp"><span>Gastos fijos: no se suman en la simplificada. Se conservan si ya los ingresaste.</span><details class="chip c-exc"><summary aria-label="Procedencia: No se suma. Ver detalle">No se suma</summary><div class="pop r" role="dialog" aria-label="Procedencia del dato"><b>Excluido por la modalidad</b><dl><dt>Estado</dt><dd>excluido por modalidad</dd><dt>Valor</dt><dd>se conserva oculto; no se borra</dd><dt>Para sumarlo</dt><dd>cambia a Detallada</dd></dl><div class="acts"><button type="button" class="link">Cambiar a Detallada</button></div></div></details></div>
+</div>
+<div class="card only-det">
+  <h2>Costos de tu negocio</h2>
+  <div class="grid2">
+    <div class="field full"><div class="flabel">Gastos fijos por hora</div><div class="input"><span class="v num">1.500</span><span class="u">$/h</span></div><span class=hint>Ya repartidos por tus horas con clientes</span></div>
+  </div>
+  <h3>¿Qué incluye ese valor? (no suma nada; evita contar dos veces)</h3>
+  <div class="chk"><span class="on">Seguro</span><span class="on">SOAP</span><span class="on">Permiso de circulación</span><span class="on">Revisión técnica</span><span class="on">Depreciación</span><span>Sueldo fijo de conductor</span><span>Mantenciones</span></div>
+  <h3>El desgaste por km incluye</h3>
+  <div class="chk"><span class="on">Neumáticos</span><span class="on">Aceite</span><span class="on">Mantenciones</span><span>Reparaciones</span></div>
+  <div class="blocked"><strong>Próximamente, requiere autorización (B-1, B-2, B-3):</strong> calcular el valor por hora desde tus gastos del año y tus horas productivas, el desgaste por componente y costos personalizados por km u hora.</div>
+</div>
+      
+<div class="card">
+  <h2>Desglose</h2>
+  <span class="scope only-simp">Costo operativo: no incluye gastos fijos del negocio.</span>
+  <div class="ln"><span>Lo que pagas en el viaje<span class="sub"> · combustible, peajes, ayudante</span></span><span class="num">$24.223</span></div>
+  <div class="ln"><span>Desgaste del vehículo</span><span class="num">$1.779</span></div>
+  <div class="ln only-det"><span>Parte de tus gastos fijos</span><span class="num">$3.350</span></div>
+  <div class="ln na only-simp"><span>Parte de tus gastos fijos</span><span class="num">No se suma en la simplificada</span></div>
+  <div class="ln"><span>Lo que quieres ganar por tu trabajo<span class="sub"> · tu meta</span></span><span class="num">$13.400</span></div>
+  <div class="ln strong only-simp"><span>Costo operativo del viaje</span><span class="num">$39.402</span></div>
+  <div class="ln strong only-det"><span>Costo del viaje</span><span class="num">$42.752</span></div>
+  
+  <details class="cov">
+    <summary><span><strong>Datos:</strong> <span class="only-simp">5 tuyos</span><span class="only-det">6 tuyos</span> · 2 de tu vehículo · 1 ejemplo · 1 sin cambiar<span class="only-simp"> · gastos fijos no se suman</span></span></summary>
+    <div class="bar" aria-hidden="true"><i class="b-tu" style="width:55%"></i><i class="b-veh" style="width:22%"></i><i class="b-ej" style="width:11%"></i><i class="b-ini" style="width:12%"></i></div>
+    <div class="covlist">
+      <span>Combustible</span><span class="s">rendimiento de tu vehículo · precio tuyo</span>
+      <span>Peajes y TAG</span><span class="s">ejemplo ficticio</span>
+      <span>Ayudante</span><span class="s">tuyo</span>
+      <span>Otros gastos</span><span class="s">sin cambiar (0)</span>
+      <span>Desgaste</span><span class="s">de tu vehículo</span>
+      <span>Gastos fijos</span><span class="s"><span class="only-simp">no se suma (simplificada)</span><span class="only-det">tuyo</span></span>
+      <span>Tu remuneración</span><span class="s">tuya</span>
+    </div>
+    <p class="warn">Incluye un valor de ejemplo ficticio (peajes). Revísalo antes de cotizar.</p>
+    <p class="note">Precisión disponible: valores únicos declarados, sin rango ni calibración.</p>
+  </details>
+</div>
+      
+<div class="card">
+  <h2>Tu precio</h2>
+  <span class="hint">Margen objetivo (% del precio de venta)</span>
+  <div class="segs"><span>10 %</span><span class="on">15 %</span><span>20 %</span><span>Otro</span></div>
+  <div class="sugg"><span>Precio sugerido</span><span class="big num only-simp">$47.000</span><span class="big num only-det">$51.000</span></div>
+  <div class="field"><div class="flabel">Precio que vas a cobrar</div><div class="input"><span class="v num">55.000</span><span class="u">$</span></div></div>
+</div>
+      
+<div class="card">
+  <h2>Con tu precio de $55.000</h2>
+  <div class="ln"><span>Te queda después de pagar el viaje</span><span class="num">$30.777</span></div>
+  <div class="ln key"><span class="lbl">Te queda para tu trabajo y tus gastos fijos<span class="formal">Excedente operativo · P − desembolsos − desgaste</span></span><span class="num">$28.998</span></div>
+  <div class="ln only-simp"><span class="lbl">Sobre lo que querías ganar · sin gastos fijos<span class="formal">Alcance operativo</span></span><span class="num">+$15.598</span></div>
+  <div class="ln only-det"><span>Te queda después de todos los costos</span><span class="num">$25.648</span></div>
+  <div class="ln key only-det"><span class="lbl">Resultado después de todos los costos y tu meta<span class="formal">Utilidad económica integral</span></span><span class="num">+$12.248</span></div>
+  <div class="ln na only-simp"><span class="lbl">Resultado después de todos los costos y tu meta<span class="formal">Utilidad económica integral</span></span><span class="num">No calculada: requiere la modalidad detallada</span></div>
+  <p class="note">Montos estimados con tus datos. No es dinero cobrado ni una ganancia asegurada.</p>
+  <div class="btn">Crear cotización</div>
+</div>
+    </div>
+  </div>
+</figure>
+    
+<figure class="shot" id="shot-c" style="width:100%">
+  <figcaption class="shot-t">(c) Escritorio 1366 px · dos columnas: formulario y modalidad | desglose, precio, resultado y cobertura (columna fija). Usa el conmutador dentro de la pantalla.</figcaption>
+  <div class="desk-scroll">
+  <div class="desk" id="fr-c" data-mod="simplificada">
+    <div class="appbar"><span class="brand">[Marca]</span><span class="dnav"><b>Calcular</b><span>Mis trabajos</span><span>Mis vehículos</span></span><span class="who">Cuenta ficticia</span></div>
+    <div class="scr">
+      <div class="card route rowb"><span><strong>Tu ruta</strong> · Desde A → Hasta B · 57,4 km · 74 min de conducción · <span class="hint">recorrido manual ficticio</span></span><button type="button" class="link">Editar recorrido</button></div>
+      <div class="dgrid">
+        <div class="dcol">
+<div class="card">
+  <div class="rowb"><h2>Costos del viaje</h2><button type="button" class="link">Cargar ejemplo ficticio</button></div>
+  <div class="seg" role="group" aria-label="Modalidad de cálculo">
+    <button type="button" data-set="simplificada" aria-controls="fr-c">Simplificada</button>
+    <button type="button" data-set="detallada" aria-controls="fr-c">Detallada</button>
+  </div>
+  <p class="seg-help only-simp">Costo operativo del servicio con pocos datos. No pide gastos anuales.</p>
+  <p class="seg-help only-det">Suma tus costos fijos del negocio para el costo económico completo.</p>
+  <div class="grid2">
+    <div class="field full"><div class="flabel">Vehículo</div><div class="input"><span class="v num">Furgón ficticio</span><span class="u">▾</span></div></div>
+    <div class="field "><div class="flabel">Rendimiento <details class="chip c-veh"><summary aria-label="Procedencia: Tu vehículo. Ver detalle">Tu vehículo</summary><div class="pop" role="dialog" aria-label="Procedencia del dato"><b>Copiado de tu vehículo</b><dl><dt>Clase</dt><dd>declarado</dd><dt>Fuente</dt><dd>«Furgón ficticio»</dd><dt>Fecha</dt><dd>12-11-2026 (última edición del perfil)</dd><dt>Precisión</dt><dd>valor único, sin rango ni calibración</dd></dl><div class="acts"><button type="button" class="link">Editar</button></div></div></details></div><div class="input"><span class="v num">12</span><span class="u">km/L</span></div></div>
+    <div class="field "><div class="flabel">Precio del diésel</div><div class="input"><span class="v num">1.050</span><span class="u">$/L</span></div></div>
+    <div class="field "><div class="flabel">Peajes y TAG <details class="chip c-ej"><summary aria-label="Procedencia: Ejemplo. Ver detalle">Ejemplo</summary><div class="pop" role="dialog" aria-label="Procedencia del dato"><b>Valor de ejemplo ficticio</b><dl><dt>Clase</dt><dd>simulado</dd><dt>Fuente</dt><dd>«Cargar ejemplo ficticio»</dd><dt>Fecha</dt><dd>no aplica</dd><dt>Aviso</dt><dd>no es una tarifa real; revísalo</dd></dl><div class="acts"><button type="button" class="link">Editar</button></div></div></details></div><div class="input"><span class="v num">4.200</span><span class="u">$</span></div><span class=hint>Vacío = no lo sé · 0 = no hay</span></div>
+    <div class="field "><div class="flabel">Carga y descarga</div><div class="input"><span class="v num">60</span><span class="u">min</span></div></div>
+    <div class="field "><div class="flabel">Ayudantes</div><div class="input"><span class="v num">1</span><span class="u"></span></div></div>
+    <div class="field "><div class="flabel">Pago por ayudante</div><div class="input"><span class="v num">15.000</span><span class="u">$</span></div></div>
+    <div class="field "><div class="flabel">Desgaste del vehículo <details class="chip c-veh"><summary aria-label="Procedencia: Tu vehículo. Ver detalle">Tu vehículo</summary><div class="pop r" role="dialog" aria-label="Procedencia del dato"><b>Copiado de tu vehículo</b><dl><dt>Clase</dt><dd>declarado</dd><dt>Fuente</dt><dd>«Furgón ficticio»</dd><dt>Fecha</dt><dd>12-11-2026</dd><dt>Precisión</dt><dd>valor único, sin rango ni calibración</dd></dl><div class="acts"><button type="button" class="link">Editar</button><button type="button" class="link">No incluir en esta cotización</button></div></div></details></div><div class="input"><span class="v num">31</span><span class="u">$/km</span></div><span class=hint>Neumáticos, aceite, mantenciones</span></div>
+    <div class="field "><div class="flabel">Otros gastos <details class="chip c-ini"><summary aria-label="Procedencia: Sin cambiar. Ver detalle">Sin cambiar</summary><div class="pop r" role="dialog" aria-label="Procedencia del dato"><b>Valor inicial del formulario</b><dl><dt>Clase</dt><dd>declarado</dd><dt>Fuente</dt><dd>valor inicial aceptado (0)</dd><dt>Fecha</dt><dd>se registra al emitir</dd><dt>Si no lo sabes</dt><dd>este campo no admite «sin dato» (B-5)</dd></dl><div class="acts"><button type="button" class="link">Editar</button></div></div></details></div><div class="input"><span class="v num">0</span><span class="u">$</span></div><span class=hint>Estacionamiento, materiales; no peajes</span></div>
+    <div class="field full"><div class="flabel">Lo que quieres ganar por tu trabajo</div><div class="input"><span class="v num">6.000</span><span class="u">$/h</span></div><span class=hint>Es tu meta, no un gasto</span></div>
+  </div>
+  <div class="hidden-line only-simp"><span>Gastos fijos: no se suman en la simplificada. Se conservan si ya los ingresaste.</span><details class="chip c-exc"><summary aria-label="Procedencia: No se suma. Ver detalle">No se suma</summary><div class="pop r" role="dialog" aria-label="Procedencia del dato"><b>Excluido por la modalidad</b><dl><dt>Estado</dt><dd>excluido por modalidad</dd><dt>Valor</dt><dd>se conserva oculto; no se borra</dd><dt>Para sumarlo</dt><dd>cambia a Detallada</dd></dl><div class="acts"><button type="button" class="link">Cambiar a Detallada</button></div></div></details></div>
+</div>
+<div class="card only-det">
+  <h2>Costos de tu negocio</h2>
+  <div class="grid2">
+    <div class="field full"><div class="flabel">Gastos fijos por hora</div><div class="input"><span class="v num">1.500</span><span class="u">$/h</span></div><span class=hint>Ya repartidos por tus horas con clientes</span></div>
+  </div>
+  <h3>¿Qué incluye ese valor? (no suma nada; evita contar dos veces)</h3>
+  <div class="chk"><span class="on">Seguro</span><span class="on">SOAP</span><span class="on">Permiso de circulación</span><span class="on">Revisión técnica</span><span class="on">Depreciación</span><span>Sueldo fijo de conductor</span><span>Mantenciones</span></div>
+  <h3>El desgaste por km incluye</h3>
+  <div class="chk"><span class="on">Neumáticos</span><span class="on">Aceite</span><span class="on">Mantenciones</span><span>Reparaciones</span></div>
+  <div class="blocked"><strong>Próximamente, requiere autorización (B-1, B-2, B-3):</strong> calcular el valor por hora desde tus gastos del año y tus horas productivas, el desgaste por componente y costos personalizados por km u hora.</div>
+</div></div>
+        <div class="dcol sticky">
+<div class="card">
+  <h2>Desglose</h2>
+  <span class="scope only-simp">Costo operativo: no incluye gastos fijos del negocio.</span>
+  <div class="ln"><span>Lo que pagas en el viaje<span class="sub"> · combustible, peajes, ayudante</span></span><span class="num">$24.223</span></div>
+  <div class="ln"><span>Desgaste del vehículo</span><span class="num">$1.779</span></div>
+  <div class="ln only-det"><span>Parte de tus gastos fijos</span><span class="num">$3.350</span></div>
+  <div class="ln na only-simp"><span>Parte de tus gastos fijos</span><span class="num">No se suma en la simplificada</span></div>
+  <div class="ln"><span>Lo que quieres ganar por tu trabajo<span class="sub"> · tu meta</span></span><span class="num">$13.400</span></div>
+  <div class="ln strong only-simp"><span>Costo operativo del viaje</span><span class="num">$39.402</span></div>
+  <div class="ln strong only-det"><span>Costo del viaje</span><span class="num">$42.752</span></div>
+  
+  <details class="cov">
+    <summary><span><strong>Datos:</strong> <span class="only-simp">5 tuyos</span><span class="only-det">6 tuyos</span> · 2 de tu vehículo · 1 ejemplo · 1 sin cambiar<span class="only-simp"> · gastos fijos no se suman</span></span></summary>
+    <div class="bar" aria-hidden="true"><i class="b-tu" style="width:55%"></i><i class="b-veh" style="width:22%"></i><i class="b-ej" style="width:11%"></i><i class="b-ini" style="width:12%"></i></div>
+    <div class="covlist">
+      <span>Combustible</span><span class="s">rendimiento de tu vehículo · precio tuyo</span>
+      <span>Peajes y TAG</span><span class="s">ejemplo ficticio</span>
+      <span>Ayudante</span><span class="s">tuyo</span>
+      <span>Otros gastos</span><span class="s">sin cambiar (0)</span>
+      <span>Desgaste</span><span class="s">de tu vehículo</span>
+      <span>Gastos fijos</span><span class="s"><span class="only-simp">no se suma (simplificada)</span><span class="only-det">tuyo</span></span>
+      <span>Tu remuneración</span><span class="s">tuya</span>
+    </div>
+    <p class="warn">Incluye un valor de ejemplo ficticio (peajes). Revísalo antes de cotizar.</p>
+    <p class="note">Precisión disponible: valores únicos declarados, sin rango ni calibración.</p>
+  </details>
+</div>
+<div class="card">
+  <h2>Tu precio</h2>
+  <span class="hint">Margen objetivo (% del precio de venta)</span>
+  <div class="segs"><span>10 %</span><span class="on">15 %</span><span>20 %</span><span>Otro</span></div>
+  <div class="sugg"><span>Precio sugerido</span><span class="big num only-simp">$47.000</span><span class="big num only-det">$51.000</span></div>
+  <div class="field"><div class="flabel">Precio que vas a cobrar</div><div class="input"><span class="v num">55.000</span><span class="u">$</span></div></div>
+</div>
+<div class="card">
+  <h2>Con tu precio de $55.000</h2>
+  <div class="ln"><span>Te queda después de pagar el viaje</span><span class="num">$30.777</span></div>
+  <div class="ln key"><span class="lbl">Te queda para tu trabajo y tus gastos fijos<span class="formal">Excedente operativo · P − desembolsos − desgaste</span></span><span class="num">$28.998</span></div>
+  <div class="ln only-simp"><span class="lbl">Sobre lo que querías ganar · sin gastos fijos<span class="formal">Alcance operativo</span></span><span class="num">+$15.598</span></div>
+  <div class="ln only-det"><span>Te queda después de todos los costos</span><span class="num">$25.648</span></div>
+  <div class="ln key only-det"><span class="lbl">Resultado después de todos los costos y tu meta<span class="formal">Utilidad económica integral</span></span><span class="num">+$12.248</span></div>
+  <div class="ln na only-simp"><span class="lbl">Resultado después de todos los costos y tu meta<span class="formal">Utilidad económica integral</span></span><span class="num">No calculada: requiere la modalidad detallada</span></div>
+  <p class="note">Montos estimados con tus datos. No es dinero cobrado ni una ganancia asegurada.</p>
+  <div class="btn">Crear cotización</div>
+</div></div>
+      </div>
+    </div>
+  </div>
+  </div>
+</figure>
+  </div>
+  
+<section class="legend-wrap" aria-label="Leyenda">
+  <div class="card">
+    <h2>(d) Estados por partida</h2>
+    <table class="st">
+      <tr><td><strong>Incluido</strong></td><td>Monto conocido; suma. Chip solo si no lo escribiste tú.</td></tr>
+      <tr><td><strong>$0 · declarado</strong></td><td>Escribiste 0 (p. ej., «no hay peajes»). Total completo.</td></tr>
+      <tr><td><strong>No aplica</strong></td><td>0 por estructura (0 ayudantes) o valor inicial aceptado.</td></tr>
+      <tr><td><details class="chip c-sin"><summary aria-label="Procedencia: Sin dato. Ver detalle">Sin dato</summary><div class="pop" role="dialog" aria-label="Procedencia del dato"><b>Dato faltante</b><dl><dt>Clase</dt><dd>faltante</dd><dt>Efecto</dt><dd>costo parcial: «$X o más»</dd><dt>Nunca</dt><dd>se reemplaza por 0</dd></dl><div class="acts"><button type="button" class="link">Editar</button></div></div></details></td><td>Desconocido: el costo pasa a «Costo parcial» (cota inferior) y lo que queda es «como máximo».</td></tr>
+      <tr><td><details class="chip c-exc"><summary aria-label="Procedencia: No se suma. Ver detalle">No se suma</summary><div class="pop" role="dialog" aria-label="Procedencia del dato"><b>Excluido por la modalidad</b><dl><dt>Estado</dt><dd>excluido por modalidad</dd><dt>Valor</dt><dd>se conserva oculto</dd></dl><div class="acts"><button type="button" class="link">Cambiar a Detallada</button></div></div></details></td><td>Excluido por modalidad (gastos fijos en Simplificada). No es faltante ni cero: cambia el alcance.</td></tr>
+      <tr><td><strong>No incluido por ti</strong></td><td>Excluiste desgaste o gastos fijos en esta cotización; se ve en la cobertura.</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h2>(e) Indicador de procedencia</h2>
+    <p class="note" style="margin-top:0">Aparece solo si el valor <strong>no</strong> lo escribiste tú. Toca un chip para ver el detalle.</p>
+    <table class="st">
+      <tr><td><details class="chip c-veh"><summary aria-label="Procedencia: Tu vehículo. Ver detalle">Tu vehículo</summary><div class="pop" role="dialog" aria-label="Procedencia del dato"><b>Copiado de tu vehículo</b><dl><dt>Clase</dt><dd>declarado</dd><dt>Fuente</dt><dd>«Furgón ficticio»</dd><dt>Fecha</dt><dd>12-11-2026 (última edición del perfil)</dd><dt>Precisión</dt><dd>valor único, sin rango ni calibración</dd></dl><div class="acts"><button type="button" class="link">Editar</button></div></div></details></td><td>Copiado de «Mi vehículo», con la fecha de la última edición del perfil.</td></tr>
+      <tr><td><details class="chip c-ej"><summary aria-label="Procedencia: Ejemplo. Ver detalle">Ejemplo</summary><div class="pop" role="dialog" aria-label="Procedencia del dato"><b>Valor de ejemplo ficticio</b><dl><dt>Clase</dt><dd>simulado</dd><dt>Fuente</dt><dd>«Cargar ejemplo ficticio»</dd><dt>Fecha</dt><dd>no aplica</dd><dt>Aviso</dt><dd>no es una tarifa real; revísalo</dd></dl><div class="acts"><button type="button" class="link">Editar</button></div></div></details></td><td>«Cargar ejemplo ficticio» sin editar después. Desaparece al escribir.</td></tr>
+      <tr><td><details class="chip c-ini"><summary aria-label="Procedencia: Sin cambiar. Ver detalle">Sin cambiar</summary><div class="pop" role="dialog" aria-label="Procedencia del dato"><b>Valor inicial</b><dl><dt>Clase</dt><dd>declarado</dd><dt>Fuente</dt><dd>valor inicial aceptado</dd></dl><div class="acts"><button type="button" class="link">Editar</button></div></div></details></td><td>Valor con que parte el formulario, aceptado sin cambiarlo.</td></tr>
+      <tr><td><details class="chip c-med"><summary aria-label="Procedencia: Medido. Ver detalle">Medido</summary><div class="pop" role="dialog" aria-label="Procedencia del dato"><b>Medido (futuro, 0B)</b><dl><dt>Clase</dt><dd>medido</dd><dt>Fuente</dt><dd>herramienta de medición</dd><dt>Precisión</dt><dd>según #12; pendiente</dd></dl><div class="acts"><button type="button" class="link">Editar</button></div></div></details></td><td>Futuro: medición 0B; también «Comprobado» y «Referencia · fecha».</td></tr>
+      <tr><td><em>(sin chip)</em></td><td>Escrito por ti: el caso más común, sin ruido visual.</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h2>Mismas cifras, distinto estado (GM-1 frente a GM-2)</h2>
+    <div class="ln"><span>Simplificada (gastos fijos excluidos)</span><span class="num">$39.402</span></div>
+    <div class="ln"><span>Detallada con gastos fijos sin dato</span><span class="num">$39.402 o más</span></div>
+    <div class="ln"><span>Precio sugerido</span><span class="num">$47.000 · «al menos $47.000»</span></div>
+    <div class="ln"><span>Excedente operativo</span><span class="num">$28.998 · «como máximo $28.998»</span></div>
+    <p class="note">Excluir no es faltar: la simplificada es completa en su alcance; la detallada sin dato es una cota.</p>
+  </div>
+</section>
+</main>
+<script>
+(function(){
+  function sync(frame){
+    var m = frame.getAttribute('data-mod');
+    frame.querySelectorAll('.seg button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-set') === m)); });
+  }
+  document.querySelectorAll('[data-mod]').forEach(function(f){
+    sync(f);
+    f.addEventListener('click', function(e){
+      var b = e.target.closest('.seg button');
+      if (!b) return;
+      f.setAttribute('data-mod', b.getAttribute('data-set'));
+      sync(f);
+    });
+  });
+  var vb = document.querySelectorAll('.views button');
+  vb.forEach(function(b){
+    b.addEventListener('click', function(){
+      document.body.setAttribute('data-view', b.getAttribute('data-view'));
+      vb.forEach(function(x){ x.setAttribute('aria-pressed', String(x === b)); });
+    });
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') document.querySelectorAll('details.chip[open]').forEach(function(d){ d.removeAttribute('open'); });
+  });
+})();
+</script>
+</body>
+</html>
